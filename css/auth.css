@@ -22,11 +22,13 @@
   flex: 0 0 62%;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
   padding: var(--space-2xl) var(--space-2xl);
   background: var(--white);
   position: relative;
   z-index: 1;
+  text-align: center;
 }
 
 .auth-side-panel {
@@ -89,15 +91,16 @@
   pointer-events: none;
 }
 
-/* ---------- Auth Logo (top-left of form panel) ---------- */
+/* ---------- Auth Logo (centered above form) ---------- */
 .auth-logo {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: var(--space-sm);
   margin-bottom: var(--space-2xl);
 }
 .auth-logo img {
-  width: 38px; height: 38px;
+  width: 150px; height: 150px;
   object-fit: contain;
 }
 .auth-logo-text {
@@ -117,6 +120,21 @@
   color: var(--clap-teal);
   margin-bottom: var(--space-xl);
   line-height: 1.2;
+  text-align: center;
+  width: 100%;
+}
+
+/* ---------- Auth Form Inner Width Limiter ---------- */
+#signup-form,
+#signin-form,
+#forgot-form,
+#reset-form,
+.auth-fields,
+.social-btns,
+.social-divider,
+.forgot-link {
+  width: 100%;
+  max-width: 400px;
 }
 
 /* ---------- Social Sign-in Buttons ---------- */
@@ -124,6 +142,8 @@
   display: flex;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  justify-content: center;
+  align-items: center;
 }
 .social-btn {
   width: 48px; height: 48px;
@@ -160,6 +180,7 @@
   color: var(--text-muted);
   font-size: 0.82rem;
   font-weight: 600;
+  text-align: center;
 }
 .social-divider::before,
 .social-divider::after {
@@ -185,13 +206,26 @@
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--text-secondary);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
   transition: color var(--transition);
   margin-top: -8px;
   cursor: pointer;
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  box-shadow: none;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
 }
-.forgot-link:hover { color: var(--clap-teal); }
+.forgot-link:hover { color: var(--clap-teal); text-decoration: underline; text-underline-offset: 2px; }
+.forgot-link:focus { outline: none; box-shadow: none; border: none; }
+.forgot-link:focus-visible {
+  color: var(--clap-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 
 /* ---------- Side Panel Content ---------- */
 .side-panel-title {
