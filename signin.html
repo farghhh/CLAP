@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAP — Sign In</title>
+  <meta name="description" content="Sign in to CLAP — Cognitive Load-Based Academic Adaptive Performance" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+
+<div id="page-loader" role="status" aria-label="Loading">
+  <div class="loader-logo">
+    <div class="loader-spinner"></div>
+    <span>CLAP</span>
+  </div>
+</div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<main class="auth-page" id="signin-page">
+  <div class="auth-split">
+
+    <!-- LEFT: Sign In Form -->
+    <section class="auth-form-panel" aria-label="Sign in form">
+      <div class="auth-logo" aria-label="CLAP Logo">
+        <div class="auth-logo-text">
+          <span class="cl">CL</span><span class="ap">AP</span>
+        </div>
+      </div>
+
+      <h1 class="auth-form-title">Sign in to CLAP</h1>
+
+      <!-- Social sign-in -->
+      <div class="social-btns" role="group" aria-label="Sign in with social accounts">
+        <button class="social-btn" aria-label="Sign in with Facebook" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">f</button>
+        <button class="social-btn" aria-label="Sign in with Google" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">G+</button>
+        <button class="social-btn" aria-label="Sign in with LinkedIn" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">in</button>
+      </div>
+
+      <div class="social-divider" role="separator">or use your email account:</div>
+
+      <!-- Sign In Form -->
+      <form id="signin-form" novalidate autocomplete="on">
+        <div class="auth-fields">
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label sr-only" for="signin-email">Email</label>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m2 7 10 7 10-7"/>
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="signin-email"
+                class="form-input"
+                placeholder="Email"
+                autocomplete="email"
+                aria-required="true"
+                aria-describedby="signin-email-error"
+                maxlength="254"
+              />
+            </div>
+            <span class="field-error" id="signin-email-error" role="alert"></span>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label sr-only" for="signin-password">Password</label>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="signin-password"
+                class="form-input"
+                placeholder="Password"
+                autocomplete="current-password"
+                aria-required="true"
+                aria-describedby="signin-password-error"
+                maxlength="128"
+              />
+              <button type="button" class="pw-toggle" id="signin-pw-toggle" aria-label="Show password">👁</button>
+            </div>
+            <span class="field-error" id="signin-password-error" role="alert"></span>
+          </div>
+
+          <!-- Forgot password -->
+          <button type="button" class="forgot-link"
+                  onclick="window.location.href='forgot-password.html'"
+                  aria-label="Go to forgot password page">
+            Forgot your password?
+          </button>
+
+        </div><!-- /.auth-fields -->
+
+        <button type="submit" class="btn btn-primary btn-full" id="signin-btn">
+          SIGN IN
+        </button>
+        <span class="sr-only" id="signin-status" aria-live="polite"></span>
+      </form>
+    </section>
+
+    <!-- RIGHT: Teal Panel -->
+    <aside class="auth-side-panel teal-bg" aria-label="Create account prompt">
+      <div class="geo-tri-1" aria-hidden="true"></div>
+      <div class="geo-tri-2" aria-hidden="true"></div>
+      <div class="geo-rect"  aria-hidden="true"></div>
+
+      <h2 class="side-panel-title">Hello, Friend!</h2>
+      <p class="side-panel-sub">Enter your personal details and start your journey with us.</p>
+      <button
+        type="button"
+        class="btn btn-outline"
+        onclick="window.location.href='signup.html'"
+        aria-label="Go to sign up page">
+        SIGN UP
+      </button>
+    </aside>
+
+  </div>
+</main>
+
+<script src="js/core.js"></script>
+<script>
+(function() {
+  CLAP.Auth.requireGuest();
+
+  const form      = document.getElementById('signin-form');
+  const emailInp  = document.getElementById('signin-email');
+  const pwInp     = document.getElementById('signin-password');
+  const pwToggle  = document.getElementById('signin-pw-toggle');
+  const submitBtn = document.getElementById('signin-btn');
+  const statusEl  = document.getElementById('signin-status');
+
+  CLAP.initPwToggle(pwToggle, pwInp);
+
+  const { Validate } = CLAP;
+  Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
+  Validate.attachLive(pwInp,    [Validate.rules.required]);
+
+  /* Track failed attempts for rate-limit feedback */
+  let failedAttempts = 0;
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const valid = Validate.form([
+      { input: emailInp, rules: [Validate.rules.required, Validate.rules.email] },
+      { input: pwInp,    rules: [Validate.rules.required] },
+    ]);
+    if (!valid) return;
+
+    /* Soft rate limiting: warn after 5 fails */
+    if (failedAttempts >= 5) {
+      CLAP.Toast.warning('Too many failed attempts. Please wait a moment before trying again.');
+      return;
+    }
+
+    submitBtn.classList.add('loading');
+    submitBtn.disabled = true;
+    statusEl.textContent = 'Signing in…';
+
+    try {
+      const data = await CLAP.API.post('/auth/login/', {
+        email:    emailInp.value.trim().toLowerCase(),
+        password: pwInp.value,
+      }, { auth: false });
+
+      CLAP.Auth.setTokens(data.access, data.refresh);
+      CLAP.Auth.setUser(data.user || { email: emailInp.value.trim() });
+
+      statusEl.textContent = 'Signed in. Redirecting…';
+      CLAP.Toast.success('Welcome back!');
+
+      /* If new user hasn't completed onboarding */
+      const dest = (data.user && data.user.onboarding_complete === false)
+        ? 'onboarding.html'
+        : 'dashboard.html';
+
+      setTimeout(() => { window.location.href = dest; }, 800);
+
+    } catch (err) {
+      failedAttempts++;
+      statusEl.textContent = 'Sign in failed.';
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+
+      if (err.status === 401) {
+        CLAP.Toast.error('Incorrect email or password.');
+        Validate.setError(pwInp, 'Incorrect email or password.');
+      } else if (err.status === 0) {
+        CLAP.Toast.error('Cannot connect to server. Check your internet connection.');
+      } else {
+        CLAP.Toast.error(err.message);
+      }
+    }
+  });
+
+  CLAP.hideLoader();
+})();
+</script>
+</body>
+</html>
