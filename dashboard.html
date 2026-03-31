@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAP — Dashboard</title>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/app.css" />
+  <!-- Chart.js for cognitive load graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<span>CLAP</span></div>
+</div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Mobile toggle -->
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+  &#9776;
+</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop" role="presentation"></div>
+
+<div class="app-layout">
+  <!-- Sidebar (injected by AppShell) -->
+  <aside id="sidebar" class="sidebar" aria-label="Main navigation"></aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="main" aria-label="Dashboard" tabindex="-1">
+
+    <!-- Top Bar -->
+    <header id="topbar" class="topbar" role="banner"></header>
+
+    <!-- ===== STATS ROW ===== -->
+    <div class="dashboard-stats" role="region" aria-label="Dashboard statistics">
+
+      <!-- Total Tasks -->
+      <div class="stat-card" aria-label="Total tasks">
+        <span class="stat-label">Total Tasks</span>
+        <span class="stat-value" id="stat-total-tasks" aria-live="polite">—</span>
+        <span class="stat-sub">assignments</span>
+      </div>
+
+      <!-- Cognitive Load -->
+      <div class="stat-card" aria-label="Cognitive load">
+        <span class="stat-label">Cognitive Load</span>
+        <div class="cognitive-load-mini">
+          <span class="cog-load-value" id="stat-cog-load" aria-live="polite">—%</span>
+          <span id="cog-load-badge" class="load-badge moderate" aria-live="polite">Moderate</span>
+        </div>
+      </div>
+
+      <!-- Focus Hours Today -->
+      <div class="stat-card-focus" aria-label="Focus hours today">
+        <span class="focus-label">Focus Hours</span>
+        <span class="focus-label" style="opacity:.7;font-size:.65rem;">Today</span>
+        <div class="focus-clock-icon" aria-hidden="true">⏱</div>
+        <span class="focus-value" id="stat-focus-hours" aria-live="polite">— / — Hrs</span>
+      </div>
+
+    </div>
+
+    <!-- Next Deadline Banner -->
+    <div id="next-deadline-banner" class="deadline-banner" role="alert" aria-live="polite">
+      <div class="deadline-course-icon" aria-hidden="true">📚</div>
+      <div class="deadline-info">
+        <div class="deadline-label" id="deadline-course">Loading…</div>
+        <div class="deadline-title" id="deadline-title">—</div>
+      </div>
+      <span class="deadline-badge urgent" id="deadline-badge">—</span>
+    </div>
+
+    <!-- ===== MAIN GRID ===== -->
+    <div class="dashboard-grid">
+
+      <!-- LEFT: Schedule + Stress Analytics -->
+      <div class="dashboard-main">
+
+        <!-- AI Study Plan -->
+        <section class="schedule-card" aria-label="AI Generated Study Plan">
+          <div class="section-header">
+            <h2 class="section-title">AI Generated Study Plan</h2>
+            <button class="section-link" onclick="window.location.href='schedule.html'"
+                    aria-label="View full schedule">View full schedule</button>
+          </div>
+          <div class="timetable-wrap" role="region" aria-label="Weekly schedule" tabindex="0">
+            <table class="timetable" id="dashboard-timetable" aria-label="Study schedule">
+              <thead>
+                <tr>
+                  <th scope="col">Time / Day</th>
+                  <th scope="col">Monday</th>
+                  <th scope="col">Tuesday</th>
+                  <th scope="col">Wednesday</th>
+                  <th scope="col">Thursday</th>
+                  <th scope="col">Friday</th>
+                </tr>
+              </thead>
+              <tbody id="timetable-body">
+                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">
+                  Loading schedule…
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Cognitive Load Trend -->
+        <section class="graph-card" aria-label="Cognitive load trend graph">
+          <div class="section-header">
+            <h2 class="section-title">Cognitive Load Trend Graph</h2>
+          </div>
+          <div class="graph-canvas-wrap">
+            <canvas id="cogload-chart" role="img" aria-label="Cognitive load trend chart"></canvas>
+          </div>
+        </section>
+
+        <!-- CLAP Smart Recommendation -->
+        <section id="recommendation-section" class="recommendation-card" aria-label="CLAP Smart Recommendation" aria-live="polite">
+          <div class="rec-header">
+            <span aria-hidden="true">🧠</span> CLAP Smart Recommendation
+          </div>
+          <div class="rec-alert">
+            <div class="rec-alert-text">
+              <span aria-hidden="true">⚠️</span>
+              <span id="rec-alert-text">Analysing your schedule…</span>
+            </div>
+          </div>
+          <div class="rec-suggestion" id="rec-suggestion"></div>
+          <div class="rec-reduction" id="rec-reduction"></div>
+          <div class="rec-generated">
+            <span aria-hidden="true">✨</span> Generated by CLAP
+          </div>
+        </section>
+
+      </div><!-- /.dashboard-main -->
+
+      <!-- RIGHT: Calendar + Todo -->
+      <aside class="dashboard-right" aria-label="Sidebar widgets">
+
+        <!-- Mini Calendar -->
+        <section class="calendar-card" aria-label="Calendar">
+          <div class="section-header">
+            <h2 class="section-title" id="calendar-date-display">—</h2>
+          </div>
+          <div id="mini-calendar"></div>
+        </section>
+
+        <!-- Today's Must-Do List -->
+        <section class="todo-card" aria-label="Today's must-do list">
+          <div class="section-header">
+            <h2 class="section-title">Today Must-Do List</h2>
+          </div>
+          <div id="todo-list" class="todo-list" role="list" aria-live="polite">
+            <p style="color:var(--text-muted);font-size:.82rem">Loading tasks…</p>
+          </div>
+        </section>
+
+      </aside>
+
+    </div><!-- /.dashboard-grid -->
+
+  </main>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/app-shell.js"></script>
+<script>
+(function() {
+  AppShell.init('dashboard.html');
+
+  /* ---- Date Display ---- */
+  const now = new Date();
+  const dateOpts = { month: 'long', day: 'numeric', weekday: 'long' };
+  document.getElementById('calendar-date-display').textContent =
+    now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long' });
+
+  /* ---- Load Dashboard Data ---- */
+  async function loadDashboard() {
+    try {
+      /* Try real API first, fall back to mock */
+      let data;
+      try {
+        data = await CLAP.API.get('/dashboard/');
+      } catch {
+        data = buildMockDashboard();
+      }
+
+      renderStats(data);
+      renderDeadline(data.next_deadline);
+      renderTimetable(data.schedule);
+      renderCogLoadChart(data.stress_history);
+      renderRecommendation(data.recommendation);
+      renderTodoList(data.today_tasks);
+
+    } catch (err) {
+      CLAP.Toast.error('Failed to load dashboard data.');
+      console.error(err);
+    }
+  }
+
+  function buildMockDashboard() {
+    const { MockData } = CLAP;
+    return {
+      total_tasks:    MockData.assignments.length,
+      cognitive_load: MockData.cognitiveLoad,
+      focus: { used: 3, max: 6 },
+      next_deadline: { course: 'CSC2383', title: 'Database Project', days_left: 2 },
+      schedule:       MockData.schedule,
+      stress_history: MockData.stressHistory,
+      recommendation: {
+        alert: 'Thursday exceeds safe cognitive load.',
+        suggestion: 'Move "Parallel Computing Assignment" to Friday 14:00.',
+        reduction: 22,
+      },
+      today_tasks: [
+        { id: 1, title: 'Database Project',       time: '09:00 AM - 10:00 AM', color: 'orange', done: false },
+        { id: 2, title: 'Parallel Computing',      time: '11:00 AM - 12:30 PM', color: 'blue',   done: false },
+        { id: 3, title: 'Mobile Application',      time: '15:00 PM - 16:00 PM', color: 'red',    done: false },
+      ],
+    };
+  }
+
+  function renderStats(data) {
+    document.getElementById('stat-total-tasks').textContent = data.total_tasks ?? '—';
+
+    const loadEl    = document.getElementById('stat-cog-load');
+    const badgeEl   = document.getElementById('cog-load-badge');
+    const cog       = data.cognitive_load || {};
+    const pct       = cog.value ?? '—';
+    const level     = (cog.level || 'moderate').toLowerCase();
+
+    loadEl.textContent  = pct !== '—' ? `${pct}%` : '—';
+    badgeEl.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+    badgeEl.className   = `load-badge ${level}`;
+
+    const focus = data.focus || {};
+    document.getElementById('stat-focus-hours').textContent =
+      `${focus.used ?? '—'} / ${focus.max ?? '—'} Hrs`;
+  }
+
+  function renderDeadline(dl) {
+    if (!dl) { document.getElementById('next-deadline-banner').style.display = 'none'; return; }
+    document.getElementById('deadline-course').textContent = dl.course || '';
+    document.getElementById('deadline-title').textContent  = dl.title  || '';
+    const badge = document.getElementById('deadline-badge');
+    const days  = dl.days_left;
+    if (days <= 1) { badge.textContent = 'Due Today!';        badge.className = 'deadline-badge urgent'; }
+    else if (days <= 3) { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge urgent'; }
+    else if (days <= 7) { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge warning'; }
+    else { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge normal'; }
+  }
+
+  function renderTimetable(schedule) {
+    if (!schedule) return;
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
+    const body  = document.getElementById('timetable-body');
+
+    /* Build slot map: day → time → task */
+    const slotMap = {};
+    days.forEach(d => { slotMap[d] = {}; });
+    Object.entries(schedule).forEach(([day, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach(t => { if (slotMap[day]) slotMap[day][t.time] = t; });
+    });
+
+    let html = '';
+    times.forEach(time => {
+      html += `<tr><td>${time}</td>`;
+      days.forEach(day => {
+        const task = slotMap[day][time];
+        if (task) {
+          html += `<td><div class="task-block ${task.color || 'blue'}"
+                            tabindex="0"
+                            role="button"
+                            aria-label="${task.title} at ${time} on ${day}">${task.title}</div></td>`;
+        } else {
+          html += '<td></td>';
+        }
+      });
+      html += '</tr>';
+    });
+
+    /* Recovery row */
+    html += `<tr class="recovery-row">
+      <td>Rest</td>
+      <td colspan="5" aria-label="Recovery and rest period">R E C O V E R Y / R E S T</td>
+    </tr>`;
+
+    body.innerHTML = html;
+  }
+
+  let chartInstance = null;
+  function renderCogLoadChart(stressHistory) {
+    const canvas = document.getElementById('cogload-chart');
+    if (!canvas || !stressHistory) return;
+    const ctx    = canvas.getContext('2d');
+    const labels = Object.keys(stressHistory);
+    const values = Object.values(stressHistory);
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Workload (%)',
+          data: values,
+          borderColor: '#4BBFBF',
+          backgroundColor: 'rgba(75,191,191,0.08)',
+          pointBackgroundColor: values.map(v => v > 80 ? '#E74C3C' : '#4BBFBF'),
+          pointBorderColor: '#fff',
+          pointRadius: 6,
+          pointHoverRadius: 8,
+          borderWidth: 2.5,
+          tension: 0.35,
+          fill: true,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `Workload: ${ctx.parsed.y}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: '#7FA8B5', font: { family: "'Nunito',sans-serif", weight: '700' } },
+          },
+          y: {
+            min: 0, max: 100,
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              color: '#7FA8B5',
+              font: { family: "'Nunito',sans-serif" },
+              callback: v => `${v}%`,
+            },
+          },
+        },
+        /* Draw burnout threshold line */
+        plugins: {
+          legend: { display: false },
+          annotation: undefined,
+        },
+      },
+      plugins: [{
+        id: 'burnoutLine',
+        afterDraw(chart) {
+          const { ctx, chartArea, scales } = chart;
+          const y = scales.y.getPixelForValue(80);
+          ctx.save();
+          ctx.setLineDash([8, 4]);
+          ctx.strokeStyle = 'rgba(231,76,60,0.5)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(chartArea.left, y);
+          ctx.lineTo(chartArea.right, y);
+          ctx.stroke();
+          ctx.restore();
+        },
+      }],
+    });
+  }
+
+  function renderRecommendation(rec) {
+    if (!rec) { document.getElementById('recommendation-section').style.display='none'; return; }
+    document.getElementById('rec-alert-text').textContent  = rec.alert || '';
+    document.getElementById('rec-suggestion').innerHTML    = rec.suggestion
+      ? `Suggested change: <strong>${rec.suggestion}</strong>` : '';
+    document.getElementById('rec-reduction').textContent   = rec.reduction
+      ? `Estimated stress reduction: ${rec.reduction}%` : '';
+  }
+
+  function renderTodoList(tasks) {
+    const list = document.getElementById('todo-list');
+    if (!tasks || tasks.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center">🎉 No tasks scheduled for today!</p>';
+      return;
+    }
+
+    list.innerHTML = tasks.map(task => `
+      <div class="todo-item ${task.done ? 'completed' : ''}"
+           id="todo-${task.id}"
+           role="listitem"
+           aria-label="${task.title}">
+        <div class="todo-item-color ${task.color}" aria-hidden="true"
+             style="background:var(--assign-${task.color || 'blue'})">
+          ${task.title.charAt(0)}
+        </div>
+        <div class="todo-item-info">
+          <div class="todo-item-title">${escHtml(task.title)}</div>
+          <div class="todo-item-time">${escHtml(task.time)}</div>
+        </div>
+        <div class="todo-item-actions" role="group" aria-label="Task actions">
+          <button class="todo-action-btn check"
+                  onclick="markTask(${task.id}, true)"
+                  aria-label="Mark ${task.title} as complete"
+                  title="Complete">✓</button>
+          <button class="todo-action-btn skip"
+                  onclick="markTask(${task.id}, false)"
+                  aria-label="Skip ${task.title}"
+                  title="Skip">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  window.markTask = async function(id, completed) {
+    const el = document.getElementById(`todo-${id}`);
+    if (!el) return;
+
+    el.classList.toggle('completed', completed);
+    el.querySelector('.todo-item-title').style.textDecoration = completed ? 'line-through' : '';
+
+    try {
+      await CLAP.API.patch(`/tasks/${id}/`, { completed });
+      CLAP.Toast.success(completed ? 'Task completed! 🎉' : 'Task skipped.');
+
+      /* If skipped, trigger adaptive rescheduling notification */
+      if (!completed) {
+        CLAP.Toast.warning('CLAP is rescheduling your workload…', 3000);
+      }
+    } catch (err) {
+      CLAP.Toast.error('Failed to update task: ' + err.message);
+      el.classList.toggle('completed', !completed); /* revert */
+    }
+  };
+
+  function escHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  /* ---- Mini Calendar ---- */
+  CLAP.renderMiniCalendar('mini-calendar', {
+    '2026-03-22': 'has-event deadline',
+    '2026-03-25': 'has-event deadline',
+    '2026-03-31': 'has-event',
+  });
+
+  /* ---- Load it all ---- */
+  loadDashboard();
+})();
+</script>
+</body>
+</html>

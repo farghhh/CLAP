@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAP — Create Account</title>
+  <meta name="description" content="Sign up for CLAP — Cognitive Load-Based Academic Adaptive Performance" />
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader" role="status" aria-label="Loading">
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ========== SIGN UP PAGE ========== -->
+<main class="auth-page" id="signup-page">
+  <div class="auth-split">
+
+    <!-- LEFT: Form Panel -->
+    <section class="auth-form-panel" aria-label="Create account form">
+      <!-- Logo -->
+      <div class="auth-logo" aria-label="CLAP Logo">
+        <img src="assets/logo.png" alt="CLAP Logo"/>
+      </div>
+
+      <h1 class="auth-form-title">Create Account</h1>
+
+      <!-- Social sign-up buttons
+      <div class="social-btns" role="group" aria-label="Sign up with social accounts">
+        <button class="social-btn" aria-label="Sign up with Facebook" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">f</button>
+        <button class="social-btn" aria-label="Sign up with Google" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">G+</button>
+        <button class="social-btn" aria-label="Sign up with LinkedIn" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">in</button>
+      </div>
+
+      <div class="social-divider" role="separator">or use your email for registration:</div> -->
+
+      <!-- Sign Up Form -->
+      <form id="signup-form" novalidate autocomplete="off">
+        <div class="auth-fields">
+
+          <!-- Name -->
+          <div class="form-group">
+            <label class="form-label sr-only" for="signup-name">Full Name</label>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+              </span>
+              <input
+                type="text"
+                id="signup-name"
+                class="form-input"
+                placeholder="Name"
+                autocomplete="name"
+                aria-required="true"
+                aria-describedby="signup-name-error"
+                maxlength="80"
+              />
+            </div>
+            <span class="field-error" id="signup-name-error" role="alert"></span>
+          </div>
+
+          <!-- Email -->
+          <div class="form-group">
+            <label class="form-label sr-only" for="signup-email">Email</label>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="m2 7 10 7 10-7"/>
+                </svg>
+              </span>
+              <input
+                type="email"
+                id="signup-email"
+                class="form-input"
+                placeholder="Email"
+                autocomplete="email"
+                aria-required="true"
+                aria-describedby="signup-email-error"
+                maxlength="254"
+              />
+            </div>
+            <span class="field-error" id="signup-email-error" role="alert"></span>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label class="form-label sr-only" for="signup-password">Password</label>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="signup-password"
+                class="form-input"
+                placeholder="Password"
+                autocomplete="new-password"
+                aria-required="true"
+                aria-describedby="signup-password-error signup-pw-label"
+                maxlength="128"
+              />
+              <button type="button" class="pw-toggle" id="signup-pw-toggle" aria-label="Show password">👁</button>
+            </div>
+            <!-- Password strength -->
+            <div class="pw-strength" aria-live="polite">
+              <div class="pw-strength-bar" role="progressbar" aria-label="Password strength">
+                <div class="pw-strength-fill" id="signup-pw-bar"></div>
+              </div>
+              <span class="pw-strength-label" id="signup-pw-label"></span>
+            </div>
+            <span class="field-error" id="signup-password-error" role="alert"></span>
+          </div>
+
+        </div><!-- /.auth-fields -->
+
+        <!-- Submit -->
+        <button type="submit" class="btn btn-primary btn-full" id="signup-btn"
+                aria-describedby="signup-submit-status">
+          SIGN UP
+        </button>
+        <span class="sr-only" id="signup-submit-status" aria-live="polite"></span>
+
+      </form>
+    </section>
+
+    <!-- RIGHT: Teal Panel -->
+    <aside class="auth-side-panel teal-bg" aria-label="Sign in prompt">
+      <div class="geo-tri-1" aria-hidden="true"></div>
+      <div class="geo-tri-2" aria-hidden="true"></div>
+      <div class="geo-rect"  aria-hidden="true"></div>
+
+      <h2 class="side-panel-title">Welcome Back!</h2>
+      <p class="side-panel-sub">To keep connected with us please login with your personal info</p>
+      <button
+        type="button"
+        class="btn btn-outline"
+        onclick="window.location.href='signin.html'"
+        aria-label="Go to sign in page">
+        SIGN IN
+      </button>
+    </aside>
+
+  </div>
+</main>
+
+<script src="js/core.js"></script>
+<script>
+(function() {
+  /* Redirect if already logged in */
+  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
+
+  /* DOM refs */
+  const form      = document.getElementById('signup-form');
+  const nameInp   = document.getElementById('signup-name');
+  const emailInp  = document.getElementById('signup-email');
+  const pwInp     = document.getElementById('signup-password');
+  const pwToggle  = document.getElementById('signup-pw-toggle');
+  const pwBar     = document.getElementById('signup-pw-bar');
+  const pwLabel   = document.getElementById('signup-pw-label');
+  const submitBtn = document.getElementById('signup-btn');
+  const statusEl  = document.getElementById('signup-submit-status');
+
+  /* Init helpers */
+  CLAP.initPwToggle(pwToggle, pwInp);
+  CLAP.initPasswordStrength(pwInp, pwBar, pwLabel);
+
+  /* Live validation */
+  const { Validate } = CLAP;
+  Validate.attachLive(nameInp,  [Validate.rules.required, Validate.rules.minLen(2)]);
+  Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
+  Validate.attachLive(pwInp,    [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength]);
+
+  /* Form submit */
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const valid = Validate.form([
+      { input: nameInp,  rules: [Validate.rules.required, Validate.rules.minLen(2)] },
+      { input: emailInp, rules: [Validate.rules.required, Validate.rules.email] },
+      { input: pwInp,    rules: [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength] },
+    ]);
+    if (!valid) {
+      CLAP.Toast.error('Please fix the errors above.');
+      return;
+    }
+
+    submitBtn.classList.add('loading');
+    submitBtn.disabled = true;
+    statusEl.textContent = 'Creating your account…';
+
+    try {
+      const data = await CLAP.API.post('/auth/register/', {
+        name:     nameInp.value.trim(),
+        email:    emailInp.value.trim().toLowerCase(),
+        password: pwInp.value,
+      }, { auth: false });
+
+      CLAP.Auth.setTokens(data.access, data.refresh);
+      CLAP.Auth.setUser(data.user || { name: nameInp.value.trim(), email: emailInp.value.trim() });
+
+      CLAP.Toast.success('Account created! Setting up your routine…');
+      statusEl.textContent = 'Account created successfully.';
+
+      setTimeout(() => { window.location.href = 'onboarding.html'; }, 1200);
+
+    } catch (err) {
+      CLAP.Toast.error(err.message || 'Registration failed. Please try again.');
+      statusEl.textContent = 'Registration failed.';
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+
+      /* Highlight field if Django returned field-specific errors */
+      if (err.data) {
+        if (err.data.email) Validate.setError(emailInp, err.data.email[0]);
+        if (err.data.name)  Validate.setError(nameInp, err.data.name[0]);
+      }
+    }
+  });
+
+  CLAP.hideLoader();
+})();
+</script>
+</body>
+</html>
