@@ -350,7 +350,7 @@ function initPwToggle(toggleBtn, inputEl) {
   toggleBtn.addEventListener('click', () => {
     const show = inputEl.type === 'password';
     inputEl.type = show ? 'text' : 'password';
-    toggleBtn.innerHTML = show ? '🙈' : '👁';
+    toggleBtn.innerHTML = show ? '??' : '??';
     toggleBtn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
   });
 }
@@ -361,8 +361,10 @@ function initPwToggle(toggleBtn, inputEl) {
 function hideLoader() {
   const loader = document.getElementById('page-loader');
   if (loader) {
-    loader.classList.add('fade-out');
-    setTimeout(() => loader.remove(), 500);
+    setTimeout(() => {
+      loader.classList.add('fade-out');
+      setTimeout(() => loader.remove(), 600);
+    }, 1500);
   }
 }
 

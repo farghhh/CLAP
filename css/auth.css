@@ -91,19 +91,18 @@
   pointer-events: none;
 }
 
-/* ---------- Auth Logo (centered above form) ---------- */
+/* ---------- Auth Logo (top-left of form panel) ---------- */
 .auth-logo {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-1.5xl);
 }
 .auth-logo img {
-  width: 150px; height: 150px;
+  width: 200px; height: 200px;
   object-fit: contain;
 }
-.auth-logo-text {
+.auth-text {
   font-family: var(--font-heading);
   font-size: 1.4rem;
   font-weight: 800;
@@ -120,21 +119,6 @@
   color: var(--clap-teal);
   margin-bottom: var(--space-xl);
   line-height: 1.2;
-  text-align: center;
-  width: 100%;
-}
-
-/* ---------- Auth Form Inner Width Limiter ---------- */
-#signup-form,
-#signin-form,
-#forgot-form,
-#reset-form,
-.auth-fields,
-.social-btns,
-.social-divider,
-.forgot-link {
-  width: 100%;
-  max-width: 400px;
 }
 
 /* ---------- Social Sign-in Buttons ---------- */
@@ -180,7 +164,6 @@
   color: var(--text-muted);
   font-size: 0.82rem;
   font-weight: 600;
-  text-align: center;
 }
 .social-divider::before,
 .social-divider::after {
@@ -220,12 +203,7 @@
   width: 100%;
 }
 .forgot-link:hover { color: var(--clap-teal); text-decoration: underline; text-underline-offset: 2px; }
-.forgot-link:focus { outline: none; box-shadow: none; border: none; }
-.forgot-link:focus-visible {
-  color: var(--clap-teal);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
+.forgot-link:focus, .forgot-link:focus-visible { outline: none; box-shadow: none; border: none; }
 
 /* ---------- Side Panel Content ---------- */
 .side-panel-title {
@@ -298,7 +276,7 @@
   margin-bottom: var(--space-lg);
 }
 .auth-card .auth-card-logo img {
-  width: 70px; height: 70px;
+  width: 150px; height: 150px;
   object-fit: contain;
   margin: 0 auto;
 }
@@ -446,7 +424,7 @@
   margin-bottom: var(--space-xl);
 }
 .onboarding-logo img {
-  width: 72px; height: 72px;
+  width: 150px; height: 150px;
   object-fit: contain;
 }
 .onboarding-logo-text {
@@ -539,3 +517,11 @@
   .auth-form-title { font-size: 1.4rem; }
   .social-btns { justify-content: center; }
 }
+
+#signup-form, #signin-form, #forgot-form,
+.auth-fields, .social-btns, .social-divider, .forgot-link {
+  width: 100%;
+  max-width: 400px;
+}
+.auth-form-title { text-align: center; width: 100%; }
+.auth-logo { justify-content: center; }

@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAP — My Assignments</title>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+<span>CLAP</span></div>
+</div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop" role="presentation"></div>
+
+<div class="app-layout">
+  <aside id="sidebar" class="sidebar" aria-label="Main navigation"></aside>
+
+  <main class="main-content" id="main" aria-label="My Assignments" tabindex="-1">
+    <header id="topbar" class="topbar" role="banner"></header>
+
+    <!-- ===== ASSIGNMENTS HEADER ===== -->
+    <div class="assignments-header">
+      <h1 class="page-title">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
+        My Assignments
+      </h1>
+      <button class="btn btn-primary btn-sm" id="add-assign-btn" aria-label="Add new assignment">
+        + Add Assignment
+      </button>
+    </div>
+
+    <!-- ===== TAB BAR ===== -->
+    <div class="tab-bar" role="tablist" aria-label="Assignment views">
+      <button class="tab-btn active" role="tab" aria-selected="true"  id="tab-progress" data-tab="progress">Assignment Progress</button>
+      <button class="tab-btn"        role="tab" aria-selected="false" id="tab-all"      data-tab="all">All Assignments</button>
+    </div>
+
+    <!-- ===== TAB: PROGRESS VIEW ===== -->
+    <section id="view-progress" role="tabpanel" aria-labelledby="tab-progress">
+      <div class="assignments-progress-list" id="progress-list" aria-live="polite">
+        <p style="color:var(--text-muted);text-align:center;padding:20px">Loading…</p>
+      </div>
+      <!-- Legend -->
+      <div class="assign-legend" role="list" aria-label="Progress legend" style="padding:12px 4px">
+        <div class="legend-item" role="listitem">
+          <div class="legend-dot completed" aria-hidden="true"></div><span>Completed</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-dot not-started" aria-hidden="true"></div><span>Not Started Yet</span>
+        </div>
+        <div class="legend-item" role="listitem">
+          <div class="legend-dot in-progress" aria-hidden="true"></div><span>In Progress</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TAB: ALL ASSIGNMENTS TABLE ===== -->
+    <section id="view-all" role="tabpanel" aria-labelledby="tab-all" class="hidden">
+      <div class="assignments-table-wrap">
+        <table class="assignments-table" id="assignments-table" aria-label="All assignments">
+          <thead>
+            <tr>
+              <th scope="col">No.</th>
+              <th scope="col">Code</th>
+              <th scope="col">Assignment Title</th>
+              <th scope="col">Deadline</th>
+              <th scope="col">Hours</th>
+              <th scope="col">Difficulty</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assignments-table-body">
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== ADD ASSIGNMENT FORM (hidden by default) ===== -->
+    <section id="view-add" class="hidden" aria-label="Add assignment form">
+      <button class="back-btn" id="back-from-add" aria-label="Back to assignments">
+        &#8592; Back
+      </button>
+      <h2 class="page-title" style="margin-bottom:var(--space-lg)">Add Assignment</h2>
+
+      <div class="add-assignment-card">
+        <form id="add-assign-form" novalidate>
+          <div class="add-assign-fields">
+
+            <!-- Course Code -->
+            <div class="form-group">
+              <label class="form-label" for="assign-code">Course Code <span aria-hidden="true">*</span></label>
+              <div class="form-input-wrap">
+                <input type="text" id="assign-code" class="form-input no-icon"
+                       placeholder="Eg; CSC2343"
+                       aria-required="true"
+                       aria-describedby="assign-code-error"
+                       maxlength="20" style="padding-left:14px" />
+              </div>
+              <span class="field-error" id="assign-code-error" role="alert"></span>
+            </div>
+
+            <!-- Assignment Title -->
+            <div class="form-group">
+              <label class="form-label" for="assign-title">Assignment Title <span aria-hidden="true">*</span></label>
+              <div class="form-input-wrap">
+                <input type="text" id="assign-title" class="form-input no-icon"
+                       placeholder="Eg; Database Final Project"
+                       aria-required="true"
+                       aria-describedby="assign-title-error"
+                       maxlength="120" style="padding-left:14px" />
+              </div>
+              <span class="field-error" id="assign-title-error" role="alert"></span>
+            </div>
+
+            <!-- Deadline -->
+            <div class="form-group">
+              <label class="form-label" for="assign-deadline">Deadline <span aria-hidden="true">*</span></label>
+              <div class="form-input-wrap">
+                <input type="date" id="assign-deadline" class="form-input no-icon"
+                       aria-required="true"
+                       aria-describedby="assign-deadline-error"
+                       style="padding-left:14px" />
+              </div>
+              <span class="field-error" id="assign-deadline-error" role="alert"></span>
+            </div>
+
+            <!-- Estimated Hours -->
+            <div class="form-group">
+              <label class="form-label" for="assign-hours">Estimated Hours <span aria-hidden="true">*</span></label>
+              <div class="form-input-wrap">
+                <input type="number" id="assign-hours" class="form-input no-icon"
+                       placeholder="Eg; 6 Hours" min="1" max="500"
+                       aria-required="true"
+                       aria-describedby="assign-hours-error"
+                       style="padding-left:14px" />
+              </div>
+              <span class="field-error" id="assign-hours-error" role="alert"></span>
+            </div>
+
+            <!-- Difficulty -->
+            <div class="form-group">
+              <label class="form-label" for="assign-difficulty">Difficulty Level <span aria-hidden="true">*</span></label>
+              <select id="assign-difficulty" class="form-input no-icon"
+                      aria-required="true"
+                      aria-describedby="assign-diff-error"
+                      style="padding-left:14px">
+                <option value="">Select difficulty</option>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              <span class="field-error" id="assign-diff-error" role="alert"></span>
+            </div>
+
+          </div><!-- /.add-assign-fields -->
+
+          <button type="submit" class="btn btn-primary" id="save-assign-btn">Save</button>
+          <span class="sr-only" id="save-assign-status" aria-live="polite"></span>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+  <div class="modal-box" style="text-align:center">
+    <div class="delete-modal-icon" aria-hidden="true">🗑️</div>
+    <h2 class="delete-modal-title" id="delete-modal-title">Delete Assignment?</h2>
+    <p class="delete-modal-sub" id="delete-modal-sub">
+      This action cannot be undone. CLAP will reschedule your remaining assignments.
+    </p>
+    <div class="delete-modal-actions">
+      <button class="btn btn-ghost" id="delete-cancel" aria-label="Cancel deletion">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm" aria-label="Confirm deletion">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/app-shell.js"></script>
+<script>
+(function() {
+  AppShell.init('assignments.html');
+
+  /* ---- State ---- */
+  let assignments = [];
+  let deleteTargetId = null;
+  let editTargetId   = null;
+
+  const progressColors = ['#4BBFBF', '#F5A623', '#E74C3C', '#9B59B6', '#27AE60'];
+
+  /* ---- DOM refs ---- */
+  const tabProgress  = document.getElementById('tab-progress');
+  const tabAll       = document.getElementById('tab-all');
+  const viewProgress = document.getElementById('view-progress');
+  const viewAll      = document.getElementById('view-all');
+  const viewAdd      = document.getElementById('view-add');
+  const addBtn       = document.getElementById('add-assign-btn');
+  const backBtn      = document.getElementById('back-from-add');
+  const addForm      = document.getElementById('add-assign-form');
+  const saveBtn      = document.getElementById('save-assign-btn');
+  const statusEl     = document.getElementById('save-assign-status');
+  const deleteModal  = document.getElementById('delete-modal');
+
+  /* ---- Tabs ---- */
+  function showTab(tab) {
+    const isProgress = tab === 'progress';
+    tabProgress.classList.toggle('active', isProgress);
+    tabAll.classList.toggle('active', !isProgress);
+    tabProgress.setAttribute('aria-selected', isProgress);
+    tabAll.setAttribute('aria-selected', !isProgress);
+    viewProgress.classList.toggle('hidden', !isProgress);
+    viewAll.classList.toggle('hidden', isProgress);
+    viewAdd.classList.add('hidden');
+  }
+  tabProgress.addEventListener('click', () => showTab('progress'));
+  tabAll.addEventListener('click',      () => showTab('all'));
+
+  /* ---- Show Add Form ---- */
+  addBtn.addEventListener('click', () => {
+    clearForm();
+    editTargetId = null;
+    document.querySelector('#view-add h2').textContent = 'Add Assignment';
+    saveBtn.textContent = 'Save';
+    viewProgress.classList.add('hidden');
+    viewAll.classList.add('hidden');
+    viewAdd.classList.remove('hidden');
+    document.getElementById('assign-code').focus();
+  });
+  backBtn.addEventListener('click', () => {
+    viewAdd.classList.add('hidden');
+    showTab('progress');
+    loadAssignments();
+  });
+
+  /* ---- Load Assignments ---- */
+  async function loadAssignments() {
+    try {
+      const data = await CLAP.API.get('/assignments/');
+      assignments = data.results || data || [];
+    } catch {
+      assignments = CLAP.MockData.assignments;
+    }
+    renderProgress();
+    renderTable();
+  }
+
+  /* ---- Progress View ---- */
+  function renderProgress() {
+    const list = document.getElementById('progress-list');
+    if (!assignments.length) {
+      list.innerHTML = `<p style="text-align:center;color:var(--text-muted);padding:24px">
+        No assignments yet. Click "Add Assignment" to get started.
+      </p>`;
+      return;
+    }
+
+    list.innerHTML = assignments.map((a, i) => {
+      const pct   = a.progress ?? 0;
+      const color = progressColors[i % progressColors.length];
+      let fillClass = pct === 100 ? 'success' : pct > 70 ? '' : pct < 20 ? 'danger' : '';
+      let dotClass  = pct === 100 ? 'completed' : pct === 0 ? 'not-started' : 'in-progress';
+      return `
+        <div class="assign-progress-item" role="listitem">
+          <div class="assign-progress-code">
+            <div class="assign-dot ${dotClass}" style="background:${color}" aria-hidden="true"></div>
+            <span>${escHtml(a.course_code)} ${escHtml(a.title)}</span>
+          </div>
+          <div class="assign-progress-bar">
+            <div class="progress-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"
+                 aria-label="${a.title} progress: ${pct}%">
+              <div class="progress-fill ${fillClass}" style="width:${pct}%;background:${color}"></div>
+            </div>
+          </div>
+          <span class="assign-percent" aria-hidden="true">${pct}%</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ---- Table View ---- */
+  function renderTable() {
+    const tbody = document.getElementById('assignments-table-body');
+    if (!assignments.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">
+        No assignments. Add one to get started.
+      </td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = assignments.map((a, i) => {
+      const daysLeft = getDaysLeft(a.deadline);
+      const deadlineStr = formatDate(a.deadline);
+      return `
+        <tr data-id="${a.id}">
+          <td>${i + 1}</td>
+          <td>${escHtml(a.course_code)}</td>
+          <td>${escHtml(a.title)}</td>
+          <td title="${daysLeft >= 0 ? daysLeft + ' days left' : 'Overdue'}"
+              style="${daysLeft < 0 ? 'color:var(--danger);font-weight:700' :
+                      daysLeft <= 3 ? 'color:var(--warning);font-weight:700' : ''}">
+            ${deadlineStr}
+          </td>
+          <td>${a.hours}h</td>
+          <td><span class="diff-badge ${a.difficulty}">${capitalize(a.difficulty)}</span></td>
+          <td>
+            <button class="tbl-action-btn edit"
+                    onclick="editAssignment(${a.id})"
+                    aria-label="Edit ${a.title}">✏️</button>
+            <button class="tbl-action-btn delete"
+                    onclick="confirmDelete(${a.id}, '${escHtml(a.title)}')"
+                    aria-label="Delete ${a.title}">🗑️</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  /* ---- Validation ---- */
+  const { Validate } = CLAP;
+  const codeInp   = document.getElementById('assign-code');
+  const titleInp  = document.getElementById('assign-title');
+  const deadInp   = document.getElementById('assign-deadline');
+  const hoursInp  = document.getElementById('assign-hours');
+  const diffSel   = document.getElementById('assign-difficulty');
+
+  Validate.attachLive(codeInp,  [Validate.rules.required]);
+  Validate.attachLive(titleInp, [Validate.rules.required, Validate.rules.minLen(3)]);
+  Validate.attachLive(hoursInp, [Validate.rules.required, Validate.rules.positiveInt]);
+  deadInp.addEventListener('change', () => {
+    const err = Validate.field(deadInp.value, [Validate.rules.required, Validate.rules.futureDate]);
+    Validate.setError(deadInp, err);
+  });
+
+  function clearForm() {
+    codeInp.value = titleInp.value = deadInp.value = hoursInp.value = '';
+    diffSel.value = '';
+    [codeInp, titleInp, deadInp, hoursInp, diffSel].forEach(el => {
+      el.classList.remove('error', 'success');
+      el.setAttribute('aria-invalid', 'false');
+    });
+    document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+  }
+
+  /* ---- Edit ---- */
+  window.editAssignment = function(id) {
+    const a = assignments.find(x => x.id === id);
+    if (!a) return;
+    editTargetId = id;
+    clearForm();
+    codeInp.value  = a.course_code;
+    titleInp.value = a.title;
+    deadInp.value  = a.deadline;
+    hoursInp.value = a.hours;
+    diffSel.value  = a.difficulty;
+    document.querySelector('#view-add h2').textContent = 'Edit Assignment';
+    saveBtn.textContent = 'Update';
+    viewProgress.classList.add('hidden');
+    viewAll.classList.add('hidden');
+    viewAdd.classList.remove('hidden');
+    codeInp.focus();
+  };
+
+  /* ---- Save/Update ---- */
+  addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const valid = Validate.form([
+      { input: codeInp,  rules: [Validate.rules.required] },
+      { input: titleInp, rules: [Validate.rules.required, Validate.rules.minLen(3)] },
+      { input: deadInp,  rules: [Validate.rules.required, Validate.rules.futureDate] },
+      { input: hoursInp, rules: [Validate.rules.required, Validate.rules.positiveInt] },
+    ]);
+
+    /* Validate difficulty separately (select) */
+    const diffErr = document.getElementById('assign-diff-error');
+    if (!diffSel.value) {
+      diffErr.textContent = 'Please select a difficulty level.';
+      valid = false; // Note: JS doesn't re-declare const, but we track valid via the form result
+    } else {
+      diffErr.textContent = '';
+    }
+
+    if (!valid || !diffSel.value) {
+      CLAP.Toast.error('Please fill in all required fields.');
+      return;
+    }
+
+    saveBtn.classList.add('loading');
+    saveBtn.disabled = true;
+    statusEl.textContent = editTargetId ? 'Updating…' : 'Saving…';
+
+    const payload = {
+      course_code: codeInp.value.trim().toUpperCase(),
+      title:       titleInp.value.trim(),
+      deadline:    deadInp.value,
+      hours:       parseInt(hoursInp.value),
+      difficulty:  diffSel.value,
+    };
+
+    try {
+      if (editTargetId) {
+        await CLAP.API.put(`/assignments/${editTargetId}/`, payload);
+        CLAP.Toast.success('Assignment updated! Schedule recalculated.');
+      } else {
+        await CLAP.API.post('/assignments/', payload);
+        CLAP.Toast.success('Assignment added! CLAP is generating your schedule…');
+      }
+
+      statusEl.textContent = 'Saved.';
+      clearForm();
+      editTargetId = null;
+      await loadAssignments();
+      backBtn.click();
+
+    } catch (err) {
+      CLAP.Toast.error(err.message || 'Failed to save assignment.');
+      statusEl.textContent = 'Save failed.';
+    } finally {
+      saveBtn.classList.remove('loading');
+      saveBtn.disabled = false;
+    }
+  });
+
+  /* ---- Delete ---- */
+  window.confirmDelete = function(id, title) {
+    deleteTargetId = id;
+    document.getElementById('delete-modal-sub').textContent =
+      `This will permanently delete "${title}". CLAP will reschedule your remaining assignments.`;
+    deleteModal.classList.add('open');
+    document.getElementById('delete-cancel').focus();
+  };
+  document.getElementById('delete-cancel').addEventListener('click', () => {
+    deleteModal.classList.remove('open');
+    deleteTargetId = null;
+  });
+  document.getElementById('delete-confirm').addEventListener('click', async () => {
+    if (!deleteTargetId) return;
+    const btn = document.getElementById('delete-confirm');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    try {
+      await CLAP.API.delete(`/assignments/${deleteTargetId}/`);
+      CLAP.Toast.success('Assignment deleted. Schedule updated.');
+      deleteModal.classList.remove('open');
+      deleteTargetId = null;
+      await loadAssignments();
+    } catch (err) {
+      CLAP.Toast.error(err.message || 'Failed to delete assignment.');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  });
+
+  /* Close modal on overlay click */
+  deleteModal.addEventListener('click', (e) => {
+    if (e.target === deleteModal) {
+      deleteModal.classList.remove('open');
+      deleteTargetId = null;
+    }
+  });
+  /* Close modal on Escape */
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && deleteModal.classList.contains('open')) {
+      deleteModal.classList.remove('open');
+      deleteTargetId = null;
+    }
+  });
+
+  /* ---- Search ---- */
+  document.addEventListener('clap:search', (e) => {
+    const q = e.detail;
+    if (!viewAll.classList.contains('hidden')) {
+      document.querySelectorAll('#assignments-table-body tr').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+  });
+
+  /* ---- Utils ---- */
+  function getDaysLeft(dateStr) {
+    const diff = new Date(dateStr) - new Date();
+    return Math.ceil(diff / 86400000);
+  }
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+  function capitalize(str) { return str ? str.charAt(0).toUpperCase() + str.slice(1) : ''; }
+  function escHtml(str) {
+    if (str === undefined || str === null) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+
+  /* ---- Set min date to tomorrow ---- */
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  document.getElementById('assign-deadline').min = tomorrow.toISOString().split('T')[0];
+
+  /* ---- Init ---- */
+  loadAssignments();
+})();
+</script>
+</body>
+</html>

@@ -12,10 +12,7 @@
 
 <!-- Page Loader -->
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo">
-    <div class="loader-spinner"></div>
-    <span>CLAP</span>
-  </div>
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
 </div>
 
 <!-- Toast Container -->
@@ -29,12 +26,22 @@
     <section class="auth-form-panel" aria-label="Create account form">
       <!-- Logo -->
       <div class="auth-logo" aria-label="CLAP Logo">
-          <img src="assets/logo.png" alt="CLAP Logo" />
+        <img src="assets/logo.png" alt="CLAP Logo"/>
       </div>
 
       <h1 class="auth-form-title">Create Account</h1>
 
-      <div class="social-divider" role="separator">Use your email for registration:</div>
+      <!-- Social sign-up buttons
+      <div class="social-btns" role="group" aria-label="Sign up with social accounts">
+        <button class="social-btn" aria-label="Sign up with Facebook" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">f</button>
+        <button class="social-btn" aria-label="Sign up with Google" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">G+</button>
+        <button class="social-btn" aria-label="Sign up with LinkedIn" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">in</button>
+      </div>
+
+      <div class="social-divider" role="separator">or use your email for registration:</div> -->
 
       <!-- Sign Up Form -->
       <form id="signup-form" novalidate autocomplete="off">
@@ -155,11 +162,8 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  /* ── Safety net: always hide loader after 3s no matter what ── */
-  setTimeout(() => CLAP.hideLoader && CLAP.hideLoader(), 3000);
-
   /* Redirect if already logged in */
-  CLAP.Auth.requireGuest();
+  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
 
   /* DOM refs */
   const form      = document.getElementById('signup-form');
@@ -192,7 +196,7 @@
       { input: pwInp,    rules: [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength] },
     ]);
     if (!valid) {
-      CLAP.Toast.error('Please input your information correctly.');
+      CLAP.Toast.error('Please fix the errors above.');
       return;
     }
 

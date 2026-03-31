@@ -11,10 +11,7 @@
 <body>
 
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo">
-    <div class="loader-spinner"></div>
-    <span>CLAP</span>
-  </div>
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
 </div>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
@@ -24,12 +21,22 @@
     <!-- LEFT: Sign In Form -->
     <section class="auth-form-panel" aria-label="Sign in form">
       <div class="auth-logo" aria-label="CLAP Logo">
-        <img src="assets/logo.png" alt="CLAP Logo" />
+        <img src="assets/logo.png" alt="CLAP Logo"/>
       </div>
 
       <h1 class="auth-form-title">Sign in to CLAP</h1>
 
-      <div class="social-divider" role="separator">Use your email account:</div>
+      <!-- Social sign-in
+      <div class="social-btns" role="group" aria-label="Sign in with social accounts">
+        <button class="social-btn" aria-label="Sign in with Facebook" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">f</button>
+        <button class="social-btn" aria-label="Sign in with Google" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">G+</button>
+        <button class="social-btn" aria-label="Sign in with LinkedIn" type="button"
+                onclick="CLAP.Toast.info('Social sign-in coming soon!')">in</button>
+      </div>
+
+      <div class="social-divider" role="separator">or use your email account:</div> -->
 
       <!-- Sign In Form -->
       <form id="signin-form" novalidate autocomplete="on">
@@ -123,7 +130,7 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  CLAP.Auth.requireGuest();
+  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
 
   const form      = document.getElementById('signin-form');
   const emailInp  = document.getElementById('signin-email');
