@@ -301,9 +301,26 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 document.getElementById('back-btn').addEventListener('click', () => showView(activeTab));
 
 function showView(name) {
+  const header = document.querySelector('.assign-page-header');
+  const tabs   = document.querySelector('.tab-bar');
+
+  if (name === 'form') {
+    header.style.display = 'none';
+    tabs.style.display   = 'none';
+  } else {
+    header.style.display = '';
+    tabs.style.display   = '';
+  }
+
+  // views
   document.getElementById('view-progress').style.display = name==='progress' ? '' : 'none';
   document.getElementById('view-all').style.display      = name==='all'      ? '' : 'none';
   document.getElementById('view-form').style.display     = name==='form'     ? '' : 'none';
+
+  // reset tab active
+  document.getElementById('tab-progress').classList.remove('active');
+  document.getElementById('tab-all').classList.remove('active');
+
   if (name === 'progress') document.getElementById('tab-progress').classList.add('active');
   if (name === 'all')      document.getElementById('tab-all').classList.add('active');
 }
