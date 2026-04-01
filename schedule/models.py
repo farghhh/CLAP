@@ -20,4 +20,4 @@ class StudySession(models.Model):
     is_missed = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.task.assignment_title} - {self.scheduled_date}"
+        return f"{self.task.title} - {self.scheduled_date}"
