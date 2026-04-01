@@ -6,199 +6,18 @@
   <title>CLAP — Settings</title>
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/app.css" />
-  <style>
-    /* Settings layout */
-    .settings-layout {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: var(--space-lg);
-      align-items: start;
-    }
-    .settings-sidenav {
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      box-shadow: var(--shadow-card);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      position: sticky;
-      top: 20px;
-    }
-    .settings-sidenav-item {
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all var(--transition);
-      border: none;
-      background: none;
-      text-align: left;
-      font-family: inherit;
-      width: 100%;
-    }
-    .settings-sidenav-item:hover { background: var(--bg-light); color: var(--clap-teal); }
-    .settings-sidenav-item.active { background: var(--clap-teal); color: var(--white); }
-
-    /* Sub-nav for General */
-    .settings-subnav {
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      padding-left: 12px;
-      margin-top: 2px;
-    }
-    .settings-subnav-item {
-      padding: 8px 12px;
-      border-radius: var(--radius-sm);
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all var(--transition);
-      border: none;
-      background: none;
-      text-align: left;
-      font-family: inherit;
-      width: 100%;
-    }
-    .settings-subnav-item:hover { color: var(--clap-teal); }
-    .settings-subnav-item.active { color: var(--clap-teal); font-weight: 700; }
-
-    /* Panel */
-    .settings-panel {
-      background: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-xl);
-      box-shadow: var(--shadow-card);
-    }
-    .settings-breadcrumb {
-      font-size: 0.82rem;
-      color: var(--text-muted);
-      font-weight: 600;
-      margin-bottom: var(--space-lg);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .settings-breadcrumb span { color: var(--clap-teal); }
-
-    /* Field rows */
-    .settings-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: var(--space-md) 0;
-      border-bottom: 1px solid var(--border);
-      gap: var(--space-md);
-    }
-    .settings-row:last-child { border-bottom: none; }
-    .settings-row-label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
-    .settings-row-value { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
-    .edit-btn {
-      background: none; border: none; cursor: pointer;
-      color: var(--clap-teal); font-size: 0.82rem; font-weight: 700;
-      font-family: inherit; padding: 4px 10px; border-radius: var(--radius-sm);
-      transition: background var(--transition);
-    }
-    .edit-btn:hover { background: var(--bg-light); }
-
-    /* Profile picture */
-    .profile-pic-wrap {
-      display: flex;
-      align-items: center;
-      gap: var(--space-lg);
-      margin-bottom: var(--space-xl);
-      padding-bottom: var(--space-lg);
-      border-bottom: 1px solid var(--border);
-    }
-    .profile-pic-avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: var(--bg-light); display: flex;
-      align-items: center; justify-content: center;
-      font-family: var(--font-heading); font-weight: 800;
-      font-size: 2rem; color: var(--clap-teal);
-      border: 3px solid var(--clap-teal-light);
-    }
-    .upload-btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 7px 16px; border-radius: var(--radius-pill);
-      background: var(--bg-light); border: 1.5px solid var(--border);
-      font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);
-      cursor: pointer; transition: all var(--transition); font-family: inherit;
-    }
-    .upload-btn:hover { border-color: var(--clap-teal); color: var(--clap-teal); }
-
-    /* Radio group */
-    .radio-group { display: flex; flex-direction: column; gap: var(--space-sm); }
-    .radio-item {
-      display: flex; align-items: center; gap: var(--space-sm);
-      padding: 10px 14px; border-radius: var(--radius-md);
-      cursor: pointer; transition: background var(--transition);
-      font-size: 0.875rem; font-weight: 600; color: var(--text-secondary);
-    }
-    .radio-item:hover { background: var(--bg-light); }
-    .radio-item input[type="radio"] { accent-color: var(--clap-teal); width: 16px; height: 16px; }
-    .radio-item.selected { color: var(--text-primary); }
-
-    /* Checkbox group */
-    .checkbox-item {
-      display: flex; align-items: center; gap: var(--space-sm);
-      padding: 10px 14px; border-radius: var(--radius-md);
-      cursor: pointer; font-size: 0.875rem; font-weight: 600;
-      color: var(--text-secondary); transition: background var(--transition);
-    }
-    .checkbox-item:hover { background: var(--bg-light); }
-    .checkbox-item input[type="checkbox"] { accent-color: var(--clap-teal); width: 16px; height: 16px; }
-
-    /* About section */
-    .about-section { margin-bottom: var(--space-lg); }
-    .about-section h3 {
-      font-family: var(--font-heading); font-size: 1rem; font-weight: 700;
-      color: var(--clap-teal); margin-bottom: var(--space-sm);
-    }
-    .about-section p {
-      font-size: 0.875rem; color: var(--text-secondary);
-      line-height: 1.7; font-weight: 500;
-    }
-    .about-version {
-      font-size: 0.8rem; color: var(--text-muted); font-weight: 600;
-      margin-top: var(--space-xl); padding-top: var(--space-md);
-      border-top: 1px solid var(--border);
-    }
-
-    .save-changes-btn {
-      margin-top: var(--space-xl);
-      padding: 12px 32px;
-      background: var(--grad-primary); color: var(--white);
-      border: none; border-radius: var(--radius-pill);
-      font-family: var(--font-heading); font-weight: 700;
-      font-size: 0.9rem; cursor: pointer; letter-spacing: 0.5px;
-      box-shadow: 0 4px 14px rgba(75,191,191,0.35);
-      transition: all var(--transition);
-    }
-    .save-changes-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(75,191,191,0.45); }
-
-    @media (max-width: 768px) {
-      .settings-layout { grid-template-columns: 1fr; }
-      .settings-sidenav { position: static; display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
-    }
-  </style>
 </head>
 <body>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-<div class="sidebar-backdrop" id="sidebar-backdrop" role="presentation"></div>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <div class="app-layout">
-  <aside id="sidebar" class="sidebar" aria-label="Main navigation"></aside>
-  <main class="main-content" id="main" aria-label="Settings" tabindex="-1">
-    <header id="topbar" class="topbar" role="banner"></header>
+  <aside id="sidebar" class="sidebar"></aside>
+  <main class="main-content" id="main">
 
-    <!-- Page Title -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-lg);">
+    <!-- Page Title (no topbar on settings) -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-xl);">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--clap-teal)" stroke-width="2.5">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -207,22 +26,21 @@
     </div>
 
     <div class="settings-layout">
-      <!-- Left: Side Nav -->
-      <nav class="settings-sidenav" aria-label="Settings sections">
-        <button class="settings-sidenav-item active" data-section="general">General</button>
-        <!-- General sub-items shown inline below -->
-        <div id="general-subnav" class="settings-subnav">
-          <button class="settings-subnav-item active" data-sub="profile">Profile</button>
+      <!-- Left nav -->
+      <nav class="settings-sidenav">
+        <button class="settings-sidenav-item" data-sec="general-menu">General</button>
+        <div id="general-subnav" class="settings-subnav" style="display:none">
+          <button class="settings-subnav-item" data-sub="profile">Profile</button>
           <button class="settings-subnav-item" data-sub="study-prefs">Study Preferences</button>
         </div>
-        <button class="settings-sidenav-item" data-section="cognitive">Cognitive Load</button>
-        <button class="settings-sidenav-item" data-section="notifications">Notifications</button>
-        <button class="settings-sidenav-item" data-section="about">About Us</button>
+        <button class="settings-sidenav-item" data-sec="cognitive">Cognitive Load</button>
+        <button class="settings-sidenav-item" data-sec="notifications">Notifications</button>
+        <button class="settings-sidenav-item" data-sec="about">About Us</button>
       </nav>
 
-      <!-- Right: Panel -->
+      <!-- Right panel -->
       <div class="settings-panel" id="settings-panel">
-        <!-- Injected by JS -->
+        <p style="color:var(--text-muted);text-align:center;padding:40px 0">Select a section from the left to get started.</p>
       </div>
     </div>
   </main>
@@ -234,212 +52,154 @@
 'use strict';
 AppShell.init('settings.html', { showSearch: false });
 
-const user = CLAP.Auth.getUser() || {};
-let currentSection = 'general';
-let currentSub     = 'profile';
+const user  = CLAP.Auth.getUser() || {};
+let curSec  = '';
+let curSub  = 'profile';
 
-/* ---- Panels ---- */
-const panels = {
-  profile() {
-    const initial = (user.name || 'S').charAt(0).toUpperCase();
-    return `
-      <div class="settings-breadcrumb">Settings &rsaquo; <span>General</span> &rsaquo; <span>Profile</span></div>
-      <div class="profile-pic-wrap">
-        <div class="profile-pic-avatar" id="avatar-preview">${initial}</div>
-        <div>
-          <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px;">Profile Picture</div>
+/* ── PANEL CONTENT ── */
+function panelGeneral() {
+  /* Show sub-nav and render correct sub-panel */
+  document.getElementById('general-subnav').style.display = 'flex';
+  return curSub === 'study-prefs' ? panelStudyPrefs() : panelProfile();
+}
+
+function panelProfile() {
+  const initial = (user.name||'S').charAt(0).toUpperCase();
+  return `
+    <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Profile</span></div>
+    <div class="profile-pic-wrap">
+      <div class="profile-avatar" id="av-preview">${initial}</div>
+      <div>
+        <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
+        <div style="display:flex;gap:8px">
+          <button class="upload-btn" style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)">🗑️</button>
           <label class="upload-btn">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-            </svg>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload
-            <input type="file" accept="image/*" style="display:none;" id="avatar-input" />
+            <input type="file" accept="image/*" style="display:none" />
           </label>
         </div>
       </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Full Name</div>
-          <div class="settings-row-value" id="display-name">${user.name || '—'}</div>
-        </div>
-        <button class="edit-btn" onclick="editField('name')">Edit</button>
-      </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Email</div>
-          <div class="settings-row-value">${user.email || '—'}</div>
-        </div>
-        <button class="edit-btn" onclick="editField('email')">Edit</button>
-      </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Program</div>
-          <div class="settings-row-value" id="display-program">${user.program || 'Computer Science'}</div>
-        </div>
-        <button class="edit-btn" onclick="editField('program')">Edit</button>
-      </div>
-      <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>
-    `;
-  },
-
-  studyPrefs() {
-    const prefs = JSON.parse(localStorage.getItem('clap_prefs') || '{}');
-    return `
-      <div class="settings-breadcrumb">Settings &rsaquo; <span>General</span> &rsaquo; <span>Study Preferences</span></div>
-      <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-md);">Study Preferences</h3>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Sleep Time</div>
-          <div class="settings-row-value">${prefs.sleep_start || '11.00 PM'} to ${prefs.sleep_end || '7.00 AM'}</div>
-        </div>
-        <button class="edit-btn" onclick="editPref('sleep')">Edit</button>
-      </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Active Study Hours</div>
-          <div class="settings-row-value">${prefs.study_start || '9.00 AM'} to ${prefs.study_end || '7.00 PM'}</div>
-        </div>
-        <button class="edit-btn" onclick="editPref('study')">Edit</button>
-      </div>
-      <div class="settings-row">
-        <div>
-          <div class="settings-row-label">Daily Study Limit</div>
-          <div class="settings-row-value">${prefs.max_focus_hours || 6} Hours</div>
-        </div>
-        <button class="edit-btn" onclick="editPref('focus')">Edit</button>
-      </div>
-      <button class="save-changes-btn" onclick="CLAP.Toast.success('Study preferences saved!')">Save Changes</button>
-    `;
-  },
-
-  cognitive() {
-    return `
-      <div class="settings-breadcrumb">Settings &rsaquo; <span>Cognitive Load</span></div>
-      <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Workload Sensitivity</h3>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:var(--space-lg);">Select your preferred workload level:</p>
-      <div class="radio-group">
-        <label class="radio-item selected">
-          <input type="radio" name="workload" value="relaxed" checked /> Relaxed
-        </label>
-        <label class="radio-item">
-          <input type="radio" name="workload" value="balanced" /> Balanced
-        </label>
-        <label class="radio-item">
-          <input type="radio" name="workload" value="strict" /> Strict
-        </label>
-      </div>
-      <button class="save-changes-btn" onclick="saveCognitive()">Save Changes</button>
-    `;
-  },
-
-  notifications() {
-    return `
-      <div class="settings-breadcrumb">Settings &rsaquo; <span>Notifications</span></div>
-      <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Notifications</h3>
-      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:var(--space-lg);">Select your preferred reminder:</p>
-      <div class="radio-group">
-        <label class="checkbox-item">
-          <input type="checkbox" name="notif" value="deadline" checked /> Deadline Reminders
-        </label>
-        <label class="checkbox-item">
-          <input type="checkbox" name="notif" value="overload" checked /> Overload Warnings
-        </label>
-        <label class="checkbox-item">
-          <input type="checkbox" name="notif" value="daily" /> Daily study reminders
-        </label>
-      </div>
-      <button class="save-changes-btn" onclick="saveNotifications()">Save Changes</button>
-    `;
-  },
-
-  about() {
-    return `
-      <div class="settings-breadcrumb">Settings &rsaquo; <span>About Us</span></div>
-      <div class="about-section">
-        <h3>About CLAP:</h3>
-        <p>CLAP (Cognitive Load-Based Adaptive Academic Planner) is a smart academic planning system designed to help students manage their workload effectively.</p>
-        <p style="margin-top:8px;">It uses cognitive load principles to generate balanced study schedules, reduce stress, and prevent burnout.</p>
-      </div>
-      <div class="about-section">
-        <h3>The Problem:</h3>
-        <p>CLAP analyzes assignments, deadlines, and workload to automatically generate an optimized study plan. It also monitors cognitive load and provides smart recommendations to help students stay productive while maintaining balance.</p>
-      </div>
-      <div class="about-section">
-        <h3>Key Features:</h3>
-        <p>• AI-generated study planning<br>• Cognitive load tracking<br>• Smart task prioritization<br>• Adaptive schedule adjustments</p>
-      </div>
-      <div class="about-version">CLAP v1.0.0 &nbsp;—&nbsp; Developed for IIEF 2026</div>
-    `;
-  }
-};
-
-function renderPanel() {
-  const panel = document.getElementById('settings-panel');
-  if (currentSection === 'general') {
-    panel.innerHTML = currentSub === 'study-prefs' ? panels.studyPrefs() : panels.profile();
-  } else {
-    panel.innerHTML = panels[currentSection] ? panels[currentSection]() : '';
-  }
-
-  /* Update nav active states */
-  document.querySelectorAll('.settings-sidenav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.section === currentSection);
-  });
-  document.querySelectorAll('.settings-subnav-item').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sub === currentSub);
-  });
-
-  /* Show/hide general subnav */
-  const subnav = document.getElementById('general-subnav');
-  subnav.style.display = currentSection === 'general' ? 'flex' : 'none';
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value">${user.name||'—'}</div></div>
+      <button class="edit-btn" onclick="editField('name','Full Name')">Edit</button>
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-row-label">Email</div><div class="settings-row-value">${user.email||'—'}</div></div>
+      <button class="edit-btn" onclick="editField('email','Email')">Edit</button>
+    </div>
+    <div class="settings-row" style="border:none">
+      <div><div class="settings-row-label">Program</div><div class="settings-row-value">${user.program||'Computer Science'}</div></div>
+      <button class="edit-btn" onclick="editField('program','Program')">Edit</button>
+    </div>
+    <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>`;
 }
 
-/* ---- Nav handlers ---- */
+function panelStudyPrefs() {
+  const p = JSON.parse(localStorage.getItem('clap_prefs')||'{}');
+  return `
+    <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Study Preferences</span></div>
+    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-md)">Study Preferences</h3>
+    <div class="settings-row">
+      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${p.sleep_start||'11.00 PM'} to ${p.sleep_end||'7.00 AM'}</div></div>
+      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
+    </div>
+    <div class="settings-row">
+      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${p.study_start||'9.00 AM'} to ${p.study_end||'7.00 PM'}</div></div>
+      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
+    </div>
+    <div class="settings-row" style="border:none">
+      <div><div class="settings-row-label">Daily Study Limit</div><div class="settings-row-value">${p.max_focus_hours||6} Hours</div></div>
+      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
+    </div>
+    <button class="save-changes-btn" onclick="CLAP.Toast.success('Study preferences saved!')">Save Changes</button>`;
+}
+
+function panelCognitive() {
+  return `
+    <div class="settings-breadcrumb">Settings › <span>Cognitive Load</span></div>
+    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">Workload Sensitivity</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">Select your preferred workload level:</p>
+    <div class="radio-group">
+      <label class="radio-item"><input type="radio" name="wl" value="relaxed" checked /> Relaxed</label>
+      <label class="radio-item"><input type="radio" name="wl" value="balanced" /> Balanced</label>
+      <label class="radio-item"><input type="radio" name="wl" value="strict" /> Strict</label>
+    </div>
+    <button class="save-changes-btn" onclick="CLAP.Toast.success('Cognitive load preference saved!')">Save Changes</button>`;
+}
+
+function panelNotifications() {
+  return `
+    <div class="settings-breadcrumb">Settings › <span>Notifications</span></div>
+    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">Notifications</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">Select your preferred reminder:</p>
+    <div class="radio-group">
+      <label class="checkbox-item"><input type="checkbox" checked /> Deadline Reminders</label>
+      <label class="checkbox-item"><input type="checkbox" checked /> Overload Warnings</label>
+      <label class="checkbox-item"><input type="checkbox" /> Daily study reminders</label>
+    </div>
+    <button class="save-changes-btn" onclick="CLAP.Toast.success('Notification preferences saved!')">Save Changes</button>`;
+}
+
+function panelAbout() {
+  return `
+    <div class="settings-breadcrumb">Settings › <span>About Us</span></div>
+    <div class="about-section">
+      <h3>About CLAP:</h3>
+      <p>CLAP (Cognitive Load-Based Adaptive Academic Planner) is a smart academic planning system designed to help students manage their workload effectively.</p>
+      <p style="margin-top:8px">It uses cognitive load principles to generate balanced study schedules, reduce stress, and prevent burnout.</p>
+    </div>
+    <div class="about-section">
+      <h3>The Problem:</h3>
+      <p>CLAP analyzes assignments, deadlines, and workload to automatically generate an optimized study plan. It also monitors cognitive load and provides smart recommendations to help students stay productive while maintaining balance.</p>
+    </div>
+    <div class="about-section">
+      <h3>Key Features:</h3>
+      <p>• AI-generated study planning<br>• Cognitive load tracking<br>• Smart task prioritization<br>• Adaptive schedule adjustments</p>
+    </div>
+    <div class="about-version">CLAP v1.0.0 — Developed for IIEF 2026</div>`;
+}
+
+/* ── NAVIGATION ── */
+function setSection(sec) {
+  curSec = sec;
+  /* Hide general subnav by default */
+  document.getElementById('general-subnav').style.display = 'none';
+  /* Update nav active states */
+  document.querySelectorAll('.settings-sidenav-item').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
+  document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.remove('active'));
+
+  let html = '';
+  if (sec === 'general-menu') { html = panelGeneral(); document.getElementById('general-subnav').style.display='flex'; }
+  else if (sec === 'cognitive')     html = panelCognitive();
+  else if (sec === 'notifications') html = panelNotifications();
+  else if (sec === 'about')         html = panelAbout();
+
+  document.getElementById('settings-panel').innerHTML = html;
+  /* Set subnav active */
+  document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.sub === curSub));
+}
+
 document.querySelectorAll('.settings-sidenav-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentSection = btn.dataset.section;
-    if (currentSection === 'general') currentSub = 'profile';
-    renderPanel();
-  });
+  btn.addEventListener('click', () => setSection(btn.dataset.sec));
 });
 document.querySelectorAll('.settings-subnav-item').forEach(btn => {
-  btn.addEventListener('click', () => {
-    currentSub = btn.dataset.sub;
-    renderPanel();
-  });
+  btn.addEventListener('click', () => { curSub = btn.dataset.sub; setSection('general-menu'); });
 });
 
-/* ---- Actions ---- */
-window.editField = function(field) {
-  const val = prompt(`Enter new ${field}:`, user[field] || '');
-  if (val !== null) {
-    user[field] = val.trim();
-    renderPanel();
-  }
-};
-window.editPref = function(type) {
-  CLAP.Toast.info('Edit preferences in the Onboarding screen or update via backend.');
+/* ── ACTIONS ── */
+window.editField = function(field, label) {
+  const val = prompt(`Enter new ${label}:`, user[field]||'');
+  if (val !== null && val.trim()) { user[field] = val.trim(); setSection(curSec); }
 };
 window.saveProfile = async function() {
   try {
-    await CLAP.API.patch('/users/me/', { name: user.name, email: user.email, program: user.program });
+    await CLAP.API.patch('/users/me/', { name:user.name, email:user.email, program:user.program });
     localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
-    CLAP.Toast.success('Profile saved!');
-  } catch {
-    CLAP.Toast.info('Profile changes saved locally.');
-  }
+  } catch {}
+  CLAP.Toast.success('Profile saved!');
 };
-window.saveCognitive = function() {
-  const val = document.querySelector('input[name="workload"]:checked')?.value;
-  CLAP.Toast.success(`Workload set to: ${val}`);
-};
-window.saveNotifications = function() {
-  CLAP.Toast.success('Notification preferences saved!');
-};
-
-/* Initial render */
-renderPanel();
 </script>
 </body>
 </html>
