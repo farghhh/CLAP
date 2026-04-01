@@ -31,10 +31,7 @@ const AppShell = {
     el.innerHTML = `
       <div class="sidebar-logo" aria-label="CLAP">
         <img src="assets/logo.png" alt="CLAP" onerror="this.style.display='none'"
-             style="width:48px;height:48px;object-fit:contain;" />
-        <div class="logo-text" aria-hidden="true">
-          <span style="color:var(--clap-navy)">CL</span><span style="color:var(--clap-teal)">AP</span>
-        </div>
+             style="width:120px;height:120px;object-fit:contain;margin: 0 auto;" />
       </div>
 
       <nav class="sidebar-nav" aria-label="Main navigation" role="navigation">
