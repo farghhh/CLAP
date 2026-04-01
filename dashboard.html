@@ -40,21 +40,6 @@
       font-weight: 800; color: var(--clap-teal); line-height: 1.2;
     }
     .db-greeting p { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
-    .db-search {
-      flex: 1; max-width: 300px; position: relative; display: flex; align-items: center;
-    }
-    .db-search .si {
-      position: absolute; left: 14px; color: var(--placeholder);
-      display: flex; align-items: center; pointer-events: none;
-    }
-    .db-search input {
-      width: 100%; padding: 10px 14px 10px 40px;
-      background: var(--white); border: none; border-radius: 999px;
-      font-size: 0.875rem; color: var(--text-primary);
-      box-shadow: 0 2px 12px rgba(26,58,92,0.08);
-    }
-    .db-search input:focus { outline: none; box-shadow: 0 0 0 2px var(--clap-teal), 0 2px 12px rgba(26,58,92,0.08); }
-    .db-search input::placeholder { color: var(--placeholder); }
 
     /* ── Stats grid ── */
     .stats-grid {
@@ -276,10 +261,6 @@
           <p>Nice to have you back.</p>
         </div>
       </div>
-      <div class="db-search">
-        <span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-        <input type="search" placeholder="What are you looking for?" id="dash-search" autocomplete="off" />
-      </div>
     </div>
 
     <!-- 2-column body -->
@@ -332,7 +313,7 @@
         <!-- AI Study Plan -->
         <div class="plan-card">
           <div class="plan-header">
-            <span class="plan-title">AI Generated Study Plan</span>
+            <span class="plan-title">Generated Study Plan</span>
             <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
           </div>
           <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
@@ -349,7 +330,7 @@
             </table>
           </div>
         </div>
-
+        
       </div><!-- /db-left -->
 
       <!-- RIGHT column -->
@@ -393,11 +374,6 @@ const u = CLAP.Auth.getUser() || {};
 const firstName = (u.name||'Student').split(' ')[0];
 document.getElementById('db-avatar').textContent   = (u.name||'S').charAt(0).toUpperCase();
 document.getElementById('db-greet-name').textContent = `Welcome Back, ${firstName}!`;
-
-/* Search */
-document.getElementById('dash-search').addEventListener('input', e => {
-  document.dispatchEvent(new CustomEvent('clap:search', { detail: e.target.value.trim().toLowerCase() }));
-});
 
 /* ── Mock ── */
 function getMock() {
@@ -531,52 +507,6 @@ function renderTimetable(schedule) {
   document.getElementById('plan-body').innerHTML = html;
 }
 
-/* ── Chart ── */
-let chartInst = null;
-function renderChart(history) {
-  if (!history) return;
-  const labels = Object.keys(history);
-  const values = Object.values(history);
-  if (chartInst) { chartInst.destroy(); chartInst = null; }
-  const ctx = document.getElementById('cog-chart').getContext('2d');
-  chartInst = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'Workload (%)', data: values,
-        borderColor: '#4BBFBF', backgroundColor: 'rgba(75,191,191,0.08)',
-        pointBackgroundColor: values.map(v => v > 80 ? '#E74C3C' : '#4BBFBF'),
-        pointBorderColor: '#fff', pointRadius: 6, borderWidth: 2.5, tension: 0.35, fill: true
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#7FA8B5', font: { family: 'Nunito,sans-serif', weight: '700' } } },
-        y: { min: 0, max: 100, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { color: '#7FA8B5', callback: v => v+'%' } }
-      }
-    },
-    plugins: [{
-      id: 'burnoutLine',
-      afterDraw(chart) {
-        const { ctx, chartArea, scales } = chart;
-        const y = scales.y.getPixelForValue(80);
-        ctx.save(); ctx.setLineDash([8, 4]); ctx.strokeStyle = 'rgba(231,76,60,0.5)'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke(); ctx.restore();
-      }
-    }]
-  });
-}
-
-/* ── Recommendation ── */
-function renderRec(rec) {
-  if (!rec) { document.getElementById('rec-card').style.display = 'none'; return; }
-  document.getElementById('rec-txt').textContent    = rec.alert || '';
-  document.getElementById('rec-suggest').innerHTML  = rec.suggestion ? `Suggested change: <strong>${rec.suggestion}</strong>` : '';
-  document.getElementById('rec-reduce').textContent = rec.reduction  ? `Estimated stress reduction: ${rec.reduction}%` : '';
-}
 
 /* ── Calendar ── */
 let calDate = new Date();
