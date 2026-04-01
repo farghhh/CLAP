@@ -6,6 +6,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from .models import Profile
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.conf import settings
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -102,4 +107,105 @@ def login(request):
             'email': user.email,
             'onboarding_complete': user.profile.onboarding_complete,
         }
+    }, status=status.HTTP_200_OK)
+
+
+#forgot password function
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    email = request.data.get('email')
+
+    if not email:
+        return Response(
+            {'error': 'Email is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Always return success even if email doesn't exist
+    # This prevents attackers from knowing which emails are registered
+    try:
+        user = User.objects.get(email=email)
+
+        # Generate reset token
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        # Build reset link
+        reset_link = f"{settings.FRONTEND_URL}/reset-password.html?uid={uid}&token={token}"
+
+        # Send email
+        send_mail(
+            subject='Reset Your CLAP Password',
+            message=f'''
+Hi {user.username},
+
+You requested to reset your CLAP password.
+
+Click the link below to reset your password:
+{reset_link}
+
+This link will expire in 24 hours.
+
+If you did not request this, please ignore this email.
+
+CLAP Team
+            ''',
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+    except User.DoesNotExist:
+        pass  # Silently ignore if email doesn't exist
+
+    # Always return success
+    return Response({
+        'message': 'If an account exists for this email, a reset link has been sent.'
+    }, status=status.HTTP_200_OK)
+
+
+#reset password function
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    uid = request.data.get('uid')
+    token = request.data.get('token')
+    new_password1 = request.data.get('new_password1')  # ← changed
+    new_password2 = request.data.get('new_password2')  # ← changed
+
+    if not all([uid, token, new_password1, new_password2]):
+        return Response(
+            {'error': 'All fields are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Check passwords match
+    if new_password1 != new_password2:
+        return Response(
+            {'error': 'Passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user_id = force_str(urlsafe_base64_decode(uid))
+        user = User.objects.get(pk=user_id)
+    except (User.DoesNotExist, ValueError, TypeError):
+        return Response(
+            {'error': 'Invalid reset link'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if not default_token_generator.check_token(user, token):
+        return Response(
+            {'error': 'Reset link has expired or is invalid'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Set new password
+    user.set_password(new_password1)
+    user.save()
+
+    return Response({
+        'message': 'Password reset successfully!'
     }, status=status.HTTP_200_OK)

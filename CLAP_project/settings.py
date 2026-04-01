@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-+^jk3e+_)eab4!lrm22=31i2*8s+t57i*e_9)^*^8z^9bx=sai
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'pieridine-violet-nothus.ngrok-free.dev']
 
 
 # Application definition
@@ -150,3 +150,13 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
 }
+
+#forgot password email
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'clap.iief@gmail.com'
+EMAIL_HOST_PASSWORD = 'mqod aifj mnpd lopb'
+FRONTEND_URL = 'http://127.0.0.1:5500'
