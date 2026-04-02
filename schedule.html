@@ -1,200 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CLAP — Schedule</title>
-  <link rel="stylesheet" href="css/global.css" />
-  <link rel="stylesheet" href="css/app.css" />
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/app.css"/>
+  <style>
+    /* ── Page header ── */
+    .sch-header  { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--space-lg); gap:var(--space-md); flex-wrap:wrap; }
+    .sch-title   { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--clap-teal); display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+    .sch-meta    { font-size:0.82rem; color:var(--text-muted); font-weight:600; }
+    .sch-meta b  { color:var(--text-secondary); font-weight:700; }
+    .regen-btn   { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:var(--grad-primary); color:#fff; border:none; border-radius:var(--radius-pill); font-family:var(--font-heading); font-weight:700; font-size:0.875rem; box-shadow:0 4px 14px rgba(75,191,191,0.35); cursor:pointer; transition:all var(--transition); white-space:nowrap; }
+    .regen-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(75,191,191,0.45); }
+    .regen-btn svg{ transition:transform 0.4s; }
+    .regen-btn:hover svg{ animation:spin 0.6s linear; }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+
+    /* ── Timetable card ── */
+    .timetable-card { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); overflow-x:auto; }
+    .timetable      { min-width:650px; width:100%; border-collapse:separate; border-spacing:4px; }
+    .timetable th   { font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:12px 6px; background:var(--bg-light); border-radius:var(--radius-sm); }
+    .timetable th.time-col{ text-align:left; background:transparent; color:var(--text-muted); font-size:0.72rem; min-width:60px; padding-left:4px; }
+    .timetable td   { vertical-align:top; padding:2px; min-width:110px; }
+    .timetable td.time-cell{ font-size:0.72rem; font-weight:700; color:var(--text-muted); text-align:left; padding-left:4px; padding-top:8px; min-width:60px; white-space:nowrap; vertical-align:top; }
+
+    /* Task blocks — colours match difficulty */
+    .task-block   { border-radius:var(--radius-md); padding:10px 12px; font-size:0.72rem; font-weight:700; min-height:56px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:transform var(--transition), box-shadow var(--transition); position:relative; }
+    .task-block:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+    .task-block.easy  { background:#c8f0d4; color:#1a5c30; }
+    .task-block.medium{ background:#fde9c0; color:#7a4300; }
+    .task-block.hard  { background:#fac8c8; color:#7a1a1a; }
+    .tb-title  { font-size:0.78rem; font-weight:800; line-height:1.25; margin-bottom:2px; }
+    .tb-time   { font-size:0.66rem; font-weight:600; opacity:0.8; }
+    .tb-check  { position:absolute; bottom:8px; right:8px; width:18px; height:18px; border-radius:50%; border:2px solid rgba(0,0,0,0.2); background:transparent; cursor:pointer; transition:background var(--transition); }
+    .tb-check:hover,.tb-check.done{ background:rgba(0,0,0,0.15); }
+    .empty-cell{ height:56px; }
+    .gen-label { text-align:center; font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:var(--space-md); }
+
+    .task-block.done {
+      opacity: 0.5;
+      text-decoration: line-through;
+      filter: grayscale(0.4);
+    }
+
+    .tb-check.done {
+      background: rgba(75, 191, 191, 0.8);
+      border-color: var(--clap-teal);
+    }
+
+    /* ── Legend popup ── */
+    .info-fab   { position:fixed; bottom:28px; right:28px; width:38px; height:38px; border-radius:50%; background:var(--clap-teal); color:#fff; border:none; cursor:pointer; font-size:1rem; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(75,191,191,0.4); z-index:50; }
+    .legend-popup{ position:fixed; bottom:74px; right:28px; background:#fff; border-radius:var(--radius-md); padding:var(--space-md); box-shadow:var(--shadow-md); display:none; z-index:60; min-width:155px; }
+    .legend-popup.show{ display:block; }
+    .leg-row   { display:flex; align-items:center; gap:8px; font-size:0.78rem; font-weight:600; color:var(--text-muted); padding:3px 0; }
+    .leg-sw    { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+  </style>
 </head>
 <body>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle">&#9776;</button>
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
-  <main class="main-content" id="main">
- 
-  <div class="schedule-header">
-    <div class="schedule-title-wrap">
-      <h1 class="schedule-page-title">
-        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        Schedule
-      </h1>
-      <div class="schedule-meta" id="schedule-meta">
-        <span id="mode-line"></span>
-        Week: <span id="week-label">March 10 – 14</span>
+  <main class="main-content">
+
+    <div class="sch-header">
+      <div>
+        <div class="sch-title">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          Schedule
+        </div>
+        <div class="sch-meta" id="sch-week"><b>Week:</b> —</div>
       </div>
+      <button class="regen-btn" id="regen-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Regenerate
+      </button>
     </div>
-    <button class="regen-btn" id="regen-btn" onclick="regenerateSchedule()">
-      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" id="regen-icon"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10"/><path d="M20.49 15A9 9 0 015.64 18.36L1 14"/></svg>
-      Regenerate
-    </button>
-  </div>
- 
-  <div class="timetable-card">
-    <div style="overflow-x:auto;">
-      <table class="timetable" id="schedule-table">
-        <thead>
-          <tr>
-            <th class="time-col">Day /<br>Time</th>
-            <th>Monday</th>
-            <th>Tuesday</th>
-            <th>Wednesday</th>
-            <th>Thursday</th>
-            <th>Friday</th>
-          </tr>
-        </thead>
-        <tbody id="schedule-tbody">
-          <!-- Populated by JS -->
-        </tbody>
-      </table>
+
+    <div class="timetable-card">
+      <div style="overflow-x:auto;">
+        <table class="timetable">
+          <thead id="sch-thead">
+            <tr>
+              <th class="time-col">Day /<br>Time</th>
+              <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
+            </tr>
+          </thead>
+          <tbody id="sch-body">
+            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading schedule…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="gen-label" id="gen-label">Generated by CLAP</div>
     </div>
-    <p class="generated-label" id="generated-label">Generated by CLAP</p>
-  </div>
- 
-</main>
- 
-<!-- Legend -->
-<div class="legend-popup" id="legend-popup">
-  <div class="legend-row"><div class="legend-swatch" style="background:#c8f0d4;"></div>Easy</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:#fde9c0;"></div>Medium</div>
-  <div class="legend-row"><div class="legend-swatch" style="background:#fac8c8;"></div>Hard</div>
+
+  </main>
 </div>
-<button class="info-fab" onclick="toggleLegend()">i</button>
- 
+
+<!-- Legend -->
+<button class="info-fab" id="info-fab">i</button>
+<div class="legend-popup" id="legend-popup">
+  <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
+  <div class="leg-row"><div class="leg-sw" style="background:#fde9c0"></div>Medium</div>
+  <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
 </div>
 
 <script src="js/core.js"></script>
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('schedule.html');
+AppShell.init('schedule.html', { showSearch: true });
 
-// ── Schedule data ──────────────────────────────────────────────
-const TIMES = ['10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM','5:00 PM'];
- 
-// mode A = default, mode B = balanced
-const SCHEDULES = {
-  A: {
-    label: '',
-    blocks: [
-      // [day(0=Mon), startTime, endTime, title, type, span]
-      [0,'10:00 AM','11:00 AM','Database (FP)','easy',1],
-      [0,'11:00 AM','12:00 PM','Parallel Computing Assignment 1','easy',1],
-      [0,'2:00 PM','4:00 PM','Mobile Application Development (FP)','hard',2],
-      [1,'10:00 AM','12:00 PM','Mobile Application Development (FP)','hard',2],
-      [2,'10:00 AM','11:00 AM','Parallel Computing Assignment 1','medium',1],
-      [2,'11:00 AM','12:00 PM','Database (FP)','easy',1],
-      [3,'11:00 AM','12:00 PM','Mobile Application Development (FP)','hard',1],
-      [3,'2:00 PM','3:00 PM','Mobile Application Development (FP)','hard',1],
-      [3,'4:00 PM','5:00 PM','Parallel Computing Assignment 1','medium',1],
-      [4,'11:00 AM','12:00 PM','Parallel Computing Assignment 1','medium',1],
-      [4,'2:00 PM','4:00 PM','Mobile Application Development (FP)','hard',2],
+/* ─────────────────────────────────────────────
+   MOCK DATA — remove when backend ready
+   CONNECT: GET /api/schedule/
+   Expected shape:
+   {
+     week: "March 10 – 14",
+     slots: [
+       {
+         day: "Monday",           ← "Monday"–"Friday"
+         time: "10:00 AM",        ← display time label
+         end: "11:00 AM",
+         title: "Database (FP)",
+         difficulty: "easy"       ← "easy"|"medium"|"hard"|"study"
+       },
+       ...
+     ]
+   }
+   ──────────────────────────────────────────── */
+function getMock() {
+  return { 
+    week: 'March 10 – 14',
+    slots: [
+      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)',                 difficulty:'easy'   },
+      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
+      { day:'Monday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
+      { day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)',                 difficulty:'easy'   },
+      { day:'Thursday',  time:'11.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Thursday',  time:'2.00 PM',  end:'3.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Thursday',  time:'4.00 PM',  end:'5.00 PM',  title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
+      { day:'Friday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
+      { day:'Friday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
     ]
-  },
-  B: {
-    label: 'Balanced',
-    blocks: [
-      [0,'10:00 AM','11:00 AM','Database (FP)','easy',1],
-      [0,'11:00 AM','12:00 PM','Parallel Computing Assignment 1','easy',1],
-      [0,'2:00 PM','4:00 PM','Mobile Application Development (FP)','hard',2],
-      [1,'10:00 AM','12:00 PM','Mobile Application Development (FP)','hard',2],
-      [2,'10:00 AM','11:00 AM','Parallel Computing Assignment 1','medium',1],
-      [2,'11:00 AM','12:00 PM','Database (FP)','easy',1],
-      [3,'11:00 AM','3:00 PM','Mobile Application Development (FP)','hard',3],
-      [3,'4:00 PM','5:00 PM','Parallel Computing Assignment 1','medium',1],
-      [4,'11:00 AM','12:00 PM','Parallel Computing Assignment 1','medium',1],
-      [4,'2:00 PM','4:00 PM','Mobile Application Development (FP)','hard',2],
-    ]
+  };
+}
+
+/* ─────────────────────────────────────────────
+   TIME ROWS — auto-derived from slots
+   ──────────────────────────────────────────── */
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+function buildTimeRows(slots) {
+  /* Collect all unique start times, sort */
+  const seen = new Set();
+  slots.forEach(s => seen.add(s.time));
+  return [...seen].sort((a, b) => {
+    /* Parse "HH.MM AM/PM" */
+    const parse = t => {
+      const [hm, ap] = t.split(' ');
+      let [h, mi] = hm.split('.').map(Number);
+      if (ap === 'PM' && h !== 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      return h * 60 + (mi || 0);
+    };
+    return parse(a) - parse(b);
+  });
+}
+
+function buildEndMinutes(time) {
+  const [hm, ap] = time.split(' ');
+  let [h, mi] = hm.split('.').map(Number);
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + (mi || 0);
+}
+
+/* ─────────────────────────────────────────────
+   RENDER TIMETABLE
+   ──────────────────────────────────────────── */
+function renderSchedule(data) {
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
+
+  const slots = data.slots || [];
+  const times = buildTimeRows(slots);
+  if (!times.length) {
+    document.getElementById('sch-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
+    return;
   }
-};
- 
-let currentMode = 'A';
- 
-function buildTable(modeKey) {
-  const schedule = SCHEDULES[modeKey];
-  const tbody = document.getElementById('schedule-tbody');
-  tbody.innerHTML = '';
- 
-  // Build cell map: [dayIndex][timeIndex] = block or null
-  const cellMap = {};
-  for (let d = 0; d < 5; d++) cellMap[d] = {};
- 
-  schedule.blocks.forEach(([day, start, end, title, type]) => {
-    const si = TIMES.indexOf(start);
-    const ei = TIMES.indexOf(end);
-    const span = ei - si;
-    if (si < 0) return;
-    cellMap[day][si] = { title, type, span, end };
-    for (let i = si + 1; i < si + span; i++) cellMap[day][i] = 'skip';
-  });
- 
-  TIMES.forEach((time, ti) => {
-    const tr = document.createElement('tr');
-    const timeTd = document.createElement('td');
-    timeTd.className = 'time-cell';
-    timeTd.textContent = time;
-    tr.appendChild(timeTd);
- 
-    for (let d = 0; d < 5; d++) {
-      const cell = cellMap[d][ti];
-      if (cell === 'skip') continue;
-      const td = document.createElement('td');
-      if (cell) {
-        td.rowSpan = cell.span;
-        const block = document.createElement('div');
-        block.className = `task-block ${cell.type}`;
-        block.style.height = '100%';
-        block.innerHTML = `
-          <div>
-            <div class="task-block-title">${cell.title}</div>
-            <div class="task-block-time">${cell.title !== 'Study' ? cell.end ? `${TIMES[TIMES.indexOf(time)]} – ${cell.end}` : time : `${time} – ${cell.end}`}</div>
+
+  /* Map: day → startTime → slot */
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
+
+  /* Track skipped cells (rowspan) */
+  const rowspanSkip = {}; /* "day|timeIndex" → true */
+
+  let html = '';
+  times.forEach((time, ti) => {
+    html += `<tr><td class="time-cell">${time}</td>`;
+    DAYS.forEach(day => {
+      const k = `${day}|${ti}`;
+      if (rowspanSkip[k]) return; /* merged into previous row */
+
+      const slot = map[day]?.[time];
+      if (slot) {
+        /* Calculate rowspan from end time */
+        const startMin = buildEndMinutes(slot.time);
+        const endMin   = buildEndMinutes(slot.end);
+        const durationMins = endMin - startMin;
+        /* How many time rows does this slot occupy? */
+        let span = 1;
+        for (let nxt = ti + 1; nxt < times.length; nxt++) {
+          const nxtMin = buildEndMinutes(times[nxt]);
+          if (nxtMin <= endMin) { span++; rowspanSkip[`${day}|${nxt}`] = true; }
+          else break;
+        }
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
+        html += `<td${rs} style="vertical-align:top;padding:2px">
+          <div class="task-block ${slot.difficulty}" style="${ht}">
+            <div>
+              <div class="tb-title">${slot.title}</div>
+              <div class="tb-time">${slot.time} – ${slot.end}</div>
+            </div>
+            <button class="tb-check" onclick="toggleDone(this)" title="Mark done"></button>
           </div>
-          <button class="task-block-check" title="Mark done" onclick="this.classList.toggle('done')"></button>
-        `;
-        td.appendChild(block);
+        </td>`;
       } else {
-        td.innerHTML = '<div class="empty-cell"></div>';
+        html += `<td><div class="empty-cell"></div></td>`;
       }
-      tr.appendChild(td);
-    }
-    tbody.appendChild(tr);
+    });
+    html += '</tr>';
   });
- 
-  // Update meta
-  const modeLine = document.getElementById('mode-line');
-  modeLine.innerHTML = schedule.label ? `Mode: <strong>${schedule.label}</strong><br>` : '';
+
+  document.getElementById('sch-body').innerHTML = html;
 }
- 
-function regenerateSchedule() {
+
+/* ─────────────────────────────────────────────
+   LOAD
+   ──────────────────────────────────────────── */
+async function loadSchedule() {
+  let data;
+  try {
+    /* ── CONNECT: Uncomment when backend ready
+       data = await CLAP.API.get('/schedule/');
+    ── */
+    data = getMock(); // ← remove when backend connected
+  } catch {
+    data = getMock();
+    CLAP.Toast.error('Could not load schedule.');
+  }
+  renderSchedule(data);
+}
+
+/* ── CONNECT: POST /api/schedule/regenerate/   (no body needed, or pass preferences)
+   Response: same shape as GET /api/schedule/
+── */
+document.getElementById('regen-btn').addEventListener('click', async () => {
   const btn = document.getElementById('regen-btn');
-  btn.disabled = true;
-  document.getElementById('regen-icon').style.animation = 'spin 0.6s linear infinite';
-  setTimeout(() => {
-    currentMode = currentMode === 'A' ? 'B' : 'A';
-    buildTable(currentMode);
-    btn.disabled = false;
-    document.getElementById('regen-icon').style.animation = '';
-    showToast('Schedule regenerated!', 'success');
-  }, 900);
-}
- 
-function toggleLegend() {
+  btn.disabled = true; btn.style.opacity = '0.7';
+  try {
+    /* const data = await CLAP.API.post('/schedule/regenerate/', {}); */
+    await new Promise(r => setTimeout(r, 1200)); // ← remove when backend connected
+    const data = getMock();                       // ← remove when backend connected
+    renderSchedule(data);
+    CLAP.Toast.success('Schedule regenerated!');
+  } catch {
+    CLAP.Toast.error('Could not regenerate schedule.');
+  } finally {
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+});
+
+window.toggleDone = function(btn) {
+  const taskBlock = btn.closest('.task-block');
+  
+  // toggle state
+  const isDone = taskBlock.classList.toggle('done');
+
+  // visual feedback on whole card
+  if (isDone) {
+    taskBlock.style.opacity = '0.5';
+    taskBlock.style.textDecoration = 'line-through';
+  } else {
+    taskBlock.style.opacity = '1';
+    taskBlock.style.textDecoration = 'none';
+  }
+
+  // update button style
+  btn.classList.toggle('done');
+};
+
+/* Legend */
+document.getElementById('info-fab').addEventListener('click', () => {
   document.getElementById('legend-popup').classList.toggle('show');
-}
- 
-function showToast(msg, type = 'info') {
-  const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.innerHTML = `<span>${type === 'success' ? '✅' : 'ℹ️'}</span><span>${msg}</span>`;
-  c.appendChild(t);
-  setTimeout(() => { t.style.animation = 'toastOut 0.3s forwards'; setTimeout(() => t.remove(), 300); }, 3000);
-}
- 
-buildTable(currentMode);
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup'))
+    document.getElementById('legend-popup').classList.remove('show');
+});
+
+loadSchedule();
 </script>
 </body>
 </html>
