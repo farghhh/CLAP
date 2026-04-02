@@ -6,157 +6,359 @@
   <title>CLAP — Dashboard</title>
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/app.css" />
-  <!-- Chart.js for cognitive load graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Dashboard specific layout ── */
+    .db-body {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 24px;
+      align-items: start;
+    }
+    .db-left  { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+    .db-right { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Topbar / greeting ── */
+    .db-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      gap: 16px;
+    }
+    .db-greeting-wrap { display: flex; align-items: center; gap: 14px; }
+    .db-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--grad-primary);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-heading); font-weight: 800; font-size: 1.4rem;
+      color: #fff; flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(75,191,191,0.4);
+    }
+    .db-greeting h2 {
+      font-family: var(--font-heading); font-size: 1.25rem;
+      font-weight: 800; color: var(--clap-teal); line-height: 1.2;
+    }
+    .db-greeting p { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 200px;
+      grid-template-rows: auto auto;
+      gap: 16px;
+    }
+    .stat-box {
+      background: var(--white); border-radius: 18px;
+      padding: 22px 24px; box-shadow: var(--shadow-card);
+    }
+    .stat-box-label {
+      font-size: 0.82rem; font-weight: 600; color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .stat-box-num {
+      font-family: var(--font-heading); font-size: 2.6rem;
+      font-weight: 800; color: var(--text-primary); line-height: 1;
+    }
+
+    /* Cognitive load mini chart */
+    .cog-row    { display: flex; align-items: flex-end; justify-content: space-between; }
+    .cog-right  { text-align: right; }
+    .cog-pct    { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+    .cog-badge  {
+      display: inline-block; padding: 4px 14px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 800; margin-top: 6px;
+    }
+    .cog-badge.moderate { background: #F5A623; color: #fff; }
+    .cog-badge.low      { background: #27AE60; color: #fff; }
+    .cog-badge.high     { background: #E74C3C; color: #fff; }
+    .cog-badge.critical { background: #E74C3C; color: #fff; animation: pulseBadge 1s ease-in-out infinite; }
+    .cog-sparkline { width: 90px; height: 48px; }
+
+    /* Next deadline box — spans 2 cols */
+    .deadline-box {
+      grid-column: 1 / 3;
+      background: var(--white); border-radius: 18px;
+      padding: 18px 24px; box-shadow: var(--shadow-card);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .deadline-box-label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+    .dl-icon {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #222; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; font-size: 0.7rem;
+      font-weight: 800; color: #fff;
+    }
+    .dl-course  { font-family: var(--font-heading); font-size: 1.05rem; font-weight: 800; color: var(--text-primary); }
+    .dl-subject { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+    .dl-badge   {
+      margin-left: auto; padding: 7px 18px; border-radius: 999px;
+      font-size: 0.78rem; font-weight: 800; white-space: nowrap; flex-shrink: 0;
+    }
+    .dl-badge.urgent  { background: #E74C3C; color: #fff; }
+    .dl-badge.warning { background: #FFF3CD; color: #856404; }
+    .dl-badge.normal  { background: var(--bg-light); color: var(--clap-teal); }
+
+    /* Focus hours card — spans 2 rows */
+    .focus-box {
+      grid-column: 3; grid-row: 1 / 3;
+      background: linear-gradient(160deg, #4BBFBF 0%, #3DA8C8 60%, #5BB8D4 100%);
+      border-radius: 20px;
+      padding: 24px 20px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; box-shadow: 0 8px 24px rgba(75,191,191,0.4);
+      color: #fff;
+    }
+    .focus-title { font-size: 0.9rem; font-weight: 700; text-align: center; line-height: 1.3; }
+    .focus-clock {
+      width: 90px; height: 90px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.6);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .focus-clock-inner {
+      width: 70px; height: 70px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+    }
+    .focus-hours {
+      font-family: var(--font-heading); font-size: 1.2rem;
+      font-weight: 800; text-align: center;
+    }
+
+    /* ── AI Study Plan ── */
+    .plan-card {
+      background: var(--white); border-radius: 18px;
+      padding: 20px 22px; box-shadow: var(--shadow-card);
+    }
+    .plan-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .plan-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--clap-teal); }
+    .plan-link  {
+      font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .plan-link:hover { color: var(--clap-teal); }
+
+    /* ── Graph card ── */
+    .graph-card {
+      background: var(--white); border-radius: 18px;
+      padding: 20px 22px; box-shadow: var(--shadow-card);
+    }
+    .graph-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--clap-teal); margin-bottom: 14px; }
+    .graph-wrap  { position: relative; height: 200px; }
+
+    /* ── Recommendation ── */
+    .rec-card {
+      background: var(--white); border-radius: 18px;
+      padding: 20px 22px; box-shadow: var(--shadow-card);
+      border-left: 4px solid #F39C12;
+    }
+    .rec-head  { display: flex; align-items: center; gap: 8px; font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--clap-teal); margin-bottom: 10px; }
+    .rec-alert-box { background: #FFF9E6; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+    .rec-alert-row { display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #E67E22; }
+    .rec-suggest { font-size: 0.85rem; color: var(--text-secondary); font-weight: 500; line-height: 1.5; }
+    .rec-suggest strong { color: var(--text-primary); font-weight: 700; }
+    .rec-reduce  { font-size: 0.8rem; color: var(--success); font-weight: 700; margin-top: 4px; }
+    .rec-footer  { font-size: 0.72rem; color: var(--text-muted); font-style: italic; margin-top: 8px; }
+
+    /* ── Calendar (right) ── */
+    .cal-card {
+      background: var(--white); border-radius: 18px;
+      padding: 20px 20px 16px; box-shadow: var(--shadow-card);
+    }
+    .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .cal-title-date { font-family: var(--font-heading); font-size: 1.3rem; font-weight: 800; color: var(--clap-teal); }
+    .cal-title-day  { font-size: 1rem; font-weight: 600; color: var(--text-secondary); margin-left: 6px; }
+    .cal-nav { background: none; border: none; cursor: pointer; color: var(--text-muted); font-size: 1.1rem; padding: 4px 8px; border-radius: 6px; transition: color var(--transition); }
+    .cal-nav:hover { color: var(--clap-teal); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; text-align: center; }
+    .cal-dn   { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; padding: 4px 0; }
+    .cal-d    { padding: 4px 2px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); cursor: pointer; position: relative; transition: background var(--transition); }
+    .cal-d:hover { background: var(--bg-light); }
+    .cal-d.today { background: var(--clap-teal); color: #fff; border-radius: 50%; font-weight: 800; }
+    .cal-d.om    { color: var(--border); }
+    .cal-d::after { content: ''; display: block; width: 5px; height: 5px; border-radius: 50%; margin: 1px auto 0; }
+    .cal-d.d-teal::after  { background: var(--clap-teal); }
+    .cal-d.d-red::after   { background: #E74C3C; }
+    .cal-d.d-green::after { background: #27AE60; }
+    .cal-d.d-orange::after{ background: #F5A623; }
+    .cal-d.d-multi::after { background: linear-gradient(90deg,#4BBFBF,#E74C3C); }
+
+    /* ── Today Must-Do ── */
+    .todo-card {
+      background: transparent;
+    }
+    .todo-title { font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--clap-teal); margin-bottom: 14px; }
+    .todo-item {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .todo-pill {
+      flex: 1; display: flex; align-items: center; gap: 12px;
+      border-radius: 14px; padding: 12px 16px; min-width: 0;
+    }
+    .todo-pill.purple { background: #EDE7F6; }
+    .todo-pill.orange { background: #FFF3E0; }
+    .todo-pill.blue   { background: #E8EAF6; }
+    .todo-pill.green  { background: #E8F5E9; }
+    .todo-pill.red    { background: #FFEBEE; }
+    .todo-icon {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: #222; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0; font-size: 1rem; color: #fff;
+    }
+    .todo-info { flex: 1; min-width: 0; }
+    .todo-name { font-size: 0.85rem; font-weight: 800; line-height: 1.2; }
+    .todo-name.purple { color: #7C3AED; }
+    .todo-name.orange { color: #F5A623; }
+    .todo-name.blue   { color: #3949AB; }
+    .todo-name.green  { color: #2E7D32; }
+    .todo-name.red    { color: #C62828; }
+    .todo-time { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+    .todo-btns { display: flex; gap: 6px; flex-shrink: 0; }
+    .todo-btn-c {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid #ccc; background: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; color: #999; transition: all var(--transition);
+    }
+    .todo-btn-c.check:hover { border-color: var(--success); color: var(--success); }
+    .todo-btn-c.skip:hover  { border-color: var(--danger);  color: var(--danger);  }
+    .todo-item.done .todo-name { text-decoration: line-through; opacity: 0.5; }
+
+    /* Responsive */
+    @media (max-width: 1100px) {
+      .db-body { grid-template-columns: 1fr; }
+      .db-right { display: grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 720px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .focus-box  { grid-column: 1/3; grid-row: auto; }
+      .deadline-box { grid-column: 1/3; }
+      .db-right { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-<span>CLAP</span></div>
-</div>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-
-<!-- Mobile toggle -->
-<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
-  &#9776;
-</button>
-<div class="sidebar-backdrop" id="sidebar-backdrop" role="presentation"></div>
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <div class="app-layout">
-  <!-- Sidebar (injected by AppShell) -->
-  <aside id="sidebar" class="sidebar" aria-label="Main navigation"></aside>
+  <aside id="sidebar" class="sidebar"></aside>
+  <main class="main-content" id="main">
 
-  <!-- Main Content -->
-  <main class="main-content" id="main" aria-label="Dashboard" tabindex="-1">
-
-    <!-- Top Bar -->
-    <header id="topbar" class="topbar" role="banner"></header>
-
-    <!-- ===== STATS ROW ===== -->
-    <div class="dashboard-stats" role="region" aria-label="Dashboard statistics">
-
-      <!-- Total Tasks -->
-      <div class="stat-card" aria-label="Total tasks">
-        <span class="stat-label">Total Tasks</span>
-        <span class="stat-value" id="stat-total-tasks" aria-live="polite">—</span>
-        <span class="stat-sub">assignments</span>
-      </div>
-
-      <!-- Cognitive Load -->
-      <div class="stat-card" aria-label="Cognitive load">
-        <span class="stat-label">Cognitive Load</span>
-        <div class="cognitive-load-mini">
-          <span class="cog-load-value" id="stat-cog-load" aria-live="polite">—%</span>
-          <span id="cog-load-badge" class="load-badge moderate" aria-live="polite">Moderate</span>
+    <!-- Greeting / Topbar -->
+    <div class="db-topbar">
+      <div class="db-greeting-wrap">
+        <div class="db-avatar" id="db-avatar">S</div>
+        <div class="db-greeting">
+          <h2 id="db-greet-name">Welcome Back!</h2>
+          <p>Nice to have you back.</p>
         </div>
       </div>
-
-      <!-- Focus Hours Today -->
-      <div class="stat-card-focus" aria-label="Focus hours today">
-        <span class="focus-label">Focus Hours</span>
-        <span class="focus-label" style="opacity:.7;font-size:.65rem;">Today</span>
-        <div class="focus-clock-icon" aria-hidden="true">⏱</div>
-        <span class="focus-value" id="stat-focus-hours" aria-live="polite">— / — Hrs</span>
-      </div>
-
     </div>
 
-    <!-- Next Deadline Banner -->
-    <div id="next-deadline-banner" class="deadline-banner" role="alert" aria-live="polite">
-      <div class="deadline-course-icon" aria-hidden="true">📚</div>
-      <div class="deadline-info">
-        <div class="deadline-label" id="deadline-course">Loading…</div>
-        <div class="deadline-title" id="deadline-title">—</div>
-      </div>
-      <span class="deadline-badge urgent" id="deadline-badge">—</span>
-    </div>
+    <!-- 2-column body -->
+    <div class="db-body">
 
-    <!-- ===== MAIN GRID ===== -->
-    <div class="dashboard-grid">
+      <!-- LEFT column -->
+      <div class="db-left">
 
-      <!-- LEFT: Schedule + Stress Analytics -->
-      <div class="dashboard-main">
-
-        <!-- AI Study Plan -->
-        <section class="schedule-card" aria-label="AI Generated Study Plan">
-          <div class="section-header">
-            <h2 class="section-title">AI Generated Study Plan</h2>
-            <button class="section-link" onclick="window.location.href='schedule.html'"
-                    aria-label="View full schedule">View full schedule</button>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+          <!-- Total Tasks -->
+          <div class="stat-box">
+            <div class="stat-box-label">Total Tasks</div>
+            <div class="stat-box-num" id="stat-total">—</div>
           </div>
-          <div class="timetable-wrap" role="region" aria-label="Weekly schedule" tabindex="0">
-            <table class="timetable" id="dashboard-timetable" aria-label="Study schedule">
+
+          <!-- Cognitive Load -->
+          <div class="stat-box">
+            <div class="stat-box-label">Cognitive Load</div>
+            <div class="cog-row">
+              <canvas class="cog-sparkline" id="cog-spark"></canvas>
+              <div class="cog-right">
+                <div class="cog-pct" id="stat-cog-pct">—%</div>
+                <span class="cog-badge moderate" id="stat-cog-badge">Moderate</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Focus Hours (tall card spans both rows) -->
+          <div class="focus-box">
+            <div class="focus-title">Focus Hours<br>Today</div>
+            <div class="focus-clock">
+              <div class="focus-clock-inner">🕐</div>
+            </div>
+            <div class="focus-hours" id="stat-focus">— / — Hrs</div>
+          </div>
+
+          <!-- Next Deadline (spans 2 cols) -->
+          <div class="deadline-box">
+            <div class="deadline-box-label">Next Deadline</div>
+            <div class="dl-icon" id="dl-icon">📚</div>
+            <div>
+              <div class="dl-course"  id="dl-course">—</div>
+              <div class="dl-subject" id="dl-subject">—</div>
+            </div>
+            <span class="dl-badge urgent" id="dl-badge">—</span>
+          </div>
+        </div>
+
+        <!-- Study Plan -->
+        <div class="plan-card">
+          <div class="plan-header">
+            <span class="plan-title">Generated Study Plan</span>
+            <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
+          </div>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table class="timetable" id="plan-table">
               <thead>
                 <tr>
-                  <th scope="col">Time / Day</th>
-                  <th scope="col">Monday</th>
-                  <th scope="col">Tuesday</th>
-                  <th scope="col">Wednesday</th>
-                  <th scope="col">Thursday</th>
-                  <th scope="col">Friday</th>
+                  <th>Time / Day</th>
+                  <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
                 </tr>
               </thead>
-              <tbody id="timetable-body">
-                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">
-                  Loading schedule…
-                </td></tr>
+              <tbody id="plan-body">
+                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+        
+      </div><!-- /db-left -->
 
-        <!-- Cognitive Load Trend -->
-        <section class="graph-card" aria-label="Cognitive load trend graph">
-          <div class="section-header">
-            <h2 class="section-title">Cognitive Load Trend Graph</h2>
-          </div>
-          <div class="graph-canvas-wrap">
-            <canvas id="cogload-chart" role="img" aria-label="Cognitive load trend chart"></canvas>
-          </div>
-        </section>
+      <!-- RIGHT column -->
+      <div class="db-right">
 
-        <!-- CLAP Smart Recommendation -->
-        <section id="recommendation-section" class="recommendation-card" aria-label="CLAP Smart Recommendation" aria-live="polite">
-          <div class="rec-header">
-            <span aria-hidden="true">🧠</span> CLAP Smart Recommendation
-          </div>
-          <div class="rec-alert">
-            <div class="rec-alert-text">
-              <span aria-hidden="true">⚠️</span>
-              <span id="rec-alert-text">Analysing your schedule…</span>
+        <!-- Calendar -->
+        <div class="cal-card">
+          <div class="cal-header">
+            <div>
+              <span class="cal-title-date" id="cal-date">March, 12</span>
+              <span class="cal-title-day"  id="cal-dayname">Thursday</span>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="cal-nav" id="cal-prev">&#8249;</button>
+              <button class="cal-nav" id="cal-next">&#8250;</button>
             </div>
           </div>
-          <div class="rec-suggestion" id="rec-suggestion"></div>
-          <div class="rec-reduction" id="rec-reduction"></div>
-          <div class="rec-generated">
-            <span aria-hidden="true">✨</span> Generated by CLAP
-          </div>
-        </section>
+          <div class="cal-grid" id="cal-grid"></div>
+        </div>
 
-      </div><!-- /.dashboard-main -->
+        <!-- Today Must-Do List -->
+        <div class="todo-card">
+          <div class="todo-title">Today Must-Do List</div>
+          <div id="todo-list"></div>
+        </div>
 
-      <!-- RIGHT: Calendar + Todo -->
-      <aside class="dashboard-right" aria-label="Sidebar widgets">
-
-        <!-- Mini Calendar -->
-        <section class="calendar-card" aria-label="Calendar">
-          <div class="section-header">
-            <h2 class="section-title" id="calendar-date-display">—</h2>
-          </div>
-          <div id="mini-calendar"></div>
-        </section>
-
-        <!-- Today's Must-Do List -->
-        <section class="todo-card" aria-label="Today's must-do list">
-          <div class="section-header">
-            <h2 class="section-title">Today Must-Do List</h2>
-          </div>
-          <div id="todo-list" class="todo-list" role="list" aria-live="polite">
-            <p style="color:var(--text-muted);font-size:.82rem">Loading tasks…</p>
-          </div>
-        </section>
-
-      </aside>
-
-    </div><!-- /.dashboard-grid -->
+      </div><!-- /db-right -->
+    </div><!-- /db-body -->
 
   </main>
 </div>
@@ -164,290 +366,214 @@
 <script src="js/core.js"></script>
 <script src="js/app-shell.js"></script>
 <script>
-(function() {
-  AppShell.init('dashboard.html');
+'use strict';
+AppShell.init('dashboard.html');
 
-  /* ---- Date Display ---- */
-  const now = new Date();
-  const dateOpts = { month: 'long', day: 'numeric', weekday: 'long' };
-  document.getElementById('calendar-date-display').textContent =
-    now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long' });
+/* Greeting */
+const u = CLAP.Auth.getUser() || {};
+const firstName = (u.name||'Student').split(' ')[0];
+document.getElementById('db-avatar').textContent   = (u.name||'S').charAt(0).toUpperCase();
+document.getElementById('db-greet-name').textContent = `Welcome Back, ${firstName}!`;
 
-  /* ---- Load Dashboard Data ---- */
-  async function loadDashboard() {
-    try {
-      /* Try real API first, fall back to mock */
-      let data;
-      try {
-        data = await CLAP.API.get('/dashboard/');
-      } catch {
-        data = buildMockDashboard();
-      }
+/* ── Mock ── */
+function getMock() {
+  return {
+    total_tasks: 5,
+    cognitive_load: { value: 72, level: 'moderate', trend: [40, 45, 55, 50, 72] },
+    focus: { used: 3, max: 6 },
+    next_deadline: { course: 'CSC2383', title: 'Database Project', days_left: 2 },
+    schedule: {
+      Monday:    [{ time:'09:00', title:'Database\nProject', color:'orange' }, { time:'11:00', title:'Parallel\nComp.', color:'blue' }],
+      Tuesday:   [{ time:'10:00', title:'Study\nSession', color:'blue', span:2 }],
+      Wednesday: [{ time:'11:00', title:'Mobile\nApp', color:'red', span:2 }],
+      Thursday:  [{ time:'09:00', title:'Mobile\nApp', color:'red' }, { time:'11:00', title:'Database\nProject', color:'orange' }],
+      Friday:    [{ time:'10:00', title:'Study\nSession', color:'blue', span:2 }],
+    },
+    stress_history: { Mon:40, Tue:55, Wed:48, Thu:82, Fri:60 },
+    recommendation: {
+      alert: 'Thursday exceeds safe cognitive load.',
+      suggestion: 'Move "Parallel Computing Assignment" to Friday 14:00.',
+      reduction: 22
+    },
+    today_tasks: [
+      { id:1, title:'Database Project',   time:'09:00 AM - 10:00 AM', color:'purple', icon:'🗄️' },
+      { id:2, title:'Parallel Computing', time:'11:00 AM - 12:30 PM', color:'orange', icon:'⚙️' },
+      { id:3, title:'Mobile Application', time:'15:00 PM - 16:00 PM', color:'blue',   icon:'📱' },
+    ]
+  };
+}
 
-      renderStats(data);
-      renderDeadline(data.next_deadline);
-      renderTimetable(data.schedule);
-      renderCogLoadChart(data.stress_history);
-      renderRecommendation(data.recommendation);
-      renderTodoList(data.today_tasks);
+/* ── Load ── */
+async function load() {
+  let d;
+  try { d = await CLAP.API.get('/dashboard/'); } catch { d = getMock(); }
+  renderStats(d);
+  renderDeadline(d.next_deadline);
+  renderTimetable(d.schedule);
+  renderSparkline(d.cognitive_load?.trend || [40,50,55,50,72]);
+  renderChart(d.stress_history);
+  renderRec(d.recommendation);
+  renderTodo(d.today_tasks);
+}
 
-    } catch (err) {
-      CLAP.Toast.error('Failed to load dashboard data.');
-      console.error(err);
-    }
-  }
+/* ── Stats ── */
+function renderStats(d) {
+  document.getElementById('stat-total').textContent = d.total_tasks ?? '—';
+  const cog = d.cognitive_load || {};
+  document.getElementById('stat-cog-pct').textContent = cog.value != null ? cog.value+'%' : '—%';
+  const badge = document.getElementById('stat-cog-badge');
+  const lv = (cog.level || 'moderate').toLowerCase();
+  badge.className = 'cog-badge ' + lv;
+  badge.textContent = lv.charAt(0).toUpperCase() + lv.slice(1);
+  const f = d.focus || {};
+  document.getElementById('stat-focus').textContent = `${f.used??'—'} / ${f.max??'—'} Hrs`;
+}
 
-  function buildMockDashboard() {
-    const { MockData } = CLAP;
-    return {
-      total_tasks:    MockData.assignments.length,
-      cognitive_load: MockData.cognitiveLoad,
-      focus: { used: 3, max: 6 },
-      next_deadline: { course: 'CSC2383', title: 'Database Project', days_left: 2 },
-      schedule:       MockData.schedule,
-      stress_history: MockData.stressHistory,
-      recommendation: {
-        alert: 'Thursday exceeds safe cognitive load.',
-        suggestion: 'Move "Parallel Computing Assignment" to Friday 14:00.',
-        reduction: 22,
-      },
-      today_tasks: [
-        { id: 1, title: 'Database Project',       time: '09:00 AM - 10:00 AM', color: 'orange', done: false },
-        { id: 2, title: 'Parallel Computing',      time: '11:00 AM - 12:30 PM', color: 'blue',   done: false },
-        { id: 3, title: 'Mobile Application',      time: '15:00 PM - 16:00 PM', color: 'red',    done: false },
-      ],
-    };
-  }
+/* ── Sparkline ── */
+function renderSparkline(trend) {
+  const canvas = document.getElementById('cog-spark');
+  const ctx = canvas.getContext('2d');
+  canvas.width  = 90; canvas.height = 48;
+  const max = Math.max(...trend), min = Math.min(...trend);
+  const range = max - min || 1;
+  const pts = trend.map((v, i) => ({
+    x: (i / (trend.length - 1)) * 80 + 5,
+    y: 43 - ((v - min) / range) * 38
+  }));
+  ctx.clearRect(0, 0, 90, 48);
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  /* Arrow at end */
+  const last = pts[pts.length - 1];
+  const prev = pts[pts.length - 2];
+  const angle = Math.atan2(last.y - prev.y, last.x - prev.x);
+  ctx.beginPath();
+  ctx.moveTo(last.x, last.y);
+  ctx.lineTo(last.x - 8 * Math.cos(angle - 0.4), last.y - 8 * Math.sin(angle - 0.4));
+  ctx.moveTo(last.x, last.y);
+  ctx.lineTo(last.x - 8 * Math.cos(angle + 0.4), last.y - 8 * Math.sin(angle + 0.4));
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
 
-  function renderStats(data) {
-    document.getElementById('stat-total-tasks').textContent = data.total_tasks ?? '—';
+/* ── Deadline ── */
+function renderDeadline(dl) {
+  if (!dl) return;
+  document.getElementById('dl-course').textContent  = dl.course || '';
+  document.getElementById('dl-subject').textContent = dl.title  || '';
+  const b = document.getElementById('dl-badge');
+  const days = dl.days_left;
+  if (days <= 1) { b.textContent = 'Due Today!'; b.className = 'dl-badge urgent'; }
+  else if (days <= 3) { b.textContent = `Due in ${days} Days`; b.className = 'dl-badge urgent'; }
+  else if (days <= 7) { b.textContent = `Due in ${days} Days`; b.className = 'dl-badge warning'; }
+  else { b.textContent = `Due in ${days} Days`; b.className = 'dl-badge normal'; }
+}
 
-    const loadEl    = document.getElementById('stat-cog-load');
-    const badgeEl   = document.getElementById('cog-load-badge');
-    const cog       = data.cognitive_load || {};
-    const pct       = cog.value ?? '—';
-    const level     = (cog.level || 'moderate').toLowerCase();
-
-    loadEl.textContent  = pct !== '—' ? `${pct}%` : '—';
-    badgeEl.textContent = level.charAt(0).toUpperCase() + level.slice(1);
-    badgeEl.className   = `load-badge ${level}`;
-
-    const focus = data.focus || {};
-    document.getElementById('stat-focus-hours').textContent =
-      `${focus.used ?? '—'} / ${focus.max ?? '—'} Hrs`;
-  }
-
-  function renderDeadline(dl) {
-    if (!dl) { document.getElementById('next-deadline-banner').style.display = 'none'; return; }
-    document.getElementById('deadline-course').textContent = dl.course || '';
-    document.getElementById('deadline-title').textContent  = dl.title  || '';
-    const badge = document.getElementById('deadline-badge');
-    const days  = dl.days_left;
-    if (days <= 1) { badge.textContent = 'Due Today!';        badge.className = 'deadline-badge urgent'; }
-    else if (days <= 3) { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge urgent'; }
-    else if (days <= 7) { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge warning'; }
-    else { badge.textContent = `Due in ${days} Days`; badge.className = 'deadline-badge normal'; }
-  }
-
-  function renderTimetable(schedule) {
-    if (!schedule) return;
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-    const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00'];
-    const body  = document.getElementById('timetable-body');
-
-    /* Build slot map: day → time → task */
-    const slotMap = {};
-    days.forEach(d => { slotMap[d] = {}; });
-    Object.entries(schedule).forEach(([day, tasks]) => {
-      if (!Array.isArray(tasks)) return;
-      tasks.forEach(t => { if (slotMap[day]) slotMap[day][t.time] = t; });
+/* ── Timetable ── */
+function renderTimetable(schedule) {
+  if (!schedule) return;
+  const days  = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+  const times = ['09:00','10:00','11:00','12:00','13:00'];
+  const map   = {};
+  days.forEach(d => { map[d] = {}; });
+  Object.entries(schedule).forEach(([day, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach(t => { if (map[day]) map[day][t.time] = t; });
+  });
+  const skip = {};
+  let html = '';
+  times.forEach((time, ti) => {
+    html += `<tr><td>${time}</td>`;
+    days.forEach(day => {
+      const key = day + ti;
+      if (skip[key]) return;
+      const task = map[day]?.[time];
+      if (task) {
+        const span = task.span || 1;
+        for (let s = 1; s < span; s++) skip[day + (ti+s)] = true;
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+        html += `<td${rs} style="vertical-align:top;padding:2px"><div class="task-block ${task.color||'blue'}" style="${span>1?'min-height:'+(span*44)+'px':''}">${task.title||''}</div></td>`;
+      } else { html += '<td></td>'; }
     });
+    html += '</tr>';
+  });
+  html += `<tr class="recovery-row"><td>14:00</td><td colspan="5">R E C O V E R Y / R E S T</td></tr>`;
+  document.getElementById('plan-body').innerHTML = html;
+}
 
-    let html = '';
-    times.forEach(time => {
-      html += `<tr><td>${time}</td>`;
-      days.forEach(day => {
-        const task = slotMap[day][time];
-        if (task) {
-          html += `<td><div class="task-block ${task.color || 'blue'}"
-                            tabindex="0"
-                            role="button"
-                            aria-label="${task.title} at ${time} on ${day}">${task.title}</div></td>`;
-        } else {
-          html += '<td></td>';
-        }
-      });
-      html += '</tr>';
-    });
 
-    /* Recovery row */
-    html += `<tr class="recovery-row">
-      <td>Rest</td>
-      <td colspan="5" aria-label="Recovery and rest period">R E C O V E R Y / R E S T</td>
-    </tr>`;
+/* ── Calendar ── */
+let calDate = new Date();
+const CAL_DOTS = {
+  9:  'd-teal', 11: 'd-orange', 12: 'd-teal d-multi', 20: 'd-orange',
+  21: 'd-green', 22: 'd-red', 25: 'd-red', 26: 'd-teal', 27: 'd-green', 31: 'd-red'
+};
+const DAY_NAMES   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    body.innerHTML = html;
+function renderCalendar() {
+  const y = calDate.getFullYear(), m = calDate.getMonth();
+  const today = new Date();
+  const isCurrentMonth = y === today.getFullYear() && m === today.getMonth();
+  const todayD = today.getDate();
+  const dayName = DAY_NAMES[today.getDay()];
+  document.getElementById('cal-date').textContent   = `${MONTH_NAMES[m]}, ${isCurrentMonth ? todayD : 1}`;
+  document.getElementById('cal-dayname').textContent = isCurrentMonth ? dayName : '';
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  let html = DAY_NAMES.map(d => `<div class="cal-dn">${d}</div>`).join('');
+  for (let i = 0; i < firstDow; i++) html += `<div class="cal-d om"></div>`;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = isCurrentMonth && d === todayD;
+    const dotClass = (!isToday && CAL_DOTS[d]) ? CAL_DOTS[d] : '';
+    html += `<div class="cal-d ${isToday ? 'today' : ''} ${dotClass}">${d}</div>`;
   }
+  document.getElementById('cal-grid').innerHTML = html;
+}
 
-  let chartInstance = null;
-  function renderCogLoadChart(stressHistory) {
-    const canvas = document.getElementById('cogload-chart');
-    if (!canvas || !stressHistory) return;
-    const ctx    = canvas.getContext('2d');
-    const labels = Object.keys(stressHistory);
-    const values = Object.values(stressHistory);
+document.getElementById('cal-prev').addEventListener('click', () => { calDate.setMonth(calDate.getMonth()-1); renderCalendar(); });
+document.getElementById('cal-next').addEventListener('click', () => { calDate.setMonth(calDate.getMonth()+1); renderCalendar(); });
+renderCalendar();
 
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Workload (%)',
-          data: values,
-          borderColor: '#4BBFBF',
-          backgroundColor: 'rgba(75,191,191,0.08)',
-          pointBackgroundColor: values.map(v => v > 80 ? '#E74C3C' : '#4BBFBF'),
-          pointBorderColor: '#fff',
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          borderWidth: 2.5,
-          tension: 0.35,
-          fill: true,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => `Workload: ${ctx.parsed.y}%`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#7FA8B5', font: { family: "'Nunito',sans-serif", weight: '700' } },
-          },
-          y: {
-            min: 0, max: 100,
-            grid: { color: 'rgba(0,0,0,0.05)' },
-            ticks: {
-              color: '#7FA8B5',
-              font: { family: "'Nunito',sans-serif" },
-              callback: v => `${v}%`,
-            },
-          },
-        },
-        /* Draw burnout threshold line */
-        plugins: {
-          legend: { display: false },
-          annotation: undefined,
-        },
-      },
-      plugins: [{
-        id: 'burnoutLine',
-        afterDraw(chart) {
-          const { ctx, chartArea, scales } = chart;
-          const y = scales.y.getPixelForValue(80);
-          ctx.save();
-          ctx.setLineDash([8, 4]);
-          ctx.strokeStyle = 'rgba(231,76,60,0.5)';
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.moveTo(chartArea.left, y);
-          ctx.lineTo(chartArea.right, y);
-          ctx.stroke();
-          ctx.restore();
-        },
-      }],
-    });
+/* ── Today Must-Do ── */
+function renderTodo(tasks) {
+  const list = document.getElementById('todo-list');
+  if (!tasks?.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 No tasks today!</p>';
+    return;
   }
-
-  function renderRecommendation(rec) {
-    if (!rec) { document.getElementById('recommendation-section').style.display='none'; return; }
-    document.getElementById('rec-alert-text').textContent  = rec.alert || '';
-    document.getElementById('rec-suggestion').innerHTML    = rec.suggestion
-      ? `Suggested change: <strong>${rec.suggestion}</strong>` : '';
-    document.getElementById('rec-reduction').textContent   = rec.reduction
-      ? `Estimated stress reduction: ${rec.reduction}%` : '';
-  }
-
-  function renderTodoList(tasks) {
-    const list = document.getElementById('todo-list');
-    if (!tasks || tasks.length === 0) {
-      list.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center">🎉 No tasks scheduled for today!</p>';
-      return;
-    }
-
-    list.innerHTML = tasks.map(task => `
-      <div class="todo-item ${task.done ? 'completed' : ''}"
-           id="todo-${task.id}"
-           role="listitem"
-           aria-label="${task.title}">
-        <div class="todo-item-color ${task.color}" aria-hidden="true"
-             style="background:var(--assign-${task.color || 'blue'})">
-          ${task.title.charAt(0)}
-        </div>
-        <div class="todo-item-info">
-          <div class="todo-item-title">${escHtml(task.title)}</div>
-          <div class="todo-item-time">${escHtml(task.time)}</div>
-        </div>
-        <div class="todo-item-actions" role="group" aria-label="Task actions">
-          <button class="todo-action-btn check"
-                  onclick="markTask(${task.id}, true)"
-                  aria-label="Mark ${task.title} as complete"
-                  title="Complete">✓</button>
-          <button class="todo-action-btn skip"
-                  onclick="markTask(${task.id}, false)"
-                  aria-label="Skip ${task.title}"
-                  title="Skip">✕</button>
+  list.innerHTML = tasks.map(t => `
+    <div class="todo-item" id="todo-${t.id}">
+      <div class="todo-pill ${t.color||'blue'}">
+        <div class="todo-icon">${t.icon||'📝'}</div>
+        <div class="todo-info">
+          <div class="todo-name ${t.color||'blue'}">${t.title}</div>
+          <div class="todo-time">${t.time}</div>
         </div>
       </div>
-    `).join('');
-  }
+      <div class="todo-btns">
+        <button class="todo-btn-c check" onclick="markTask(${t.id},true)"  title="Complete">✓</button>
+        <button class="todo-btn-c skip"  onclick="markTask(${t.id},false)" title="Skip">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
 
-  window.markTask = async function(id, completed) {
-    const el = document.getElementById(`todo-${id}`);
-    if (!el) return;
+window.markTask = async function(id, done) {
+  const el = document.getElementById('todo-'+id);
+  if (el) el.classList.toggle('done', done);
+  try { await CLAP.API.patch(`/tasks/${id}/`, { completed: done }); } catch {}
+  CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
+};
 
-    el.classList.toggle('completed', completed);
-    el.querySelector('.todo-item-title').style.textDecoration = completed ? 'line-through' : '';
-
-    try {
-      await CLAP.API.patch(`/tasks/${id}/`, { completed });
-      CLAP.Toast.success(completed ? 'Task completed! 🎉' : 'Task skipped.');
-
-      /* If skipped, trigger adaptive rescheduling notification */
-      if (!completed) {
-        CLAP.Toast.warning('CLAP is rescheduling your workload…', 3000);
-      }
-    } catch (err) {
-      CLAP.Toast.error('Failed to update task: ' + err.message);
-      el.classList.toggle('completed', !completed); /* revert */
-    }
-  };
-
-  function escHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
-  /* ---- Mini Calendar ---- */
-  CLAP.renderMiniCalendar('mini-calendar', {
-    '2026-03-22': 'has-event deadline',
-    '2026-03-25': 'has-event deadline',
-    '2026-03-31': 'has-event',
-  });
-
-  /* ---- Load it all ---- */
-  loadDashboard();
-})();
+load();
 </script>
 </body>
 </html>

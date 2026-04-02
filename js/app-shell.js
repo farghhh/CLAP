@@ -31,10 +31,7 @@ const AppShell = {
     el.innerHTML = `
       <div class="sidebar-logo" aria-label="CLAP">
         <img src="assets/logo.png" alt="CLAP" onerror="this.style.display='none'"
-             style="width:48px;height:48px;object-fit:contain;" />
-        <div class="logo-text" aria-hidden="true">
-          <span style="color:var(--clap-navy)">CL</span><span style="color:var(--clap-teal)">AP</span>
-        </div>
+             style="width:120px;height:120px;object-fit:contain;margin: 0 auto;" />
       </div>
 
       <nav class="sidebar-nav" aria-label="Main navigation" role="navigation">
@@ -121,30 +118,8 @@ const AppShell = {
           <p>Nice to have you back.</p>
         </div>
       </div>
-      ${opts.showSearch !== false ? `
-      <div class="topbar-search" role="search">
-        <span class="search-icon" aria-hidden="true">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </span>
-        <input type="search" placeholder="What are you looking for?"
-               aria-label="Search CLAP" id="topbar-search-input" autocomplete="off" />
-      </div>` : ''}
-    `;
 
-    const searchInput = document.getElementById('topbar-search-input');
-    if (searchInput) {
-      let debounce;
-      searchInput.addEventListener('input', () => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => {
-          const q = searchInput.value.trim().toLowerCase();
-          document.dispatchEvent(new CustomEvent('clap:search', { detail: q }));
-        }, 300);
-      });
-      searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') searchInput.value = ''; });
-    }
+    `;
   },
 
   _injectLogoutHandler() {
