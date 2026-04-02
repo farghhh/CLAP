@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-+^jk3e+_)eab4!lrm22=31i2*8s+t57i*e_9)^*^8z^9bx=sai
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'pieridine-violet-nothus.ngrok-free.dev']
+ALLOWED_HOSTS = ['localhost', 
+                 '127.0.0.1', 
+                 'pieridine-violet-nothus.ngrok-free.dev', 
+                 '.railway.app',
+                 ]
 
 
 # Application definition
@@ -86,11 +90,11 @@ WSGI_APPLICATION = 'CLAP_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'clap_db',
-        'USER': 'root',
-        'PASSWORD': 'nana2006',
-        'HOST': 'localhost',
-        'PORT': '3306',
+        'NAME': os.environ.get('MYSQL_DATABASE', 'clap_db'),
+        'USER': os.environ.get('MYSQL_USER', 'root'),
+        'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'nana2006'),
+        'HOST': os.environ.get('MYSQL_HOST', 'localhost'),
+        'PORT': os.environ.get('MYSQL_PORT', '3306'),
     }
 }
 
@@ -160,3 +164,8 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'clap.iief@gmail.com'
 EMAIL_HOST_PASSWORD = 'mqod aifj mnpd lopb'
 FRONTEND_URL = 'http://127.0.0.1:5500'
+
+# Whitenoise for static files
+MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
