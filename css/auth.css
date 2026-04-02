@@ -418,7 +418,7 @@
   box-shadow: 0 20px 60px rgba(26,58,92,0.2);
   padding: var(--space-2xl) var(--space-lg);
   width: 100%;
-  max-width: 460px;
+  max-width: 420px;
   position: relative;
   z-index: 1;
   animation: cardEntrance 0.5s var(--ease) both;
