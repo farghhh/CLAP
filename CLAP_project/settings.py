@@ -87,17 +87,25 @@ WSGI_APPLICATION = 'CLAP_project.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 #always change this to my own database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQLDATABASE', 'clap_db'),
-        'USER': os.environ.get('MYSQLUSER', 'root'),
-        'PASSWORD': os.environ.get('MYSQLPASSWORD', 'nana2006'),
-        'HOST': os.environ.get('MYSQLHOST', 'localhost'),
-        'PORT': os.environ.get('MYSQLPORT', '3306'),
-    }
-}
+import dj_database_url
 
+MYSQL_URL = os.environ.get('MYSQL_URL')
+
+if MYSQL_URL:
+    DATABASES = {
+        'default': dj_database_url.parse(MYSQL_URL, conn_max_age=600)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'clap_db',
+            'USER': 'root',
+            'PASSWORD': 'nana2006',
+            'HOST': 'localhost',
+            'PORT': '3306',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
