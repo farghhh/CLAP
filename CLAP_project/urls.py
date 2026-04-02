@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
+from schedule import views as schedule_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,4 +25,7 @@ urlpatterns = [
     path('api/users/', include('sleep.urls')),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'), #token refresh endpoints
     path('api/assignments/', include('tasks.urls')),
+    path('api/schedule/', include('schedule.urls')),
+    path('api/dashboard/', schedule_views.dashboard_view, name='dashboard'),
+    path('api/stress-analytics/', include('stress.urls')),
 ]
