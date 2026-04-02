@@ -23,12 +23,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: var(--space-2xl) var(--space-2xl);
+  justify-content: flex-start;
+  padding-top: 60px;
+  padding: var(--space-xl);
   background: var(--white);
   position: relative;
   z-index: 1;
   text-align: center;
+  overflow-y: auto;
 }
 
 .auth-side-panel {
@@ -401,31 +403,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xl);
+  padding: var(--space-lg);
   position: relative;
   overflow: hidden;
 }
 .onboarding-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  align-items: center;
   background: var(--white);
   border-radius: var(--radius-xl);
   box-shadow: 0 20px 60px rgba(26,58,92,0.2);
-  padding: var(--space-2xl);
+  padding: var(--space-2xl) var(--space-lg);
   width: 100%;
-  max-width: 540px;
+  max-width: 460px;
   position: relative;
   z-index: 1;
   animation: cardEntrance 0.5s var(--ease) both;
+  margin: 0;
 }
 .onboarding-logo {
+  width: 100%;
+  height: auto;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-md);
 }
 .onboarding-logo img {
   width: 150px; height: 150px;
+  max-width: 90%;
+  height: auto;
   object-fit: contain;
+  display: block;
 }
 .onboarding-logo-text {
   font-family: var(--font-heading);
@@ -441,7 +453,7 @@
   font-weight: 800;
   color: var(--clap-teal);
   text-align: center;
-  margin-bottom: var(--space-xs);
+  margin-bottom: var(--space-sm);
 }
 .onboarding-sub {
   text-align: center;
@@ -449,6 +461,11 @@
   font-size: 0.9rem;
   font-weight: 500;
   margin-bottom: var(--space-xl);
+}
+.onboarding-logo,
+.onboarding-title,
+.onboarding-sub {
+  margin-top: 0;
 }
 .routine-fields {
   display: flex;
