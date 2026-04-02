@@ -1,1 +1,1 @@
-web: python manage.py migrate && gunicorn CLAP_project.wsgi
+web: python manage.py migrate && gunicorn CLAP_project.wsgi 
