@@ -19,7 +19,7 @@
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
     .db-search    { display: none !important; }
-    
+
     /* ── Stats grid ── */
     .stats-grid   { display:grid; grid-template-columns:1fr 1fr 200px; grid-template-rows:auto auto; gap:16px; }
     .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
@@ -267,7 +267,7 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('dashboard.html');
+AppShell.init('dashboard.html', { showSearch: false });
 
 /* ─────────────────────────────────────────────
    GREETING  (reads from CLAP.Auth.getUser())
