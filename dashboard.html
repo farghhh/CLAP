@@ -29,7 +29,7 @@
      */
     .db-search { display: none;
     }
-    
+
     /* ── Stats grid ── */
     .stats-grid {
       display:grid;
@@ -553,7 +553,7 @@ function renderCalendar() {
   const td    = today.getDate();
 
   /* Update header: show today's date number when on current month. */
-  document.getElementById('cal-title').textContent = `${MN[m]}, ${isCur ? td : 1}`;
+  document.getElementById('cal-title').textContent = `${MN[m]}`;
   document.getElementById('cal-day').textContent = isCur 
   ? `${DN[today.getDay()]}, ${td}` 
   : '';
