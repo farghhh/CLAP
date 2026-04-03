@@ -123,6 +123,7 @@
     .todo-btn.chk:hover{ border-color:var(--success); color:var(--success); }
     .todo-btn.skp:hover{ border-color:var(--danger);  color:var(--danger); }
     .todo-item.done .todo-name{ text-decoration:line-through; opacity:0.5; }
+    .todo-item.done { opacity:0.7; }
 
     /* Responsive */
     @media(max-width:1100px){
@@ -219,7 +220,7 @@
             <span class="plan-ttl">Generated Study Plan</span>
             <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
           </div>
-          <div style="overflow-x:auto;">
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
             <table class="timetable">
               <thead>
                 <tr>
@@ -350,7 +351,7 @@ async function loadDashboard() {
   renderStats(data);
   renderDeadline(data.next_deadline);
   renderSchedule(data.schedule);
-  renderSparkline(data.cognitive_load?.trend || [40,50,55,50,72]);
+  renderSparkline(data.cognitive_load?.trend || [40, 45, 55, 50, 72]);
   renderTodo(data.today_tasks);
 }
 
@@ -534,9 +535,10 @@ function renderTodo(tasks) {
 }
 
 window.markTask = async function(id, done) {
-  document.getElementById('td-'+id)?.classList.toggle('done', done);
-  /* ── CONNECT: PATCH /api/tasks/{id}/   body: { completed: true/false }
-     ── */ 
+  const el = document.getElementById('td-'+id);
+  if (el) {
+    el.classList.toggle('done', done);
+  }
   try { await CLAP.API.patch(`/tasks/${id}/`, { completed: done }); } catch {}
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };

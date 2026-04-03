@@ -159,16 +159,12 @@ async function loadAnalytics(days) {
 
   /* RECOMMENDATION */
   const recBox = document.getElementById('clap-rec');
-
   if (data.recommendation) {
     recBox.classList.remove('hidden');
-    document.getElementById('clap-rec-text').textContent =
-      data.recommendation.suggestion;
+    document.getElementById('clap-rec-text').textContent = data.recommendation.suggestion;
   } else {
     recBox.classList.add('hidden');
   }
-
-  renderChart(data.labels, data.values);
 }
 
 /* ================= CHART ================= */
@@ -211,9 +207,6 @@ function renderTrendChart(labels, values) {
 
 
 /* ================= ACTION ================= */
-function regenerateSchedule() {
-  alert("Regenerating optimized schedule...");
-}
 
 // open modal when user clicks regenerate
 function regenerateSchedule() {
@@ -228,17 +221,18 @@ function closeModal() {
 // confirm action
 function confirmRegenerate() {
   closeModal();
-
-  // 👉 PUT YOUR REAL REGENERATE LOGIC HERE
-  console.log("Schedule regenerated!");
-
-  // optional feedback
-  alert("New schedule generated successfully!");
+  /* ── CONNECT: POST /api/schedule/regenerate/ ── */
+  CLAP.Toast.success('New schedule generated successfully!');
 }
 
 /* ================= INIT ================= */
 document.getElementById('period-select')
   .addEventListener('change', e => loadAnalytics(+e.target.value));
+
+/* Close confirm modal on backdrop click */
+document.getElementById('confirm-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
 
 loadAnalytics(30);
 </script>

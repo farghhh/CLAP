@@ -56,7 +56,6 @@ let curSub  = 'profile';
 
 /* ── PANEL CONTENT ── */
 function panelGeneral() {
-  /* Show sub-nav and render correct sub-panel */
   document.getElementById('general-subnav').style.display = 'flex';
   return curSub === 'study-prefs' ? panelStudyPrefs() : panelProfile();
 }
@@ -70,26 +69,26 @@ function panelProfile() {
       <div>
         <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
         <div style="display:flex;gap:8px">
-          <button class="upload-btn" style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)">🗑️</button>
-          <label class="upload-btn">
+          <button class="upload-btn" id="del-avatar-btn" style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)" title="Remove photo">🗑️ Remove</button>
+          <label class="upload-btn" style="cursor:pointer;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload
-            <input type="file" accept="image/*" style="display:none" />
+            <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
           </label>
         </div>
       </div>
     </div>
-    <div class="settings-row">
-      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value">${user.name||'—'}</div></div>
-      <button class="edit-btn" onclick="editField('name','Full Name')">Edit</button>
+    <div class="settings-row" id="row-name">
+      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value" id="val-name">${user.name||'—'}</div></div>
+      <button class="edit-btn" onclick="startInlineEdit('name','Full Name')">Edit</button>
     </div>
-    <div class="settings-row">
-      <div><div class="settings-row-label">Email</div><div class="settings-row-value">${user.email||'—'}</div></div>
-      <button class="edit-btn" onclick="editField('email','Email')">Edit</button>
+    <div class="settings-row" id="row-email">
+      <div><div class="settings-row-label">Email</div><div class="settings-row-value" id="val-email">${user.email||'—'}</div></div>
+      <button class="edit-btn" onclick="startInlineEdit('email','Email')">Edit</button>
     </div>
-    <div class="settings-row" style="border:none">
-      <div><div class="settings-row-label">Program</div><div class="settings-row-value">${user.program||'Computer Science'}</div></div>
-      <button class="edit-btn" onclick="editField('program','Program')">Edit</button>
+    <div class="settings-row" style="border:none" id="row-program">
+      <div><div class="settings-row-label">Program</div><div class="settings-row-value" id="val-program">${user.program||'Computer Science'}</div></div>
+      <button class="edit-btn" onclick="startInlineEdit('program','Program')">Edit</button>
     </div>
     <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>`;
 }
@@ -99,45 +98,16 @@ function panelStudyPrefs() {
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Study Preferences</span></div>
     <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-md)">Study Preferences</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">To update your sleep or study hours, use the Daily Routine setup in Onboarding. Backend editing will be available soon.</p>
     <div class="settings-row">
-      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${p.sleep_start||'11.00 PM'} to ${p.sleep_end||'7.00 AM'}</div></div>
-      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
+      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${p.sleep_start||'11:00 PM'} to ${p.sleep_end||'7:00 AM'}</div></div>
     </div>
     <div class="settings-row">
-      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${p.study_start||'9.00 AM'} to ${p.study_end||'7.00 PM'}</div></div>
-      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
+      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${p.study_start||'9:00 AM'} to ${p.study_end||'7:00 PM'}</div></div>
     </div>
     <div class="settings-row" style="border:none">
       <div><div class="settings-row-label">Daily Study Limit</div><div class="settings-row-value">${p.max_focus_hours||6} Hours</div></div>
-      <button class="edit-btn" onclick="CLAP.Toast.info('Edit via onboarding or connect backend')">Edit</button>
-    </div>
-    <button class="save-changes-btn" onclick="CLAP.Toast.success('Study preferences saved!')">Save Changes</button>`;
-}
-
-function panelCognitive() {
-  return `
-    <div class="settings-breadcrumb">Settings › <span>Cognitive Load</span></div>
-    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">Workload Sensitivity</h3>
-    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">Select your preferred workload level:</p>
-    <div class="radio-group">
-      <label class="radio-item"><input type="radio" name="wl" value="relaxed" checked /> Relaxed</label>
-      <label class="radio-item"><input type="radio" name="wl" value="balanced" /> Balanced</label>
-      <label class="radio-item"><input type="radio" name="wl" value="strict" /> Strict</label>
-    </div>
-    <button class="save-changes-btn" onclick="CLAP.Toast.success('Cognitive load preference saved!')">Save Changes</button>`;
-}
-
-function panelNotifications() {
-  return `
-    <div class="settings-breadcrumb">Settings › <span>Notifications</span></div>
-    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:4px">Notifications</h3>
-    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">Select your preferred reminder:</p>
-    <div class="radio-group">
-      <label class="checkbox-item"><input type="checkbox" checked /> Deadline Reminders</label>
-      <label class="checkbox-item"><input type="checkbox" checked /> Overload Warnings</label>
-      <label class="checkbox-item"><input type="checkbox" /> Daily study reminders</label>
-    </div>
-    <button class="save-changes-btn" onclick="CLAP.Toast.success('Notification preferences saved!')">Save Changes</button>`;
+    </div>`;
 }
 
 function panelAbout() {
@@ -162,21 +132,21 @@ function panelAbout() {
 /* ── NAVIGATION ── */
 function setSection(sec) {
   curSec = sec;
-  /* Hide general subnav by default */
   document.getElementById('general-subnav').style.display = 'none';
-  /* Update nav active states */
   document.querySelectorAll('.settings-sidenav-item').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
   document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.remove('active'));
 
   let html = '';
   if (sec === 'general-menu') { html = panelGeneral(); document.getElementById('general-subnav').style.display='flex'; }
-  else if (sec === 'cognitive')     html = panelCognitive();
-  else if (sec === 'notifications') html = panelNotifications();
-  else if (sec === 'about')         html = panelAbout();
+  else if (sec === 'about')   html = panelAbout();
 
   document.getElementById('settings-panel').innerHTML = html;
-  /* Set subnav active */
   document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.sub === curSub));
+
+  /* Attach avatar handlers after innerHTML is set */
+  if (sec === 'general-menu' && curSub === 'profile') {
+    attachAvatarHandlers();
+  }
 }
 
 document.querySelectorAll('.settings-sidenav-item').forEach(btn => {
@@ -186,14 +156,75 @@ document.querySelectorAll('.settings-subnav-item').forEach(btn => {
   btn.addEventListener('click', () => { curSub = btn.dataset.sub; setSection('general-menu'); });
 });
 
-/* ── ACTIONS ── */
-window.editField = function(field, label) {
-  const val = prompt(`Enter new ${label}:`, user[field]||'');
-  if (val !== null && val.trim()) { user[field] = val.trim(); setSection(curSec); }
+/* ── INLINE EDIT ── */
+window.startInlineEdit = function(field, label) {
+  const valEl = document.getElementById('val-' + field);
+  const rowEl = document.getElementById('row-' + field);
+  if (!valEl || !rowEl) return;
+
+  const currentVal = user[field] || '';
+  valEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <input id="edit-input-${field}" class="inline-input" type="text"
+             value="${currentVal}" placeholder="${label}"
+             style="flex:1;min-width:140px;" />
+      <button class="edit-btn" style="color:var(--success);border:1px solid var(--success);"
+              onclick="commitInlineEdit('${field}')">Save</button>
+      <button class="edit-btn" onclick="cancelInlineEdit('${field}','${currentVal}')">Cancel</button>
+    </div>`;
+  document.getElementById('edit-input-' + field)?.focus();
 };
+
+window.commitInlineEdit = function(field) {
+  const input = document.getElementById('edit-input-' + field);
+  if (!input) return;
+  const newVal = input.value.trim();
+  if (!newVal) { CLAP.Toast.error('Field cannot be empty.'); return; }
+  user[field] = newVal;
+  document.getElementById('val-' + field).textContent = newVal;
+  CLAP.Toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated. Click Save Changes to persist.`);
+};
+
+window.cancelInlineEdit = function(field, originalVal) {
+  const valEl = document.getElementById('val-' + field);
+  if (valEl) valEl.textContent = originalVal || '—';
+};
+
+/* ── AVATAR HANDLERS ── */
+function attachAvatarHandlers() {
+  const fileInput = document.getElementById('avatar-file-input');
+  const delBtn    = document.getElementById('del-avatar-btn');
+  const preview   = document.getElementById('av-preview');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        preview.innerHTML = `<img src="${e.target.result}" alt="Avatar"
+          style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+        user.avatarDataUrl = e.target.result;
+        CLAP.Toast.success('Photo updated. Click Save Changes to persist.');
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  if (delBtn) {
+    delBtn.addEventListener('click', () => {
+      const initial = (user.name || 'S').charAt(0).toUpperCase();
+      preview.innerHTML = initial;
+      user.avatarDataUrl = null;
+      CLAP.Toast.info('Photo removed. Click Save Changes to persist.');
+    });
+  }
+}
+
+/* ── SAVE PROFILE ── */
 window.saveProfile = async function() {
   try {
-    await CLAP.API.patch('/users/me/', { name:user.name, email:user.email, program:user.program });
+    await CLAP.API.patch('/users/me/', { name: user.name, email: user.email, program: user.program });
     localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
   } catch {}
   CLAP.Toast.success('Profile saved!');

@@ -7,6 +7,19 @@
   <meta name="description" content="Sign up for CLAP — Cognitive Load-Based Academic Adaptive Performance" />
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/auth.css" />
+  <style>
+    @media (max-width: 768px) {
+      .auth-side-panel { min-height: 190px; }
+      .btn-outline {
+        background: rgba(255,255,255,0.92);
+        color: var(--clap-teal);
+        border-color: rgba(255,255,255,0.92);
+      }
+      .btn-outline:hover { background: var(--white); }
+    }
+    .form-input-wrap { margin-bottom: 2px; }
+    .pw-strength { padding-top: 4px; }
+  </style>
 </head>
 <body>
 
@@ -163,7 +176,7 @@
 <script>
 (function() {
   /* Redirect if already logged in */
-  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
+  CLAP.Auth.requireGuest(); // works from localStorage — no backend needed
 
   /* DOM refs */
   const form      = document.getElementById('signup-form');

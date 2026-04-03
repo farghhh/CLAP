@@ -34,8 +34,10 @@
     .task-block.hard  { background:#fac8c8; color:#7a1a1a; }
     .tb-title  { font-size:0.78rem; font-weight:800; line-height:1.25; margin-bottom:2px; }
     .tb-time   { font-size:0.66rem; font-weight:600; opacity:0.8; }
-    .tb-check  { position:absolute; bottom:8px; right:8px; width:18px; height:18px; border-radius:50%; border:2px solid rgba(0,0,0,0.2); background:transparent; cursor:pointer; transition:background var(--transition); }
-    .tb-check:hover,.tb-check.done{ background:rgba(0,0,0,0.15); }
+    .tb-check  { position:absolute; bottom:8px; right:8px; width:20px; height:20px; border-radius:50%; border:2px solid rgba(255,255,255,0.8); background:rgba(255,255,255,0.5); cursor:pointer; transition:background var(--transition); display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent; }
+    .tb-check:hover { background:rgba(255,255,255,0.85); color:rgba(0,0,0,0.5); }
+    .tb-check.done { background:rgba(255,255,255,0.9); color:#27AE60; border-color:rgba(255,255,255,1); }
+    .tb-check::after { content:'✓'; font-size:10px; font-weight:800; }
     .empty-cell{ height:56px; }
     .gen-label { text-align:center; font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:var(--space-md); }
 
@@ -107,6 +109,19 @@
   <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
   <div class="leg-row"><div class="leg-sw" style="background:#fde9c0"></div>Medium</div>
   <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
+</div>
+
+<!-- Regenerate Confirm Modal -->
+<div id="regen-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
+    <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
+    <div style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-sm)">Regenerate Schedule?</div>
+    <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:var(--space-xl);line-height:1.5">This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.</div>
+    <div style="display:flex;gap:var(--space-md);justify-content:center;">
+      <button class="btn btn-ghost btn-sm" id="regen-cancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="regen-confirm">Yes, Regenerate</button>
+    </div>
+  </div>
 </div>
 
 <script src="js/core.js"></script>
@@ -261,42 +276,11 @@ async function loadSchedule() {
   renderSchedule(data);
 }
 
-/* ── CONNECT: POST /api/schedule/regenerate/   (no body needed, or pass preferences)
-   Response: same shape as GET /api/schedule/
-── */
-document.getElementById('regen-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('regen-btn');
-  btn.disabled = true; btn.style.opacity = '0.7';
-  try {
-    /* const data = await CLAP.API.post('/schedule/regenerate/', {}); */
-    await new Promise(r => setTimeout(r, 1200)); // ← remove when backend connected
-    const data = getMock();                       // ← remove when backend connected
-    renderSchedule(data);
-    CLAP.Toast.success('Schedule regenerated!');
-  } catch {
-    CLAP.Toast.error('Could not regenerate schedule.');
-  } finally {
-    btn.disabled = false; btn.style.opacity = '1';
-  }
-});
-
 window.toggleDone = function(btn) {
   const taskBlock = btn.closest('.task-block');
-  
-  // toggle state
   const isDone = taskBlock.classList.toggle('done');
-
-  // visual feedback on whole card
-  if (isDone) {
-    taskBlock.style.opacity = '0.5';
-    taskBlock.style.textDecoration = 'line-through';
-  } else {
-    taskBlock.style.opacity = '1';
-    taskBlock.style.textDecoration = 'none';
-  }
-
-  // update button style
-  btn.classList.toggle('done');
+  btn.classList.toggle('done', isDone);
+  btn.title = isDone ? 'Mark undone' : 'Mark done';
 };
 
 /* Legend */
@@ -308,7 +292,32 @@ document.addEventListener('click', e => {
     document.getElementById('legend-popup').classList.remove('show');
 });
 
-loadSchedule();
+/* Regenerate — with confirmation modal */
+document.getElementById('regen-btn').addEventListener('click', () => {
+  document.getElementById('regen-modal').style.display = 'flex';
+});
+document.getElementById('regen-cancel').addEventListener('click', () => {
+  document.getElementById('regen-modal').style.display = 'none';
+});
+document.getElementById('regen-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('regen-confirm').addEventListener('click', async () => {
+  document.getElementById('regen-modal').style.display = 'none';
+  const btn = document.getElementById('regen-btn');
+  btn.disabled = true; btn.style.opacity = '0.7';
+  try {
+    /* const data = await CLAP.API.post('/schedule/regenerate/', {}); */
+    await new Promise(r => setTimeout(r, 1200));
+    const data = getMock();
+    renderSchedule(data);
+    CLAP.Toast.success('Schedule regenerated!');
+  } catch {
+    CLAP.Toast.error('Could not regenerate schedule.');
+  } finally {
+    btn.disabled = false; btn.style.opacity = '1';
+  }
+});
 </script>
 </body>
 </html>
