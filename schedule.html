@@ -76,7 +76,9 @@
       display:flex;
       justify-content: center;
       align-items:center;
-      margin-bottom:var(--space-lg);
+      margin-top: 8px;
+      margin-bottom: 20px;
+      justify-content: center;
     }
 
     .week-nav-btn {
@@ -92,16 +94,16 @@
       color:var(--clap-teal);
       transform:translateY(-1px);
     }
+    
     .week-nav-pill {
       display:flex;
       align-items:center;
-      gap:18px;
-      padding:12px 22px;
+      gap:12px;
+      padding:8px 16px;              /* ⬅ smaller */
       border-radius:999px;
-      background:var(--white);
-      border:1.5px solid var(--border);
-      box-shadow:var(--shadow-sm);
-      font-family:var(--font-heading);
+      background:rgba(255,255,255,0.6); /* ⬅ lighter */
+      border:1px solid rgba(0,0,0,0.05); /* ⬅ softer */
+      box-shadow:none;              /* ⬅ REMOVE heavy shadow */
       font-weight:800;
       font-size:0.9rem;
       color:var(--clap-teal);
@@ -112,26 +114,23 @@
     }
 
     .nav-label {
-      font-weight: 900;
-      font-size: 1rem;
+      font-weight: 700;
+      font-size: 0.95rem;
       color: var(--clap-teal);
     }
 
     .nav-arrow {
-      cursor: pointer;
-      padding: 8px 14px;
-      border-radius: 999px;
-      transition: all 0.2s ease;
-      color:var(--text-secondary);
-      font-weight: 900;
-      font-size: 1.2rem;
-      background: var(--bg-light);
+      cursor:pointer;
+      padding:4px 8px;       /* ⬅ smaller */
+      font-size:1.1rem;
+      font-weight:900;
+      color:var(--text-muted);
+      background:none;       /* ⬅ remove circle */
     }
 
     .nav-arrow:hover {
-      background:var(--bg-light);
-      color: white;
-      transform: scale(1.1);
+      color:var(--clap-teal);
+      transform:translateX(2px);
     }
 
     @keyframes spin { to { transform:rotate(360deg); } }
