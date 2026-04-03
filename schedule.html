@@ -517,15 +517,31 @@ function normalizeScheduleData(apiData) {
 
 /* ── WEEK LABEL ──────────────────────────────────────────── */
 function getWeekLabelFromOffset(offset) {
-  if (offset === 0) return 'This Week';
-  if (offset === 1) return 'Next Week';
-  if (offset === -1) return 'Last Week';
-  if (offset > 1) return `${offset} Weeks Ahead`;
-  return `${Math.abs(offset)} Weeks Ago`;
-}
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
 
-function updateWeekNavLabel() {
-  document.getElementById('week-nav-label').textContent = getWeekLabelFromOffset(weekOffset);
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset + (offset * 7));
+
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const startMonth = monthNames[monday.getMonth()];
+  const endMonth = monthNames[friday.getMonth()];
+  const startDate = monday.getDate();
+  const endDate = friday.getDate();
+
+  if (monday.getMonth() === friday.getMonth()) {
+    return `${startMonth} ${startDate} – ${endDate}`;
+  }
+
+  return `${startMonth} ${startDate} – ${endMonth} ${endDate}`;
 }
 
 /* ── RENDER TIMETABLE ────────────────────────────────────── */
