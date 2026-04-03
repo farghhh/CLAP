@@ -9,7 +9,7 @@
    CONFIG — Update BASE_URL to match your Django backend
    ============================================================ */
 const CONFIG = {
-  BASE_URL: 'https://clap-production.up.railway.app',   // ← your Django API base
+  BASE_URL: 'https://clap-production.up.railway.app/api',   // ← your Django API base
   TOKEN_KEY: 'clap_access_token',
   REFRESH_KEY: 'clap_refresh_token',
   USER_KEY: 'clap_user',
