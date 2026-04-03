@@ -1,55 +1,25 @@
 /**
  * CLAP — Shared App Shell
- * ============================================================
- * Injects the sidebar navigation and (optionally) the topbar
- * greeting into every inner-app page.
- *
- * FIX LOG (all changes marked with // FIX):
- *  1. _injectTopbar — the method was looking for an existing
- *     <div id="topbar"> to populate, but no HTML page in the
- *     project declared that element, so the topbar was silently
- *     never rendered. Fixed by creating the element when it
- *     doesn't exist, then inserting it as the first child of
- *     <main> (only when opts.showTopbar !== false).
- *  2. _injectTopbar — added a guard on opts.showTopbar so
- *     pages that pass { showTopbar: false } (schedule,
- *     stress-analytics) genuinely skip topbar creation.
- * ============================================================
+ * Injects sidebar + topbar. No loader on inner pages.
  */
 'use strict';
 
 const AppShell = {
-  /**
-   * Initialise the shared shell for a page.
-   * @param {string} activePage  Filename of the current page, e.g. 'dashboard.html'
-   * @param {object} opts
-   *   showSearch  {boolean} Show the search bar in the topbar (default false).
-   *   showTopbar  {boolean} Render the topbar at all (default true).
-   */
   init(activePage, opts = {}) {
     // CLAP.Auth.requireAuth(); // ← uncomment when backend is ready
-
     this._injectSidebar(activePage);
     this._injectTopbar(opts);
     CLAP.initSidebar();
     this._injectLogoutHandler();
   },
 
-  /* ── SIDEBAR ──────────────────────────────────────────────── */
-  /**
-   * Build and inject the sidebar nav into <aside id="sidebar">.
-   * The active link is determined by comparing each page filename
-   * to `activePage` directly in the template literal — this is the
-   * canonical way active state is set (not via data-page attributes).
-   * @param {string} activePage
-   */
   _injectSidebar(activePage) {
     const navItems = [
-      { page: 'dashboard.html',        icon: this._icons.dashboard,   label: 'Dashboard'       },
-      { page: 'assignments.html',      icon: this._icons.assignments, label: 'My Assignments'  },
-      { page: 'schedule.html',         icon: this._icons.schedule,    label: 'Schedule'        },
-      { page: 'stress-analytics.html', icon: this._icons.stress,      label: 'Stress Analytics'},
-      { page: 'settings.html',         icon: this._icons.settings,    label: 'Settings'        },
+      { page: 'dashboard.html',        icon: this._icons.dashboard,   label: 'Dashboard' },
+      { page: 'assignments.html',      icon: this._icons.assignments, label: 'My Assignments' },
+      { page: 'schedule.html',         icon: this._icons.schedule,    label: 'Schedule' },
+      { page: 'stress-analytics.html', icon: this._icons.stress,      label: 'Stress Analytics' },
+      { page: 'settings.html',         icon: this._icons.settings,    label: 'Settings' },
     ];
 
     const el = document.getElementById('sidebar');
@@ -88,7 +58,7 @@ const AppShell = {
       </div>
     `;
 
-    /* Create the logout confirmation modal once per page load. */
+    /* Logout confirmation modal — create only once */
     if (!document.getElementById('logout-modal')) {
       const modal = document.createElement('div');
       modal.id = 'logout-modal';
@@ -126,47 +96,13 @@ const AppShell = {
     }
   },
 
-  /* ── TOPBAR ───────────────────────────────────────────────── */
-  /**
-   * FIX: Previously this method called getElementById('topbar') and
-   * returned silently when null — but no HTML page ever declared
-   * <div id="topbar">, so the topbar was never rendered.
-   *
-   * Now: if opts.showTopbar === false the method exits early (pages
-   * like schedule and stress-analytics that have their own headers
-   * pass this flag). Otherwise the element is created when absent
-   * and inserted before the first child of <main class="main-content">.
-   *
-   * @param {object} opts
-   *   showSearch  {boolean} Include a search bar (default false).
-   *   showTopbar  {boolean} Render the topbar at all (default true).
-   */
   _injectTopbar(opts = {}) {
-    /* Pages that manage their own header pass showTopbar: false. */
-    if (opts.showTopbar === false) return;
-
+    const el = document.getElementById('topbar');
+    if (!el) return;
     const user  = CLAP.Auth.getUser() || {};
     const name  = user.name || 'Student';
     const first = name.split(' ')[0];
 
-    /* Resolve or create the topbar element. */
-    let el = document.getElementById('topbar');
-    if (!el) {
-      /* FIX: create the element and prepend it to <main>. */
-      el = document.createElement('div');
-      el.id = 'topbar';
-      el.className = 'topbar'; // styled in app.css
-
-      const main = document.querySelector('.main-content');
-      if (main) {
-        main.insertBefore(el, main.firstChild);
-      } else {
-        /* Fallback: append to body if main isn't found. */
-        document.body.appendChild(el);
-      }
-    }
-
-    /* Optional search bar HTML. */
     const searchHtml = opts.showSearch ? `
       <div class="topbar-search" role="search">
         <span class="search-icon" aria-hidden="true">
@@ -196,24 +132,19 @@ const AppShell = {
       ${searchHtml}
     `;
 
-    /* Wire up the search input to dispatch a custom event that pages listen to. */
+    /* Wire up topbar search to dispatch a custom event pages can listen to */
     if (opts.showSearch) {
       const searchInput = document.getElementById('topbar-search-input');
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
           document.dispatchEvent(new CustomEvent('clap:search', {
-            detail: e.target.value.toLowerCase(),
+            detail: e.target.value.toLowerCase()
           }));
         });
       }
     }
   },
 
-  /* ── LOGOUT ───────────────────────────────────────────────── */
-  /**
-   * Wire the "Log Out" sidebar button to the confirmation modal.
-   * Clicking Confirm clears tokens and redirects to sign-in.
-   */
   _injectLogoutHandler() {
     const btn     = document.getElementById('logout-btn');
     const modal   = document.getElementById('logout-modal');
@@ -221,25 +152,20 @@ const AppShell = {
     const cancel  = document.getElementById('logout-cancel-btn');
     if (!btn || !modal) return;
 
-    /* Open modal on logout button click. */
     btn.addEventListener('click', () => {
       modal.style.display = 'flex';
     });
-
-    /* Close modal on cancel or backdrop click. */
     cancel.addEventListener('click', () => {
       modal.style.display = 'none';
     });
     modal.addEventListener('click', e => {
       if (e.target === modal) modal.style.display = 'none';
     });
-
-    /* Confirm: call the logout API, clear local storage, redirect. */
     confirm.addEventListener('click', async () => {
       modal.style.display = 'none';
       const refresh = CLAP.Auth.getRefreshToken();
       if (refresh) {
-        try { await CLAP.API.post('/auth/logout/', { refresh }); } catch { /* ignore */ }
+        try { await CLAP.API.post('/auth/logout/', { refresh }); } catch {}
       }
       CLAP.Auth.clearTokens();
       CLAP.Toast.info('Logged out successfully.');
@@ -247,7 +173,6 @@ const AppShell = {
     });
   },
 
-  /* ── ICON SVG STRINGS ─────────────────────────────────────── */
   _icons: {
     dashboard:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
     assignments: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`,
@@ -258,5 +183,4 @@ const AppShell = {
   },
 };
 
-/* Expose globally so all page scripts can call AppShell.init(). */
 window.AppShell = AppShell;
