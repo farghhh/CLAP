@@ -544,6 +544,11 @@ function getWeekLabelFromOffset(offset) {
   return `${startMonth} ${startDate} – ${endMonth} ${endDate}`;
 }
 
+function updateWeekNavLabel() {
+  const label = getWeekLabelFromOffset(weekOffset);
+  document.getElementById('week-nav-label').textContent = label;
+}
+
 /* ── RENDER TIMETABLE ────────────────────────────────────── */
 function renderSchedule(data) {
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
