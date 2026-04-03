@@ -485,7 +485,7 @@ function normalizeScheduleData(apiData) {
       time: formatTime(slot.time),
       end: addHoursToTime(slot.time, slot.duration || 1),
       title: [slot.code, slot.subject].filter(Boolean).join(' '),
-      difficulty: mapDifficulty(slot.duration || 1),
+      difficulty: (slot.difficulty || slot.task_difficulty || mapDifficulty(slot.duration || 1)).toLowerCase(),
       is_completed: slot.is_completed || false
     };
   });
