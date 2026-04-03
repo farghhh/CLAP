@@ -346,9 +346,9 @@
 
     <!-- Week navigation -->
     <div class="week-nav">
-      <button class="week-nav-btn" id="prev-week-btn">← Previous Week</button>
-      <div class="week-nav-center" id="week-nav-label">This Week</div>
-      <button class="week-nav-btn" id="next-week-btn">Next Week →</button>
+      <button class="week-nav-btn" id="prev-week-btn">← Previous</button>
+      <div class="week-nav-center" id="week-nav-label">—</div>
+      <button class="week-nav-btn" id="next-week-btn">Next →</button>
     </div>
 
     <!-- Timetable -->
@@ -510,7 +510,9 @@ function normalizeScheduleData(apiData) {
   });
 
   return {
-    week: apiData.week || getWeekLabelFromOffset(weekOffset),
+    week: (apiData.week && apiData.week.trim && apiData.week.trim() !== '')
+      ? apiData.week
+      : getWeekLabelFromOffset(weekOffset),
     slots
   };
 }
@@ -620,7 +622,10 @@ function renderSchedule(data) {
 
 /* ── LOAD SCHEDULE ───────────────────────────────────────── */
 async function loadSchedule(offset = 0) {
+  const fallbackWeek = getWeekLabelFromOffset(offset);
+
   updateWeekNavLabel();
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
 
   try {
     const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
@@ -633,8 +638,10 @@ async function loadSchedule(offset = 0) {
   } catch (err) {
     console.error('SCHEDULE LOAD ERROR:', err);
 
-    /* fallback mock for frontend testing only */
-    const mockData = getMock();
+    const mockData = {
+      ...getMock(),
+      week: fallbackWeek
+    };
     renderSchedule(mockData);
 
     CLAP.Toast.error('Could not load schedule. Showing fallback data.');
