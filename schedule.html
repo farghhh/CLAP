@@ -293,19 +293,83 @@ function renderSchedule(data) {
   document.getElementById('sch-body').innerHTML = html;
 }
 
+function normalizeScheduleData(apiData) {
+  const dayMap = {
+    mon: 'Monday',
+    tue: 'Tuesday',
+    wed: 'Wednesday',
+    thu: 'Thursday',
+    fri: 'Friday'
+  };
+
+  const slots = (apiData.slots || []).map(slot => {
+    const startTime = formatTime(slot.time);
+    const endTime = addHoursToTime(slot.time, slot.duration || 1);
+
+    return {
+      day: dayMap[(slot.day || '').toLowerCase()] || slot.day,
+      time: startTime,
+      end: endTime,
+      title: `${slot.code || ''} ${slot.subject || ''}`.trim(),
+      difficulty: mapDifficulty(slot.duration || 1)
+    };
+  });
+
+  return {
+    week: apiData.week || 'This Week',
+    slots
+  };
+}
+
+function formatTime(time24) {
+  if (!time24) return '';
+
+  let [hour, minute] = time24.split(':').map(Number);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+
+  return `${hour}.00 ${ampm}`.replace('.0 ', '.00 ');
+}
+
+function addHoursToTime(time24, duration) {
+  if (!time24) return '';
+
+  let [hour, minute] = time24.split(':').map(Number);
+  hour += duration;
+
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+
+  return `${hour}.00 ${ampm}`.replace('.0 ', '.00 ');
+}
+
+function mapDifficulty(duration) {
+  if (duration <= 1) return 'easy';
+  if (duration <= 2) return 'medium';
+  return 'hard';
+}
+
 /* ─────────────────────────────────────────────────────────────
    LOAD SCHEDULE FROM API
    ───────────────────────────────────────────────────────────── */
 async function loadSchedule() {
   try {
-    const data = await CLAP.API.get('/schedule/');
-    console.log('REAL SCHEDULE DATA:', data);
-    renderSchedule(data);
+    const apiData = await CLAP.API.get('/schedule/');
+    console.log('RAW SCHEDULE DATA:', apiData);
+
+    const normalizedData = normalizeScheduleData(apiData);
+    console.log('NORMALIZED SCHEDULE DATA:', normalizedData);
+
+    renderSchedule(normalizedData);
   } catch (err) {
     console.error('SCHEDULE LOAD ERROR:', err);
     document.getElementById('sch-body').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:24px;color:red">Failed to load real schedule data. Check console.</td></tr>';
-    CLAP.Toast.error('Could not load real schedule.');
+      '<tr><td colspan="6" style="text-align:center;padding:24px;color:red">Failed to load schedule.</td></tr>';
+    CLAP.Toast.error('Could not load schedule.');
   }
 }
 
