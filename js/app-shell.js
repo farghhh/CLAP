@@ -58,7 +58,7 @@ const AppShell = {
       </div>
     `;
 
-    /* Logout confirmation modal — create only once */
+    /* Logout confirmation modal */
     if (!document.getElementById('logout-modal')) {
       const modal = document.createElement('div');
       modal.id = 'logout-modal';
@@ -74,7 +74,7 @@ const AppShell = {
           <h2 style="font-family:var(--font-heading);font-size:1.4rem;font-weight:700;
                      color:var(--text-primary);margin-bottom:12px;">Logout Confirmation</h2>
           <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:32px;">
-            Are you sure you want to log out?
+            Are you sure you want to do logout?
           </p>
           <div style="display:flex;gap:16px;justify-content:center;">
             <button id="logout-confirm-btn"
@@ -99,20 +99,9 @@ const AppShell = {
   _injectTopbar(opts = {}) {
     const el = document.getElementById('topbar');
     if (!el) return;
-    const user  = CLAP.Auth.getUser() || {};
-    const name  = user.name || 'Student';
+    const user = CLAP.Auth.getUser() || {};
+    const name = user.name || 'Student';
     const first = name.split(' ')[0];
-
-    const searchHtml = opts.showSearch ? `
-      <div class="topbar-search" role="search">
-        <span class="search-icon" aria-hidden="true">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-        </span>
-        <input type="search" id="topbar-search-input" placeholder="Search…"
-               autocomplete="off" aria-label="Search" />
-      </div>` : '';
 
     el.innerHTML = `
       <div class="topbar-user">
@@ -129,25 +118,13 @@ const AppShell = {
           <p>Nice to have you back.</p>
         </div>
       </div>
-      ${searchHtml}
-    `;
 
-    /* Wire up topbar search to dispatch a custom event pages can listen to */
-    if (opts.showSearch) {
-      const searchInput = document.getElementById('topbar-search-input');
-      if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-          document.dispatchEvent(new CustomEvent('clap:search', {
-            detail: e.target.value.toLowerCase()
-          }));
-        });
-      }
-    }
+    `;
   },
 
   _injectLogoutHandler() {
-    const btn     = document.getElementById('logout-btn');
-    const modal   = document.getElementById('logout-modal');
+    const btn    = document.getElementById('logout-btn');
+    const modal  = document.getElementById('logout-modal');
     const confirm = document.getElementById('logout-confirm-btn');
     const cancel  = document.getElementById('logout-cancel-btn');
     if (!btn || !modal) return;
