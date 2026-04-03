@@ -424,8 +424,9 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
   btn.style.opacity = '0.7';
 
   try {
-    const data = await CLAP.API.post('/schedule/regenerate/', {});
-    renderSchedule(data);
+    const apiData = await CLAP.API.post('/schedule/regenerate/', {});
+    const normalizedData = normalizeScheduleData(apiData);
+    renderSchedule(normalizedData);
     CLAP.Toast.success('Schedule regenerated!');
   } catch (err) {
     console.error('REGENERATE ERROR:', err);
