@@ -1,45 +1,67 @@
 /**
  * CLAP — Core Utilities
- * API layer (Django REST), form validation, toast, error handling
+ * This file handles:
+ * - API communication
+ * - Authentication (login/logout)
+ * - Data storage (localStorage)
+ * - Toast notifications
  */
 
 'use strict';
 
 /* ============================================================
-   CONFIG — Update BASE_URL to match your Django backend
+   CONFIG — Backend API settings
    ============================================================ */
 const CONFIG = {
-  BASE_URL: 'https://clap-production.up.railway.app/api',   // ← your Django API base
+  BASE_URL: 'https://clap-production.up.railway.app/api', // your backend
   TOKEN_KEY: 'clap_access_token',
   REFRESH_KEY: 'clap_refresh_token',
   USER_KEY: 'clap_user',
-  REQUEST_TIMEOUT: 10000, // 10s
+  REQUEST_TIMEOUT: 10000, // 10 seconds timeout
 };
 
 /* ============================================================
-   TOKEN / SESSION HELPERS
+   AUTH — Login / Session handling
    ============================================================ */
 const Auth = {
-  /** Store tokens after login/register */
+
+  // Save tokens after login
   setTokens(access, refresh) {
     localStorage.setItem(CONFIG.TOKEN_KEY, access);
     if (refresh) localStorage.setItem(CONFIG.REFRESH_KEY, refresh);
   },
+
+  // Get tokens
   getAccessToken()  { return localStorage.getItem(CONFIG.TOKEN_KEY); },
   getRefreshToken() { return localStorage.getItem(CONFIG.REFRESH_KEY); },
+
+  // Remove all auth data (logout)
   clearTokens() {
     localStorage.removeItem(CONFIG.TOKEN_KEY);
     localStorage.removeItem(CONFIG.REFRESH_KEY);
     localStorage.removeItem(CONFIG.USER_KEY);
   },
-  setUser(user) { localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(user)); },
-  getUser() {
-    try { return JSON.parse(localStorage.getItem(CONFIG.USER_KEY)); }
-    catch { return null; }
-  },
-  isLoggedIn() { return !!Auth.getAccessToken(); },
 
-  /** Redirect away if not authenticated */
+  // Save user info
+  setUser(user) {
+    localStorage.setItem(CONFIG.USER_KEY, JSON.stringify(user));
+  },
+
+  // Get user info
+  getUser() {
+    try {
+      return JSON.parse(localStorage.getItem(CONFIG.USER_KEY));
+    } catch {
+      return null;
+    }
+  },
+
+  // Check login status
+  isLoggedIn() {
+    return !!Auth.getAccessToken();
+  },
+
+  // Protect page (must login)
   requireAuth() {
     if (!Auth.isLoggedIn()) {
       window.location.href = 'signin.html';
@@ -47,7 +69,8 @@ const Auth = {
     }
     return true;
   },
-  /** Redirect to dashboard if already authenticated */
+
+  // Prevent logged-in user from seeing auth pages
   requireGuest() {
     if (Auth.isLoggedIn()) {
       window.location.href = 'dashboard.html';
@@ -58,23 +81,22 @@ const Auth = {
 };
 
 /* ============================================================
-   API — Fetch wrapper with auth, refresh, timeout, error handling
+   API — Handles all backend requests
    ============================================================ */
 const API = {
-  /**
-   * Core request method
-   * @param {string} endpoint  e.g. '/auth/login/'
-   * @param {object} options   { method, body, auth: bool }
-   */
+
   async request(endpoint, { method = 'GET', body = null, auth = true, retry = true } = {}) {
+
     const url = CONFIG.BASE_URL + endpoint;
     const headers = { 'Content-Type': 'application/json' };
 
+    // Add token if needed
     if (auth) {
       const token = Auth.getAccessToken();
       if (token) headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Timeout control
     const controller = new AbortController();
     const timeoutId  = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
 
@@ -85,27 +107,34 @@ const API = {
         body: body ? JSON.stringify(body) : null,
         signal: controller.signal,
       });
+
       clearTimeout(timeoutId);
 
-      // Token expired — attempt refresh once
+      // 🔥 Token expired → try refresh
       if (res.status === 401 && retry) {
         const refreshed = await API.refreshToken();
-        if (refreshed) return API.request(endpoint, { method, body, auth, retry: false });
+        if (refreshed) {
+          return API.request(endpoint, { method, body, auth, retry: false });
+        }
+
+        // Logout if refresh fails
         Auth.clearTokens();
         Toast.show('Session expired. Please sign in again.', 'warning');
-        setTimeout(() => { window.location.href = 'signin.html'; }, 1500);
-        throw new APIError('Session expired. Please sign in again.', 401, data);
+        window.location.href = 'signin.html';
+        return;
       }
 
-      // Parse JSON even for error responses
+      // Parse response
       let data;
       const contentType = res.headers.get('Content-Type') || '';
+
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         data = { detail: await res.text() };
       }
 
+      // Handle error response
       if (!res.ok) {
         const msg = API._extractErrorMsg(data);
         throw new APIError(msg, res.status, data);
@@ -115,32 +144,38 @@ const API = {
 
     } catch (err) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') throw new APIError('Request timed out. Check your connection.', 0);
-      if (err instanceof APIError) throw err;
-      if (!navigator.onLine) throw new APIError('No internet connection.', 0);
-      throw new APIError(err.message || 'Unexpected error.', 0);
+
+      if (err.name === 'AbortError') {
+        throw new APIError('Request timeout.', 0);
+      }
+
+      if (!navigator.onLine) {
+        throw new APIError('No internet connection.', 0);
+      }
+
+      throw err;
     }
   },
 
-  /** Extract human-readable error from Django REST response */
+  // Extract readable error message
   _extractErrorMsg(data) {
     if (!data) return 'Something went wrong.';
-    if (typeof data === 'string') return data;
     if (data.detail) return data.detail;
-    if (data.non_field_errors) return data.non_field_errors[0];
-    // Flatten field errors like { email: ['already exists'] }
+
     const keys = Object.keys(data);
     if (keys.length) {
-      const firstKey = keys[0];
-      const msg = Array.isArray(data[firstKey]) ? data[firstKey][0] : data[firstKey];
-      return `${firstKey}: ${msg}`;
+      const key = keys[0];
+      return `${key}: ${data[key][0]}`;
     }
-    return 'Something went wrong.';
+
+    return 'Error occurred.';
   },
 
+  // Refresh token
   async refreshToken() {
     const refresh = Auth.getRefreshToken();
     if (!refresh) return false;
+
     try {
       const data = await API.request('/auth/token/refresh/', {
         method: 'POST',
@@ -148,330 +183,82 @@ const API = {
         auth: false,
         retry: false,
       });
+
       Auth.setTokens(data.access, refresh);
       return true;
+
     } catch {
       return false;
     }
   },
 
-  /* Shortcut methods */
-  get(endpoint, opts = {})  { return API.request(endpoint, { ...opts, method: 'GET' }); },
-  post(endpoint, body, opts = {})   { return API.request(endpoint, { ...opts, method: 'POST', body }); },
-  put(endpoint, body, opts = {})    { return API.request(endpoint, { ...opts, method: 'PUT', body }); },
-  patch(endpoint, body, opts = {})  { return API.request(endpoint, { ...opts, method: 'PATCH', body }); },
-  delete(endpoint, opts = {}) { return API.request(endpoint, { ...opts, method: 'DELETE' }); },
+  // Shortcuts
+  get(e, o={})    { return API.request(e, { ...o, method: 'GET' }); },
+  post(e,b,o={})  { return API.request(e, { ...o, method: 'POST', body:b }); },
 };
 
-/** Custom error class for API failures */
-class APIError extends Error {
-  constructor(message, status, data = null) {
-    super(message);
-    this.name = 'APIError';
-    this.status = status;
-    this.data = data;
+/* ============================================================
+   DATA STORE — 🔥 VERY IMPORTANT (SYNC FIX)
+   ============================================================ */
+const DataStore = {
+
+  // Get assignments (shared by ALL pages)
+  getAssignments() {
+    return JSON.parse(localStorage.getItem('clap_assignments')) || [];
+  },
+
+  // Save assignments
+  saveAssignments(list) {
+    localStorage.setItem('clap_assignments', JSON.stringify(list));
+  },
+
+  // Get schedule
+  getSchedule() {
+    return JSON.parse(localStorage.getItem('clap_schedule')) || {};
+  },
+
+  // Save schedule
+  saveSchedule(data) {
+    localStorage.setItem('clap_schedule', JSON.stringify(data));
   }
+};
+
+/* ============================================================
+   🔥 SCHEDULE GENERATOR (IMPORTANT FIX)
+   ============================================================ */
+function generateSchedule() {
+  const assignments = DataStore.getAssignments();
+
+  const schedule = {
+    Monday: [], Tuesday: [], Wednesday: [],
+    Thursday: [], Friday: [], Saturday: [], Sunday: []
+  };
+
+  const days = Object.keys(schedule);
+  let i = 0;
+
+  assignments.forEach(a => {
+    schedule[days[i]].push({
+      title: a.title,
+      time: "10:00",
+      difficulty: a.difficulty
+    });
+
+    i = (i + 1) % 7;
+  });
+
+  DataStore.saveSchedule(schedule);
 }
 
 /* ============================================================
-   MOCK DATA — Used when backend not yet connected
-   Remove individual stubs once Django endpoint is ready
-   ============================================================ */
-const MockData = {
-  user: { id: 1, name: 'Farisha', email: 'farisha@example.com', avatar: null },
-  assignments: [
-    { id: 1, course_code: 'CSC2383', title: 'Database Final Project',         deadline: '2026-03-22', hours: 6,  difficulty: 'easy',   progress: 80 },
-    { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System',      deadline: '2026-03-25', hours: 10, difficulty: 'medium', progress: 60 },
-    { id: 3, course_code: 'CSC2434', title: 'Mobile Application Development', deadline: '2026-03-31', hours: 25, difficulty: 'hard',   progress: 20 },
-    { id: 4, course_code: 'CSC2672', title: 'UI/UX Design Prototype',         deadline: '2026-04-25', hours: 20, difficulty: 'hard',   progress: 100 },
-    { id: 5, course_code: 'CSC4832', title: 'AI Research Thesis',             deadline: '2026-03-05', hours: 7,  difficulty: 'easy',   progress: 0 },
-  ],
-  schedule: {
-    Monday:    [{ time: '09:00', title: 'Database Project', color: 'orange' }, { time: '11:00', title: 'Parallel Comp.', color: 'blue' }],
-    Tuesday:   [{ time: '10:00', title: 'Study Session', color: 'blue' }],
-    Wednesday: [{ time: '11:00', title: 'Mobile App', color: 'red' }],
-    Thursday:  [{ time: '09:00', title: 'Mobile App', color: 'red' }, { time: '11:00', title: 'Database Project', color: 'orange' }],
-    Friday:    [{ time: '10:00', title: 'Study Session', color: 'blue' }],
-  },
-  cognitiveLoad: { value: 72, level: 'moderate', trend: [40, 55, 45, 72, 60] },
-  stressHistory: { Mon: 40, Tue: 55, Wed: 48, Thu: 82, Fri: 60 },
-};
-
-/* ============================================================
-   TOAST NOTIFICATION SYSTEM
+   TOAST — Notification popup
    ============================================================ */
 const Toast = {
-  _container: null,
-  _icons: { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' },
 
-  _init() {
-    if (this._container) return;
-    this._container = document.getElementById('toast-container');
-    if (!this._container) {
-      this._container = document.createElement('div');
-      this._container.id = 'toast-container';
-      document.body.appendChild(this._container);
-    }
+  show(msg, type='info') {
+    alert(`${type.toUpperCase()}: ${msg}`); // simple version
   },
 
-  show(message, type = 'info', duration = 4000) {
-    this._init();
-
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.innerHTML = `
-      <span class="toast-icon" aria-hidden="true">${this._icons[type] || this._icons.info}</span>
-      <span class="toast-msg">${this._escHtml(message)}</span>
-      <button class="toast-close" aria-label="Close notification">&times;</button>
-    `;
-
-    toast.querySelector('.toast-close').addEventListener('click', () => this._remove(toast));
-    this._container.appendChild(toast);
-
-    if (duration > 0) {
-      setTimeout(() => this._remove(toast), duration);
-    }
-    return toast;
-  },
-
-  _remove(toast) {
-    if (!toast || toast.classList.contains('hiding')) return;
-    toast.classList.add('hiding');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
-    setTimeout(() => toast.remove(), 400); // fallback
-  },
-
-  success(msg, d) { return this.show(msg, 'success', d); },
-  error(msg, d)   { return this.show(msg, 'error', d); },
-  warning(msg, d) { return this.show(msg, 'warning', d); },
-  info(msg, d)    { return this.show(msg, 'info', d); },
-
-  _escHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  },
+  success(msg){ this.show(msg,'success'); },
+  error(msg){ this.show(msg,'error'); }
 };
-
-/* ============================================================
-   FORM VALIDATION
-   ============================================================ */
-const Validate = {
-  rules: {
-    required:  (v)   => v.trim() !== '' || 'This field is required.',
-    email:     (v)   => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || 'Enter a valid email address.',
-    minLen:    (n)   => (v) => v.length >= n || `Must be at least ${n} characters.`,
-    maxLen:    (n)   => (v) => v.length <= n || `Must be at most ${n} characters.`,
-    pwMatch:   (ref) => (v) => v === ref.value || 'Passwords do not match.',
-    pwStrength:(v)   => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(v) ||
-                        'Password must be 8+ chars with uppercase, lowercase and number.',
-    noSpaces:  (v)   => !/\s/.test(v) || 'Must not contain spaces.',
-    positiveInt: (v) => /^\d+$/.test(v) && parseInt(v) > 0 || 'Must be a positive number.',
-    futureDate:(v)   => new Date(v) > new Date() || 'Deadline must be in the future.',
-  },
-
-  /**
-   * Validate a single field against an array of rule functions.
-   * Returns first error string, or null if valid.
-   */
-  field(value, ruleFns) {
-    for (const fn of ruleFns) {
-      const result = fn(value);
-      if (result !== true) return result;
-    }
-    return null;
-  },
-
-  /** Show / clear error message below an input */
-  setError(input, message) {
-    const wrap  = input.closest('.form-group') || input.parentElement;
-    const errEl = wrap ? wrap.querySelector('.field-error') : null;
-    input.classList.toggle('error', !!message);
-    input.classList.toggle('success', !message && input.value.trim() !== '');
-    input.setAttribute('aria-invalid', message ? 'true' : 'false');
-    if (errEl) errEl.textContent = message || '';
-  },
-
-  /** Validate all fields in a form; returns true if all valid */
-  form(fields) {
-    let valid = true;
-    for (const { input, rules } of fields) {
-      const err = Validate.field(input.value, rules);
-      Validate.setError(input, err);
-      if (err) valid = false;
-    }
-    return valid;
-  },
-
-  /** Live validation on blur / input events */
-  attachLive(input, rules) {
-    const validate = () => {
-      const err = Validate.field(input.value, rules);
-      Validate.setError(input, err);
-    };
-    input.addEventListener('blur', validate);
-    input.addEventListener('input', () => {
-      if (input.classList.contains('error')) validate();
-    });
-  },
-};
-
-/* ============================================================
-   PASSWORD STRENGTH METER
-   ============================================================ */
-function initPasswordStrength(input, barEl, labelEl) {
-  if (!input || !barEl || !labelEl) return;
-
-  input.addEventListener('input', () => {
-    const val = input.value;
-    let score = 0;
-    if (val.length >= 8)            score++;
-    if (/[A-Z]/.test(val))          score++;
-    if (/[a-z]/.test(val))          score++;
-    if (/\d/.test(val))             score++;
-    if (/[^A-Za-z0-9]/.test(val))   score++;
-
-    const levels = ['', 'weak', 'fair', 'good', 'good', 'strong'];
-    const labels = ['', 'Weak', 'Fair', 'Good', 'Good', 'Strong'];
-
-    barEl.className   = `pw-strength-fill ${val ? (levels[score] || 'weak') : ''}`;
-    labelEl.className = `pw-strength-label ${val ? (levels[score] || 'weak') : ''}`;
-    labelEl.textContent = val ? labels[score] || 'Weak' : '';
-  });
-}
-
-/* ============================================================
-   PASSWORD VISIBILITY TOGGLE
-   ============================================================ */
-function initPwToggle(toggleBtn, inputEl) {
-  if (!toggleBtn || !inputEl) return;
-  toggleBtn.addEventListener('click', () => {
-    const show = inputEl.type === 'password';
-    inputEl.type = show ? 'text' : 'password';
-    toggleBtn.innerHTML = show
-      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
-      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
-    toggleBtn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-  });
-}
-
-/* ============================================================
-   PAGE LOADER
-   ============================================================ */
-function hideLoader() {
-  const loader = document.getElementById('page-loader');
-  if (loader) {
-    setTimeout(() => {
-      loader.classList.add('fade-out');
-      setTimeout(() => loader.remove(), 600);
-    }, 1500);
-  }
-}
-
-/* ============================================================
-   SIDEBAR (mobile toggle)
-   ============================================================ */
-function initSidebar() {
-  const toggleBtn  = document.getElementById('sidebar-toggle');
-  const sidebar    = document.getElementById('sidebar');
-  const backdrop   = document.getElementById('sidebar-backdrop');
-
-  if (!toggleBtn || !sidebar) return;
-
-  const open  = () => { sidebar.classList.add('open'); if (backdrop) backdrop.classList.add('open'); };
-  const close = () => { sidebar.classList.remove('open'); if (backdrop) backdrop.classList.remove('open'); };
-
-  toggleBtn.addEventListener('click', () => {
-    sidebar.classList.contains('open') ? close() : open();
-  });
-  if (backdrop) backdrop.addEventListener('click', close);
-
-  // Close on nav item click (mobile)
-  sidebar.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      if (window.innerWidth <= 900) close();
-    });
-  });
-
-  // Set active nav item based on current page
-  const page = window.location.pathname.split('/').pop();
-  sidebar.querySelectorAll('.nav-item[data-page]').forEach(item => {
-    if (item.dataset.page === page) item.classList.add('active');
-  });
-}
-
-/* ============================================================
-   MINI CALENDAR
-   ============================================================ */
-function renderMiniCalendar(containerId, markedDates = {}) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  let current = new Date();
-  let year = current.getFullYear();
-  let month = current.getMonth();
-
-  function render() {
-    const firstDay = new Date(year, month, 1).getDay();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const monthName = new Date(year, month, 1).toLocaleString('default', { month: 'long' });
-    const todayStr = `${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}-${String(current.getDate()).padStart(2,'0')}`;
-
-    container.innerHTML = `
-      <div class="mini-calendar-header">
-        <button class="cal-nav-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
-        <h3>${monthName}, ${year}</h3>
-        <button class="cal-nav-btn" id="cal-next" aria-label="Next month">&#8250;</button>
-      </div>
-      <div class="cal-grid">
-        ${dayNames.map(d => `<div class="cal-day-name">${d}</div>`).join('')}
-        ${Array(firstDay).fill('<div class="cal-day other-month"></div>').join('')}
-        ${Array.from({ length: daysInMonth }, (_, i) => {
-          const day = i + 1;
-          const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-          const isToday   = dateStr === todayStr;
-          const mark      = markedDates[dateStr] || '';
-          return `<div class="cal-day ${isToday ? 'today' : ''} ${mark}"
-                       aria-label="${monthName} ${day}${isToday ? ' (today)' : ''}"
-                       tabindex="0">${day}</div>`;
-        }).join('')}
-      </div>
-    `;
-
-    container.querySelector('#cal-prev').addEventListener('click', () => {
-      month--; if (month < 0) { month = 11; year--; } render();
-    });
-    container.querySelector('#cal-next').addEventListener('click', () => {
-      month++; if (month > 11) { month = 0; year++; } render();
-    });
-  }
-  render();
-}
-
-/* ============================================================
-   NETWORK STATUS
-   ============================================================ */
-window.addEventListener('offline', () => Toast.warning('You are offline. Some features may not work.'));
-window.addEventListener('online',  () => Toast.success('Connection restored.'));
-
-/* ============================================================
-   GLOBAL ERROR HANDLER (catch unhandled promise rejections)
-   ============================================================ */
-window.addEventListener('unhandledrejection', (event) => {
-  const err = event.reason;
-  if (err instanceof APIError) {
-    Toast.error(err.message);
-  } else {
-    console.error('Unhandled error:', err);
-  }
-});
-
-/* ============================================================
-   EXPOSE to window for use in page scripts
-   ============================================================ */
-window.CLAP = { CONFIG, Auth, API, APIError, MockData, Toast, Validate,
-                initPasswordStrength, initPwToggle, hideLoader, initSidebar,
-                renderMiniCalendar };
