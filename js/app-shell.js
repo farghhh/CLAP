@@ -99,6 +99,12 @@ const AppShell = {
   _injectTopbar(opts = {}) {
     const el = document.getElementById('topbar');
     if (!el) return;
+
+    if (opts.showTopbar === false) {
+      el.remove();
+      return;
+    }
+
     const user = CLAP.Auth.getUser() || {};
     const name = user.name || 'Student';
     const first = name.split(' ')[0];
@@ -118,7 +124,6 @@ const AppShell = {
           <p>Nice to have you back.</p>
         </div>
       </div>
-
     `;
   },
 

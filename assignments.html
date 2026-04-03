@@ -149,8 +149,12 @@ let activeTab   = 'progress';
 
 /* ---- Load ---- */
 async function loadAssignments() {
-  try { assignments = await CLAP.API.get('/assignments/'); }
-  catch { assignments = MOCK; }
+  try {
+    const data = await CLAP.API.get('/assignments/');
+    assignments = Array.isArray(data) ? data : MOCK;
+  } catch {
+    assignments = MOCK;
+  }
   renderProgress();
   renderTable();
 }
@@ -307,7 +311,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     if (editingId) {
       const updated = await CLAP.API.put(`/assignments/${editingId}/`, payload);
       const idx = assignments.findIndex(a => a.id === editingId);
-      if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
+      if (idx !== -1) assignments[idx] = { ...assignments[idx], ...(updated || payload) };
       CLAP.Toast.success('Assignment updated!');
     } else {
       const created = await CLAP.API.post('/assignments/', payload);

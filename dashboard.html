@@ -21,7 +21,12 @@
     .db-search    { display: none !important; }
 
     /* ── Stats grid ── */
-    .stats-grid   { display:grid; grid-template-columns:1fr 1fr 200px; grid-template-rows:auto auto; gap:16px; }
+    .stats-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr minmax(180px, 240px);
+      grid-template-rows:auto auto;
+      gap:16px;
+    }
     .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
     .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
     .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
@@ -63,7 +68,11 @@
     .plan-link:hover{ color:var(--clap-teal); }
 
     /* Timetable overrides for dashboard mini */
-    .timetable    { min-width:480px; width:100%; border-collapse:separate; border-spacing:3px; }
+    .timetable {
+      width:100%;
+      border-collapse:separate;
+      border-spacing:3px;
+    }
     .timetable th { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; }
     .timetable th:first-child{ text-align:right; background:transparent; color:var(--text-muted); font-size:0.68rem; }
     .timetable td { vertical-align:top; padding:2px; min-width:70px; }
@@ -116,8 +125,16 @@
     .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
     .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
     .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:#aaa; transition:all var(--transition); }
-    .todo-btn.chk:hover{ border-color:var(--success); color:var(--success); }
-    .todo-btn.skp:hover{ border-color:var(--danger);  color:var(--danger); }
+    .todo-btn.chk:hover {
+      border-color:var(--success);
+      background:var(--success);
+      color:#fff;
+    }
+    .todo-btn.skp:hover {
+      border-color:var(--danger);
+      background:var(--danger);
+      color:#fff;
+    }
     .todo-item.done .todo-name{ text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
 
@@ -337,8 +354,8 @@ function getMock() {
 async function loadDashboard() {
   let data;
   try {
-      data = await CLAP.API.get('/dashboard/');
-    // data = getMock(); // ← remove this line when backend connected
+    data = await CLAP.API.get('/dashboard/');
+    if (!data || typeof data !== 'object') throw new Error('Empty dashboard response');
   } catch (err) {
     CLAP.Toast.error('Could not load dashboard data.');
     data = getMock();
@@ -540,9 +557,12 @@ window.markTask = async function(id, done) {
 };
 
 /* Search bar */
-document.getElementById('db-search').addEventListener('input', e => {
-  document.dispatchEvent(new CustomEvent('clap:search', { detail: e.target.value.toLowerCase() }));
-});
+const dashboardSearch = document.getElementById('db-search');
+if (dashboardSearch) {
+  dashboardSearch.addEventListener('input', e => {
+    document.dispatchEvent(new CustomEvent('clap:search', { detail: e.target.value.toLowerCase() }));
+  });
+}
 
 loadDashboard();
 </script>

@@ -94,7 +94,7 @@ const API = {
         Auth.clearTokens();
         Toast.show('Session expired. Please sign in again.', 'warning');
         setTimeout(() => { window.location.href = 'signin.html'; }, 1500);
-        return null;
+        throw new APIError('Session expired. Please sign in again.', 401, data);
       }
 
       // Parse JSON even for error responses
