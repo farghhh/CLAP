@@ -74,10 +74,9 @@
 
     .week-nav {
       display:flex;
+      justify-content: center;
       align-items:center;
-      gap:10px;
-      margin-bottom:var(--space-md);
-      flex-wrap:wrap;
+      margin-bottom:var(--space-lg);
     }
 
     .week-nav-btn {
@@ -91,18 +90,44 @@
       color:var(--clap-teal);
       transform:translateY(-1px);
     }
-
-    .week-nav-center {
+    .week-nav-pill {
       display:flex;
       align-items:center;
-      justify-content:center;
-      min-width:180px;
-      padding:10px 16px;
+      gap:18px;
+      padding:12px 22px;
       border-radius:999px;
-      background:var(--bg-light);
-      font-weight:800;
-      color:var(--clap-teal);
+      background:var(--white);
+      border:1.5px solid var(--border);
+      box-shadow:var(--shadow-sm);
       font-family:var(--font-heading);
+      font-weight:800;
+      font-size:0.9rem;
+      color:var(--clap-teal);
+    }
+
+    .week-nav-pill:hover {
+      box-shadow: 0 6px 18px rgba (0, 0, 0, 0.08);
+    }
+
+    .nav-label {
+      min-width:140px;
+      text-align:center;
+    }
+
+    .nav-arrow {
+      cursor: pointer;
+      padding: 6px 10px;
+      border-radius: 999px;
+      transition: all 0.2s ease;
+      color:var(--text-secondary);
+      font-weight: 900;
+      font-size: 1rem;
+    }
+
+    .nav-arrow:hover {
+      background:var(--bg-light);
+      color:var(--clap-teal);
+      transform: scale(1.05);
     }
 
     @keyframes spin { to { transform:rotate(360deg); } }
@@ -346,9 +371,11 @@
 
     <!-- Week navigation -->
     <div class="week-nav">
-      <button class="week-nav-btn" id="prev-week-btn">← Previous</button>
-      <div class="week-nav-center" id="week-nav-label">—</div>
-      <button class="week-nav-btn" id="next-week-btn">Next →</button>
+      <div class="week-nav-pill">
+        <span id="prev-week-btn" class="nav-arrow">←</span>
+        <span id="week-nav-label" class="nav-label">—</span>
+        <span id="next-week-btn" class="nav-arrow">→</span>
+      </div>
     </div>
 
     <!-- Timetable -->
