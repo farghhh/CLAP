@@ -294,15 +294,12 @@ function renderSchedule(data) {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   LOAD SCHEDULE FROM API (falls back to mock on error)
+   LOAD SCHEDULE FROM API
    ───────────────────────────────────────────────────────────── */
 async function loadSchedule() {
   let data;
   try {
-    /* ── CONNECT: uncomment when backend is ready ──
-       data = await CLAP.API.get('/schedule/');
-    ── */
-    data = getMock(); // ← remove this line when backend is connected
+    data = await CLAP.API.get('/schedule/');
   } catch {
     data = getMock();
     CLAP.Toast.error('Could not load schedule.');
