@@ -22,7 +22,10 @@
 <body>
 
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
+  <div class="loader-logo">
+    <img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" />
+    <div class="loader-spinner"></div>
+  </div>
 </div>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
@@ -37,7 +40,6 @@
 
       <h1 class="auth-form-title">Sign in to CLAP</h1>
 
-      <!-- Sign In Form -->
       <form id="signin-form" novalidate autocomplete="on">
         <div class="auth-fields">
 
@@ -129,7 +131,9 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
+  /* FIX: requireGuest redirects synchronously if already logged in, so no race condition.
+     The previous workaround (disable then re-enable via rAF) was unnecessary. */
+  CLAP.Auth.requireGuest();
 
   const form      = document.getElementById('signin-form');
   const emailInp  = document.getElementById('signin-email');
@@ -138,21 +142,25 @@
   const submitBtn = document.getElementById('signin-btn');
   const statusEl  = document.getElementById('signin-status');
 
-  /* Disable form until auth guard has resolved to prevent race */
-  submitBtn.disabled = true;
-  requestAnimationFrame(() => { submitBtn.disabled = false; });
-
   CLAP.initPwToggle(pwToggle, pwInp);
 
   const { Validate } = CLAP;
   Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
   Validate.attachLive(pwInp,    [Validate.rules.required]);
 
-  /* Track failed attempts for rate-limit feedback */
-  let failedAttempts = 0;
+  /* Track failed attempts for soft client-side rate limiting */
+  let failedAttempts  = 0;
+  let lockoutUntil    = 0;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    /* Soft rate limit: lock for 30s after 5 failures */
+    if (failedAttempts >= 5 && Date.now() < lockoutUntil) {
+      const secs = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      CLAP.Toast.warning(`Too many failed attempts. Please wait ${secs}s before trying again.`);
+      return;
+    }
 
     const valid = Validate.form([
       { input: emailInp, rules: [Validate.rules.required, Validate.rules.email] },
@@ -160,17 +168,12 @@
     ]);
     if (!valid) return;
 
-    /* Soft rate limiting: warn after 5 fails */
-    if (failedAttempts >= 5) {
-      CLAP.Toast.warning('Too many failed attempts. Please wait a moment before trying again.');
-      return;
-    }
-
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
     statusEl.textContent = 'Signing in…';
 
     try {
+      /* CONNECT: POST /api/auth/login/ */
       const data = await CLAP.API.post('/auth/login/', {
         email:    emailInp.value.trim().toLowerCase(),
         password: pwInp.value,
@@ -179,10 +182,12 @@
       CLAP.Auth.setTokens(data.access, data.refresh);
       CLAP.Auth.setUser(data.user || { email: emailInp.value.trim() });
 
+      /* Reset failure counter on success */
+      failedAttempts = 0;
       statusEl.textContent = 'Signed in. Redirecting…';
       CLAP.Toast.success('Welcome back!');
 
-      /* If new user hasn't completed onboarding */
+      /* Redirect based on onboarding status */
       const dest = (data.user && data.user.onboarding_complete === false)
         ? 'onboarding.html'
         : 'dashboard.html';
@@ -191,6 +196,8 @@
 
     } catch (err) {
       failedAttempts++;
+      if (failedAttempts >= 5) lockoutUntil = Date.now() + 30000;
+
       statusEl.textContent = 'Sign in failed.';
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
@@ -201,7 +208,7 @@
       } else if (err.status === 0) {
         CLAP.Toast.error('Cannot connect to server. Check your internet connection.');
       } else {
-        CLAP.Toast.error(err.message);
+        CLAP.Toast.error(err.message || 'Sign in failed. Please try again.');
       }
     }
   });

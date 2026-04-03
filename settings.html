@@ -16,7 +16,7 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
 
-    <!-- Page Title (no topbar on settings) -->
+    <!-- Page Title -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-xl);">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--clap-teal)" stroke-width="2.5">
         <circle cx="12" cy="12" r="3"/>
@@ -50,9 +50,11 @@
 'use strict';
 AppShell.init('settings.html', { showSearch: false });
 
-const user  = CLAP.Auth.getUser() || {};
-let curSec  = '';
-let curSub  = 'profile';
+// FIX: clone user object so in-memory edits don't corrupt the stored copy until Save
+const _stored = CLAP.Auth.getUser() || {};
+const user = { ..._stored };
+let curSec = '';
+let curSub = 'profile';
 
 /* ── PANEL CONTENT ── */
 function panelGeneral() {
@@ -61,11 +63,15 @@ function panelGeneral() {
 }
 
 function panelProfile() {
-  const initial = (user.name||'S').charAt(0).toUpperCase();
+  const initial = (user.name || 'S').charAt(0).toUpperCase();
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Profile</span></div>
     <div class="profile-pic-wrap">
-      <div class="profile-avatar" id="av-preview">${initial}</div>
+      <div class="profile-avatar" id="av-preview">${
+        user.avatarDataUrl
+          ? `<img src="${user.avatarDataUrl}" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+          : initial
+      }</div>
       <div>
         <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
         <div style="display:flex;gap:8px">
@@ -79,34 +85,48 @@ function panelProfile() {
       </div>
     </div>
     <div class="settings-row" id="row-name">
-      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value" id="val-name">${user.name||'—'}</div></div>
+      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value" id="val-name">${escHtml(user.name || '—')}</div></div>
       <button class="edit-btn" onclick="startInlineEdit('name','Full Name')">Edit</button>
     </div>
     <div class="settings-row" id="row-email">
-      <div><div class="settings-row-label">Email</div><div class="settings-row-value" id="val-email">${user.email||'—'}</div></div>
+      <div><div class="settings-row-label">Email</div><div class="settings-row-value" id="val-email">${escHtml(user.email || '—')}</div></div>
       <button class="edit-btn" onclick="startInlineEdit('email','Email')">Edit</button>
     </div>
     <div class="settings-row" style="border:none" id="row-program">
-      <div><div class="settings-row-label">Program</div><div class="settings-row-value" id="val-program">${user.program||'Computer Science'}</div></div>
+      <div><div class="settings-row-label">Program</div><div class="settings-row-value" id="val-program">${escHtml(user.program || 'Computer Science')}</div></div>
       <button class="edit-btn" onclick="startInlineEdit('program','Program')">Edit</button>
     </div>
     <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>`;
 }
 
 function panelStudyPrefs() {
-  const p = JSON.parse(localStorage.getItem('clap_prefs')||'{}');
+  /* FIX: read from the CONFIG USER_KEY-based preferences stored by onboarding.
+     Onboarding saves to /users/preferences/ on the backend and also stores
+     locally under 'clap_prefs' as a convenience key.
+     Fallback to sensible defaults if not yet set. */
+  let p = {};
+  try { p = JSON.parse(localStorage.getItem('clap_prefs') || '{}'); } catch {}
+
+  const fmt = (t) => {
+    if (!t) return '—';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${String(h12).padStart(2,'0')}:${String(m||0).padStart(2,'0')} ${ampm}`;
+  };
+
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Study Preferences</span></div>
     <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-md)">Study Preferences</h3>
     <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">To update your sleep or study hours, use the Daily Routine setup in Onboarding. Backend editing will be available soon.</p>
     <div class="settings-row">
-      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${p.sleep_start||'11:00 PM'} to ${p.sleep_end||'7:00 AM'}</div></div>
+      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${fmt(p.sleep_start) || '11:00 PM'} to ${fmt(p.sleep_end) || '7:00 AM'}</div></div>
     </div>
     <div class="settings-row">
-      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${p.study_start||'9:00 AM'} to ${p.study_end||'7:00 PM'}</div></div>
+      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${fmt(p.study_start) || '9:00 AM'} to ${fmt(p.study_end) || '7:00 PM'}</div></div>
     </div>
     <div class="settings-row" style="border:none">
-      <div><div class="settings-row-label">Daily Study Limit</div><div class="settings-row-value">${p.max_focus_hours||6} Hours</div></div>
+      <div><div class="settings-row-label">Daily Study Limit</div><div class="settings-row-value">${p.max_focus_hours || 6} Hours</div></div>
     </div>`;
 }
 
@@ -137,13 +157,18 @@ function setSection(sec) {
   document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.remove('active'));
 
   let html = '';
-  if (sec === 'general-menu') { html = panelGeneral(); document.getElementById('general-subnav').style.display='flex'; }
-  else if (sec === 'about')   html = panelAbout();
+  if (sec === 'general-menu') {
+    html = panelGeneral();
+    document.getElementById('general-subnav').style.display = 'flex';
+  } else if (sec === 'about') {
+    html = panelAbout();
+  }
 
   document.getElementById('settings-panel').innerHTML = html;
-  document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.sub === curSub));
+  document.querySelectorAll('.settings-subnav-item').forEach(b =>
+    b.classList.toggle('active', b.dataset.sub === curSub)
+  );
 
-  /* Attach avatar handlers after innerHTML is set */
   if (sec === 'general-menu' && curSub === 'profile') {
     attachAvatarHandlers();
   }
@@ -166,11 +191,11 @@ window.startInlineEdit = function(field, label) {
   valEl.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <input id="edit-input-${field}" class="inline-input" type="text"
-             value="${currentVal}" placeholder="${label}"
+             value="${escHtml(currentVal)}" placeholder="${escHtml(label)}"
              style="flex:1;min-width:140px;" />
       <button class="edit-btn" style="color:var(--success);border:1px solid var(--success);"
               onclick="commitInlineEdit('${field}')">Save</button>
-      <button class="edit-btn" onclick="cancelInlineEdit('${field}','${currentVal}')">Cancel</button>
+      <button class="edit-btn" onclick="cancelInlineEdit('${field}','${escHtml(currentVal)}')">Cancel</button>
     </div>`;
   document.getElementById('edit-input-' + field)?.focus();
 };
@@ -200,6 +225,11 @@ function attachAvatarHandlers() {
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (!file) return;
+      /* Validate file size (max 2MB) */
+      if (file.size > 2 * 1024 * 1024) {
+        CLAP.Toast.error('Image must be under 2MB.');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
         preview.innerHTML = `<img src="${e.target.result}" alt="Avatar"
@@ -223,12 +253,30 @@ function attachAvatarHandlers() {
 
 /* ── SAVE PROFILE ── */
 window.saveProfile = async function() {
+  const payload = {
+    name:    user.name,
+    email:   user.email,
+    program: user.program,
+  };
   try {
-    await CLAP.API.patch('/users/me/', { name: user.name, email: user.email, program: user.program });
+    /* CONNECT: PATCH /api/users/me/ */
+    await CLAP.API.patch('/users/me/', payload);
+    /* Persist locally only after successful server save */
     localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
-  } catch {}
-  CLAP.Toast.success('Profile saved!');
+    CLAP.Toast.success('Profile saved!');
+  } catch (err) {
+    /* FIX: show error if API fails instead of always showing success */
+    CLAP.Toast.error(err?.message || 'Failed to save profile. Please try again.');
+  }
 };
+
+/* ── HELPER ── */
+function escHtml(str) {
+  if (str == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
 </script>
 </body>
 </html>

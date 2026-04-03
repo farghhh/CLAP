@@ -15,6 +15,7 @@
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
+    <header id="topbar" class="topbar"></header>
 
     <!-- Header row -->
     <div class="assign-page-header">
@@ -122,18 +123,8 @@
 <script>
 'use strict';
 AppShell.init('assignments.html');
-window.addEventListener('load', () => {
-  document.getElementById('topbar')?.remove();
-});
 
-// const MOCK = [
-//   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
-//   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
-//   { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20 },
-//   { id:4, course_code:'CSC2672', title:'UI/UX Design Prototype',         deadline:'2026-04-25', hours:20, difficulty:'hard',   progress:100 },
-//   { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0 },
-// ];
-
+/* CONNECT: GET /api/assignments/ — remove MOCK once backend is ready */
 const MOCK = [
   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
@@ -149,35 +140,39 @@ let activeTab   = 'progress';
 
 /* ---- Load ---- */
 async function loadAssignments() {
-  try {
-    const data = await CLAP.API.get('/assignments/');
-    assignments = Array.isArray(data) ? data : MOCK;
-  } catch {
-    assignments = MOCK;
-  }
+  try { assignments = await CLAP.API.get('/assignments/'); }
+  catch { assignments = MOCK; }
   renderProgress();
   renderTable();
 }
 
 /* ---- Progress View ---- */
 function renderProgress() {
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q    = document.getElementById('search-input').value.toLowerCase();
   const list = document.getElementById('progress-list');
-  const items = assignments.filter(a => !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q));
-  if (!items.length) { list.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>'; return; }
+  const items = assignments.filter(a =>
+    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
+  );
+  if (!items.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>';
+    return;
+  }
 
   list.innerHTML = items.map(a => {
-    const pct = a.progress ?? 0;
-    const isComplete  = pct === 100;
-    const isNotStart  = pct === 0;
-    const fillClass   = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
-    const badgeBg     = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
-    const labelTxt    = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
+    const pct        = a.progress ?? 0;
+    const isComplete = pct === 100;
+    const isNotStart = pct === 0;
+    const fillClass  = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
+    // FIX: use a pill badge that fits text properly instead of a fixed-size circle
+    const badgeBg    = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
+    const labelTxt   = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
     return `
       <div class="progress-item">
         <div class="progress-item-header">
           <div class="progress-item-name">${esc(a.course_code)} — ${esc(a.title)}</div>
-          <div class="progress-pct-badge" style="background:${badgeBg};min-width:56px;border-radius:var(--radius-pill);padding:4px 10px;font-size:0.7rem">${labelTxt}</div>
+          <div style="background:${badgeBg};color:#fff;border-radius:var(--radius-pill);
+                      padding:4px 12px;font-size:0.7rem;font-weight:800;
+                      white-space:nowrap;flex-shrink:0;">${labelTxt}</div>
         </div>
         <div class="progress-bar">
           <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
@@ -188,24 +183,29 @@ function renderProgress() {
 
 /* ---- Table View ---- */
 function renderTable() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const items = assignments.filter(a => !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q));
+  const q     = document.getElementById('search-input').value.toLowerCase();
+  const items = assignments.filter(a =>
+    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
+  );
   const tbody = document.getElementById('assign-tbody');
-  if (!items.length) { tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>'; return; }
-  const today = new Date(); today.setHours(0,0,0,0);
-  tbody.innerHTML = items.map((a,i) => {
-    const dl   = new Date(a.deadline);
-    const over = dl < today;
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>';
+    return;
+  }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  tbody.innerHTML = items.map((a, i) => {
+    const dl    = new Date(a.deadline);
+    const over  = dl < today;
     const dlStr = dl.toLocaleDateString('en-GB');
     const diff  = a.difficulty || 'easy';
     return `
-      <tr class="${over?'overdue':''}">
-        <td>${i+1}</td>
+      <tr class="${over ? 'overdue' : ''}">
+        <td>${i + 1}</td>
         <td>${esc(a.course_code)}</td>
         <td>${esc(a.title)}</td>
         <td>${dlStr}</td>
         <td>${a.hours}</td>
-        <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase()+diff.slice(1)}</span></td>
+        <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span></td>
         <td style="display:flex;gap:4px;">
           <button class="tbl-action-btn edit" onclick="startEdit(${a.id})" title="Edit">✏️</button>
           <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete">🗑️</button>
@@ -237,42 +237,58 @@ document.addEventListener('clap:search', e => {
 document.getElementById('add-btn').addEventListener('click', () => {
   editingId = null;
   document.getElementById('form-title').textContent = 'Add Assignment';
-  ['f-code','f-title','f-deadline','f-hours'].forEach(id => document.getElementById(id).value='');
+  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-difficulty').value = 'easy';
+  // Reset any error styles
+  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('error');
+    el.style.borderColor = '';
+    el.style.background  = '';
+  });
   showView('form');
 });
 
 /* ---- Edit ---- */
 window.startEdit = function(id) {
-  const a = assignments.find(x => x.id === id); if (!a) return;
+  const a = assignments.find(x => x.id === id);
+  if (!a) return;
   editingId = id;
-  document.getElementById('form-title').textContent = 'Edit Assignment';
-  document.getElementById('f-code').value       = a.course_code;
-  document.getElementById('f-title').value      = a.title;
-  document.getElementById('f-deadline').value   = a.deadline;
-  document.getElementById('f-hours').value      = a.hours;
-  document.getElementById('f-difficulty').value = a.difficulty;
+  document.getElementById('form-title').textContent  = 'Edit Assignment';
+  document.getElementById('f-code').value            = a.course_code;
+  document.getElementById('f-title').value           = a.title;
+  document.getElementById('f-deadline').value        = a.deadline;
+  document.getElementById('f-hours').value           = a.hours;
+  document.getElementById('f-difficulty').value      = a.difficulty;
+  // Reset any error styles
+  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('error');
+    el.style.borderColor = '';
+    el.style.background  = '';
+  });
   showView('form');
 };
 
 /* ---- Delete ---- */
 window.startDelete = function(id) {
   deleteId = id;
-  const modal = document.getElementById('del-modal');
-  modal.style.display = 'flex';
+  document.getElementById('del-modal').style.display = 'flex';
 };
-document.getElementById('del-cancel').addEventListener('click', () => { document.getElementById('del-modal').style.display='none'; });
+document.getElementById('del-cancel').addEventListener('click', () => {
+  document.getElementById('del-modal').style.display = 'none';
+});
 document.getElementById('del-modal').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
 document.getElementById('del-confirm').addEventListener('click', async () => {
-  document.getElementById('del-modal').style.display='none';
+  document.getElementById('del-modal').style.display = 'none';
   try {
     await CLAP.API.delete(`/assignments/${deleteId}/`);
-    assignments = assignments.filter(a => a.id !== deleteId);
   } catch {
-    assignments = assignments.filter(a => a.id !== deleteId);
+    /* Silently proceed — optimistic delete */
   }
+  assignments = assignments.filter(a => a.id !== deleteId);
   renderProgress(); renderTable();
   CLAP.Toast.success('Assignment deleted.');
 });
@@ -287,38 +303,52 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const code  = codeEl.value.trim();
   const title = titleEl.value.trim();
   const dl    = dlEl.value;
-  const hrs   = parseInt(hrsEl.value);
+  const hrs   = parseInt(hrsEl.value, 10);
   const diff  = document.getElementById('f-difficulty').value;
 
-  // Highlight empty fields visually
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
-    if (!el.value.trim()) {
+  // Highlight empty / invalid fields
+  let hasError = false;
+  [
+    { el: codeEl,  valid: !!code },
+    { el: titleEl, valid: !!title },
+    { el: dlEl,    valid: !!dl },
+    // FIX: use isNaN check instead of falsy check (0 is falsy but hrs min is 1)
+    { el: hrsEl,   valid: !isNaN(hrs) && hrs > 0 },
+  ].forEach(({ el, valid }) => {
+    if (!valid) {
       el.style.borderColor = 'var(--danger)';
       el.style.background  = 'var(--danger-light)';
+      hasError = true;
     } else {
       el.style.borderColor = '';
       el.style.background  = '';
     }
   });
 
-  if (!code || !title || !dl || !hrs) { CLAP.Toast.error('Please fill all required fields.'); return; }
+  if (hasError) { CLAP.Toast.error('Please fill all required fields.'); return; }
 
-  // Clear error styles on valid submit
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => { el.style.borderColor = ''; el.style.background = ''; });
+  const payload = { course_code: code, title, deadline: dl, hours: hrs, difficulty: diff };
+  const saveBtn = document.getElementById('save-btn');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
 
-  const payload = { course_code:code, title, deadline:dl, hours:hrs, difficulty:diff };
   try {
     if (editingId) {
+      /* CONNECT: PUT /api/assignments/:id/ */
       const updated = await CLAP.API.put(`/assignments/${editingId}/`, payload);
       const idx = assignments.findIndex(a => a.id === editingId);
+      // FIX: merge server response (preserves server-side fields like progress) with payload fallback
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...(updated || payload) };
       CLAP.Toast.success('Assignment updated!');
     } else {
+      /* CONNECT: POST /api/assignments/ */
       const created = await CLAP.API.post('/assignments/', payload);
+      // Use server response if available; generate a temporary local ID as fallback
       assignments.push(created || { id: Date.now(), ...payload, progress: 0 });
       CLAP.Toast.success('Assignment added!');
     }
-  } catch {
+  } catch (err) {
+    /* Optimistic update when backend unavailable */
     if (editingId) {
       const idx = assignments.findIndex(a => a.id === editingId);
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
@@ -326,7 +356,11 @@ document.getElementById('save-btn').addEventListener('click', async () => {
       assignments.push({ id: Date.now(), ...payload, progress: 0 });
     }
     CLAP.Toast.success(editingId ? 'Assignment updated!' : 'Assignment added!');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
   }
+
   renderProgress(); renderTable();
   showView(activeTab);
 });
@@ -346,21 +380,18 @@ function showView(name) {
     tabs.style.display   = '';
   }
 
-  // views
-  document.getElementById('view-progress').style.display = name==='progress' ? '' : 'none';
-  document.getElementById('view-all').style.display      = name==='all'      ? '' : 'none';
-  document.getElementById('view-form').style.display     = name==='form'     ? '' : 'none';
+  document.getElementById('view-progress').style.display = name === 'progress' ? '' : 'none';
+  document.getElementById('view-all').style.display      = name === 'all'      ? '' : 'none';
+  document.getElementById('view-form').style.display     = name === 'form'     ? '' : 'none';
 
-  // reset tab active
-  document.getElementById('tab-progress').classList.remove('active');
-  document.getElementById('tab-all').classList.remove('active');
-
-  if (name === 'progress') document.getElementById('tab-progress').classList.add('active');
-  if (name === 'all')      document.getElementById('tab-all').classList.add('active');
+  document.getElementById('tab-progress').classList.toggle('active', name === 'progress');
+  document.getElementById('tab-all').classList.toggle('active', name === 'all');
 }
 
 function esc(s) {
-  const d = document.createElement('div'); d.textContent=s; return d.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 loadAssignments();

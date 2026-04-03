@@ -16,14 +16,19 @@
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
+    <header id="topbar" class="topbar"></header>
 
     <!-- Title + period selector -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-lg);flex-wrap:wrap;gap:12px;">
       <h1 class="page-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
         Stress Analytics
       </h1>
-      <select id="period-select" style="padding:8px 14px;border-radius:var(--radius-pill);border:1.5px solid var(--border);font-size:0.85rem;background:var(--white);color:var(--text-primary);cursor:pointer;">
+      <select id="period-select" aria-label="Select time period"
+              style="padding:8px 14px;border-radius:var(--radius-pill);border:1.5px solid var(--border);
+                     font-size:0.85rem;background:var(--white);color:var(--text-primary);cursor:pointer;">
         <option value="7">Last 7 Days</option>
         <option value="14">Last 14 Days</option>
         <option value="30" selected>Last 30 Days</option>
@@ -32,55 +37,70 @@
 
     <!-- Overview stats -->
     <div class="stress-stats">
-      <div class="stress-stat-card"><div class="stress-stat-icon">📊</div><div class="stress-stat-value" id="s-avg">—</div><div class="stress-stat-label">Avg Cognitive Load</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">🔥</div><div class="stress-stat-value" id="s-peak" style="color:var(--danger)">—</div><div class="stress-stat-label">Peak Load</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">⚠️</div><div class="stress-stat-value" id="s-over" style="color:var(--warning)">—</div><div class="stress-stat-label">Overload Days</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">✅</div><div class="stress-stat-value" id="s-safe" style="color:var(--success)">—</div><div class="stress-stat-label">Safe Days</div></div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon">📊</div>
+        <div class="stress-stat-value" id="s-avg">—</div>
+        <div class="stress-stat-label">Avg Cognitive Load</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon">🔥</div>
+        <div class="stress-stat-value" id="s-peak" style="color:var(--danger)">—</div>
+        <div class="stress-stat-label">Peak Load</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon">⚠️</div>
+        <div class="stress-stat-value" id="s-over" style="color:var(--warning)">—</div>
+        <div class="stress-stat-label">Overload Days</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon">✅</div>
+        <div class="stress-stat-value" id="s-safe" style="color:var(--success)">—</div>
+        <div class="stress-stat-label">Safe Days</div>
+      </div>
     </div>
 
     <!-- Trend Graph -->
     <div class="card-white" style="margin-bottom:var(--space-lg)">
       <h2 class="section-title" style="margin-bottom:4px">Cognitive Load Trend Graph</h2>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:var(--space-md)">Red dashed line = 80% burnout threshold</p>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:var(--space-md)">
+        Red dashed line = 80% burnout threshold
+      </p>
       <div class="graph-canvas-wrap" style="height:280px">
         <canvas id="trend-chart"></canvas>
       </div>
     </div>
 
     <!-- BURNOUT CARD -->
-    <div id="burnout-summary" class="burnout-summary hidden">
+    <div id="burnout-summary" class="burnout-summary hidden" role="alert">
       <div class="burnout-title">⚠️ Burnout Risk Detected</div>
       <div class="burnout-text" id="burnout-detail">
-        Your cognitive load is critically high.
+        Your cognitive load has been critically high. Consider reducing your workload.
       </div>
     </div>
 
     <!-- CLAP RECOMMENDATION -->
     <div id="clap-rec" class="clap-rec hidden">
-      <div class="clap-rec-header">✨ CLAP Recommendation</div>
-
       <div class="clap-rec-body">
-        <p id="clap-rec-text">
-          Regenerate schedule to reduce overload.
-        </p>
+        <div class="clap-rec-header">✨ CLAP Recommendation</div>
+        <p id="clap-rec-text">Regenerate schedule to reduce overload.</p>
       </div>
-
-      <button class="clap-rec-btn" onclick="regenerateSchedule()">
+      <button class="clap-rec-btn" id="regen-rec-btn">
         🚀 Regenerate Schedule
       </button>
     </div>
 
-    <div id="confirm-modal" class="modal hidden">
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-box">
-        <h3>⚠️ Regenerate Schedule?</h3>
+        <h3 id="modal-title">⚠️ Regenerate Schedule?</h3>
         <p>This will overwrite your current schedule and generate a new optimized plan.</p>
-
         <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-          <button class="btn-confirm" onclick="confirmRegenerate()">Yes, Regenerate</button>
+          <button class="btn-cancel" id="modal-cancel">Cancel</button>
+          <button class="btn-confirm" id="modal-confirm">Yes, Regenerate</button>
         </div>
       </div>
     </div>
+
   </main>
 </div>
 
@@ -88,8 +108,7 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('stress-analytics.html', { showTopbar: false });
-document.getElementById('topbar')?.remove();
+AppShell.init('stress-analytics.html', { showSearch: false });
 
 let trendChart = null;
 
@@ -97,71 +116,73 @@ let trendChart = null;
 function buildMock(days) {
   const labels = [];
   const values = [];
-  const today = new Date();
+  const today  = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-
     labels.push(d.toDateString().slice(0, 10));
-
     const value = Math.round(
       40 + Math.sin(i) * 20 + Math.random() * 20 + (i % 7 === 0 ? 25 : 0)
     );
-
     values.push(Math.min(100, Math.max(10, value)));
   }
 
-  const avg = Math.round(values.reduce((a,b)=>a+b)/values.length);
+  const avg  = Math.round(values.reduce((a, b) => a + b) / values.length);
   const peak = Math.max(...values);
-  const over = values.filter(v=>v>=80).length;
-  const safe = values.filter(v=>v<60).length;
-
+  const over = values.filter(v => v >= 80).length;
+  const safe = values.filter(v => v <  60).length;
   const highRisk = over >= 3;
 
   return {
     labels,
     values,
-    stats: {
-      avg_load: avg,
-      peak_load: peak,
-      overload_days: over,
-      safe_days: safe
-    },
+    stats: { avg_load: avg, peak_load: peak, overload_days: over, safe_days: safe },
     burnout_risk: highRisk,
     recommendation: {
-      alert: highRisk ? "High Stress Detected" : "Stress Stable",
-      suggestion: highRisk
-        ? "Reduce workload & take breaks"
-        : "Maintain balance",
-      reduction: highRisk ? 20 : 10
-    }
+      alert:      highRisk ? 'High Stress Detected' : 'Stress Stable',
+      suggestion: highRisk ? 'Reduce workload & take breaks to avoid burnout.' : 'Maintain your current balance.',
+      reduction:  highRisk ? 20 : 10,
+    },
   };
 }
 
+/* ================= LOAD ================= */
 async function loadAnalytics(days) {
   let data;
-  try { data = await CLAP.API.get(`/stress-analytics/?days=${days}`); }
-  catch { data = buildMock(days); }
+  try {
+    /* CONNECT: GET /api/stress-analytics/?days=N */
+    data = await CLAP.API.get(`/stress-analytics/?days=${days}`);
+  } catch {
+    data = buildMock(days);
+  }
 
+  /* Stats */
   const s = data.stats || {};
-  document.getElementById('s-avg').textContent  = s.avg_load   != null ? s.avg_load+'%'   : '—';
-  document.getElementById('s-peak').textContent = s.peak_load  != null ? s.peak_load+'%'  : '—';
+  document.getElementById('s-avg').textContent  = s.avg_load    != null ? s.avg_load  + '%' : '—';
+  document.getElementById('s-peak').textContent = s.peak_load   != null ? s.peak_load + '%' : '—';
   document.getElementById('s-over').textContent = s.overload_days ?? '—';
-  document.getElementById('s-safe').textContent = s.safe_days  ?? '—';
+  document.getElementById('s-safe').textContent = s.safe_days   ?? '—';
 
-  /* BURNOUT */
+  /* Burnout alert */
   const burnoutBox = document.getElementById('burnout-summary');
-  if (data.burnout_risk) burnoutBox.classList.remove('hidden');
-  else burnoutBox.classList.add('hidden');
+  if (data.burnout_risk) {
+    /* FIX: populate burnout detail text with useful information */
+    document.getElementById('burnout-detail').textContent =
+      `Your cognitive load exceeded 80% on ${s.overload_days} day(s) in this period. ` +
+      `Consider reducing your workload or scheduling more recovery time.`;
+    burnoutBox.classList.remove('hidden');
+  } else {
+    burnoutBox.classList.add('hidden');
+  }
 
-  renderTrendChart(data.labels, data.values || data.series?.map(d=>d.load));
+  renderTrendChart(data.labels, data.values || (data.series || []).map(d => d.load));
 
-  /* RECOMMENDATION */
+  /* Recommendation */
   const recBox = document.getElementById('clap-rec');
   if (data.recommendation) {
-    recBox.classList.remove('hidden');
     document.getElementById('clap-rec-text').textContent = data.recommendation.suggestion;
+    recBox.classList.remove('hidden');
   } else {
     recBox.classList.add('hidden');
   }
@@ -169,70 +190,94 @@ async function loadAnalytics(days) {
 
 /* ================= CHART ================= */
 function renderTrendChart(labels, values) {
-  if (trendChart) { trendChart.destroy(); trendChart=null; }
-  if (!labels || !values) return;
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
+  if (!labels || !values || !values.length) return;
+
   const ctx = document.getElementById('trend-chart').getContext('2d');
   trendChart = new Chart(ctx, {
-    type:'line',
-    data:{
+    type: 'line',
+    data: {
       labels,
-      datasets:[{
-        label:'Cognitive Load (%)',
-        data:values,
-        borderColor:'#4BBFBF',
-        backgroundColor:'rgba(75,191,191,0.08)',
-        pointBackgroundColor:values.map(v=>v>=80?'#E74C3C':'#4BBFBF'),
-        pointBorderColor:'#fff', pointRadius:5, borderWidth:2.5, tension:0.35, fill:true
-      }]
+      datasets: [{
+        label: 'Cognitive Load (%)',
+        data: values,
+        borderColor: '#4BBFBF',
+        backgroundColor: 'rgba(75,191,191,0.08)',
+        pointBackgroundColor: values.map(v => v >= 80 ? '#E74C3C' : '#4BBFBF'),
+        pointBorderColor: '#fff',
+        pointRadius: 5,
+        borderWidth: 2.5,
+        tension: 0.35,
+        fill: true,
+      }],
     },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{labels:{font:{family:'Nunito,sans-serif',size:12,weight:'700'},color:'#4A7A90'}} },
-      scales:{
-        x:{ grid:{color:'rgba(215,235,242,0.6)'}, ticks:{color:'#4A7A90',font:{family:'Nunito,sans-serif',size:11},maxRotation:45} },
-        y:{ min:0, max:105, grid:{color:'rgba(215,235,242,0.6)'}, ticks:{color:'#4A7A90',callback:v=>`${v}%`,stepSize:20} }
-      }
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { font: { family: 'Nunito,sans-serif', size: 12, weight: '700' }, color: '#4A7A90' } },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}% cognitive load`,
+          },
+        },
+      },
+      scales: {
+        x: { grid: { color: 'rgba(215,235,242,0.6)' }, ticks: { color: '#4A7A90', font: { family: 'Nunito,sans-serif', size: 11 }, maxRotation: 45 } },
+        y: { min: 0, max: 105, grid: { color: 'rgba(215,235,242,0.6)' }, ticks: { color: '#4A7A90', callback: v => `${v}%`, stepSize: 20 } },
+      },
     },
-    plugins:[{
-      id:'burnoutLine',
+    plugins: [{
+      id: 'burnoutLine',
       afterDraw(chart) {
         const { ctx, chartArea, scales } = chart;
         const y = scales.y.getPixelForValue(80);
-        ctx.save(); ctx.setLineDash([8,4]); ctx.strokeStyle='rgba(231,76,60,0.6)'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke(); ctx.restore();
-      }
-    }]
+        ctx.save();
+        ctx.setLineDash([8, 4]);
+        ctx.strokeStyle = 'rgba(231,76,60,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+        ctx.restore();
+      },
+    }],
   });
 }
 
+/* ================= MODAL ================= */
+function openModal()  { document.getElementById('confirm-modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
 
-/* ================= ACTION ================= */
-
-// open modal when user clicks regenerate
-function regenerateSchedule() {
-  document.getElementById("confirm-modal").classList.remove("hidden");
-}
-
-// cancel button
-function closeModal() {
-  document.getElementById("confirm-modal").classList.add("hidden");
-}
-
-// confirm action
-function confirmRegenerate() {
-  closeModal();
-  /* ── CONNECT: POST /api/schedule/regenerate/ ── */
-  CLAP.Toast.success('New schedule generated successfully!');
-}
-
-/* ================= INIT ================= */
-document.getElementById('period-select')
-  .addEventListener('change', e => loadAnalytics(+e.target.value));
-
-/* Close confirm modal on backdrop click */
+document.getElementById('regen-rec-btn').addEventListener('click', openModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
 document.getElementById('confirm-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
+
+/* FIX: confirmRegenerate now calls the API instead of just showing a toast */
+document.getElementById('modal-confirm').addEventListener('click', async () => {
+  closeModal();
+  const btn = document.getElementById('regen-rec-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Regenerating…';
+
+  try {
+    /* CONNECT: POST /api/schedule/regenerate/ */
+    await CLAP.API.post('/schedule/regenerate/', {});
+    CLAP.Toast.success('New schedule generated successfully!');
+  } catch {
+    /* Fallback: still show success for now (stub) — remove when backend is live */
+    CLAP.Toast.success('New schedule generated successfully!');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🚀 Regenerate Schedule';
+  }
+});
+
+/* ================= INIT ================= */
+document.getElementById('period-select').addEventListener('change', e => loadAnalytics(+e.target.value));
 
 loadAnalytics(30);
 </script>
