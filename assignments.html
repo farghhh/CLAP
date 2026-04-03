@@ -4,518 +4,596 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CLAP — My Assignments</title>
-
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/app.css" />
 </head>
-
 <body>
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- Toast -->
-<div id="toast-container"></div>
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
-<!-- Sidebar toggle -->
-<button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
-<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+  <div class="app-layout">
+    <aside id="sidebar" class="sidebar"></aside>
 
-<div class="app-layout">
+    <main class="main-content assign-page" id="main">
+      <section class="assign-shell">
+        <div class="assign-top-row" id="page-header">
+          <h1 class="assign-page-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+            </svg>
+            <span>My Assignments</span>
+          </h1>
 
-  <!-- Sidebar injected by AppShell -->
-  <aside id="sidebar" class="sidebar"></aside>
+          <button class="add-btn" id="add-btn" type="button">
+            <span class="add-btn-icon" aria-hidden="true">⊕</span>
+            <span>Add Assignment</span>
+          </button>
+        </div>
 
-  <!-- MAIN CONTENT -->
-  <main class="main-content" id="main">
+        <div class="tab-bar" id="tab-bar" role="tablist" aria-label="Assignment views">
+          <button class="tab-btn active" id="tab-progress" type="button" role="tab" aria-selected="true" data-tab="progress">Assignment Progress</button>
+          <button class="tab-btn" id="tab-all" type="button" role="tab" aria-selected="false" data-tab="all">All Assignments</button>
+        </div>
 
-    <!-- Header -->
-    <div class="assign-page-header" id="page-header">
+        <section id="view-progress" class="assign-view" aria-labelledby="tab-progress">
+          <div class="progress-card" id="progress-list"></div>
+        </section>
 
-      <h1 class="assign-page-title">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-        </svg>
-        My Assignments
-      </h1>
+        <section id="view-all" class="assign-view" aria-labelledby="tab-all" hidden>
+          <div class="assignments-table-wrap">
+            <div class="tbl-search-wrap">
+              <span class="tbl-search-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+              </span>
+              <input class="tbl-search-bar" id="tbl-search-input" type="search" placeholder="Find your assignments." aria-label="Search assignments" />
+            </div>
 
-      <div class="assign-search" id="header-search">
-        <span class="s-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="11" cy="11" r="8"/>
-            <path d="m21 21-4.35-4.35"/>
-          </svg>
-        </span>
-        <input type="search" id="search-input" placeholder="Find your assignments..." />
+            <div class="assign-table-scroll">
+              <table class="assignments-table">
+                <thead>
+                  <tr>
+                    <th>No.</th>
+                    <th>Code</th>
+                    <th>Assignment Title</th>
+                    <th>Deadline</th>
+                    <th>Hours</th>
+                    <th>Difficulty</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="assign-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-form" class="assign-view assign-form-view" hidden>
+          <button class="back-btn" id="back-btn" type="button" aria-label="Go back">
+            <span aria-hidden="true">‹</span>
+            <span>Back</span>
+          </button>
+
+          <h2 class="add-assign-title" id="form-title">Add Assignment</h2>
+
+          <form class="add-assign-wrap" id="assignment-form" novalidate>
+            <div class="form-field form-field-short">
+              <label for="f-code">Course Code<span>*</span></label>
+              <input id="f-code" name="course_code" type="text" placeholder="Eg: CSC2434" maxlength="20" />
+              <small class="field-note" id="err-code"></small>
+            </div>
+
+            <div class="form-field form-field-wide">
+              <label for="f-title">Assignment Title<span>*</span></label>
+              <input id="f-title" name="title" type="text" placeholder="Eg: Database Final Project" maxlength="120" />
+              <small class="field-note" id="err-title"></small>
+            </div>
+
+            <div class="form-field form-field-short form-field-select">
+              <label for="f-deadline">Deadline<span>*</span></label>
+              <input id="f-deadline" name="deadline" type="date" />
+              <small class="field-note" id="err-deadline"></small>
+            </div>
+
+            <div class="form-field form-field-short">
+              <label for="f-hours">Estimated Hours<span>*</span></label>
+              <input id="f-hours" name="hours" type="number" min="1" step="1" placeholder="Eg: 6 Hours" />
+              <small class="field-note" id="err-hours"></small>
+            </div>
+
+            <div class="form-field form-field-short form-field-select">
+              <label for="f-difficulty">Difficulty Level<span>*</span></label>
+              <select id="f-difficulty" name="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+              <small class="field-note" id="err-difficulty"></small>
+            </div>
+
+            <button class="save-btn" id="save-btn" type="submit">Save</button>
+          </form>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <aside class="progress-legend" id="progress-legend" hidden aria-label="Progress meaning">
+    <div class="legend-item"><span class="legend-dot legend-dot-completed"></span><span>Completed</span></div>
+    <div class="legend-item"><span class="legend-dot legend-dot-not-started"></span><span>Not Started Yet</span></div>
+    <div class="legend-item"><span class="legend-dot legend-dot-progress"></span><span>In Progress</span></div>
+  </aside>
+
+  <button class="info-fab" id="info-fab" type="button" aria-label="Toggle progress legend">i</button>
+
+  <div class="del-modal-overlay" id="del-modal" aria-hidden="true">
+    <div class="del-modal-box" role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+      <div class="del-modal-icon" aria-hidden="true">🗑️</div>
+      <h3 class="del-modal-title" id="del-modal-title">Delete Assignment?</h3>
+      <p class="del-modal-sub">This assignment will be removed from the list. This action can be connected to backend delete permanently.</p>
+      <div class="del-modal-actions">
+        <button class="btn btn-ghost btn-sm" id="del-cancel" type="button">Cancel</button>
+        <button class="btn btn-danger btn-sm" id="del-confirm" type="button">Delete</button>
       </div>
-
-      <button class="add-btn ml-auto" id="add-btn">
-        + Add Assignment
-      </button>
-
     </div>
+  </div>
 
-    <!-- Tabs -->
-    <div class="tab-bar" id="tab-bar">
-      <button class="tab-btn active" id="tab-progress">Assignment Progress</button>
-      <button class="tab-btn" id="tab-all">All Assignments</button>
-    </div>
+  <script src="js/core.js"></script>
+  <script src="js/app-shell.js"></script>
+  <script>
+    'use strict';
 
-    <!-- Progress -->
-    <div id="view-progress">
-      <div class="progress-card" id="progress-list">
-        Loading...
-      </div>
-    </div>
+    AppShell.init('assignments.html', { showTopbar: false, showSearch: false });
 
-    <!-- Table -->
-    <div id="view-all" style="display:none">
-      <div class="assignments-table-wrap">
+    const AssignmentAPI = {
+      endpoint: '/assignments/',
 
-        <div class="tbl-search-wrap">
-          <input class="tbl-search-bar" id="tbl-search-input" placeholder="Search..." />
-        </div>
+      normalize(item = {}) {
+        const progressValue = Number(
+          item.progress_percentage ??
+          item.progress ??
+          item.completion ??
+          item.percent ??
+          0
+        );
 
-        <table class="assignments-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Code</th>
-              <th>Title</th>
-              <th>Deadline</th>
-              <th>Hours</th>
-              <th>Difficulty</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="assign-tbody"></tbody>
-        </table>
+        return {
+          id: item.id,
+          course_code: String(item.course_code ?? item.code ?? '').trim(),
+          title: String(item.title ?? item.assignment_title ?? '').trim(),
+          deadline: String(item.deadline ?? item.due_date ?? '').slice(0, 10),
+          hours: Number(item.hours ?? item.estimated_hours ?? 0),
+          difficulty: String(item.difficulty ?? 'easy').toLowerCase(),
+          progress: Number.isFinite(progressValue) ? Math.max(0, Math.min(100, progressValue)) : 0,
+        };
+      },
 
-      </div>
-    </div>
+      serialize(payload = {}) {
+        return {
+          course_code: payload.course_code,
+          title: payload.title,
+          deadline: payload.deadline,
+          hours: payload.hours,
+          difficulty: payload.difficulty,
+        };
+      },
 
-    <!-- FORM -->
-    <div id="view-form" style="display:none">
+      async list() {
+        const data = await CLAP.API.get(this.endpoint);
+        const rows = Array.isArray(data) ? data : (Array.isArray(data.results) ? data.results : []);
+        return rows.map(row => this.normalize(row));
+      },
 
-      <button class="back-btn" id="back-btn">← Back</button>
+      async create(payload) {
+        const created = await CLAP.API.post(this.endpoint, this.serialize(payload));
+        return this.normalize(created);
+      },
 
-      <h2 class="add-assign-title" id="form-title">Add Assignment</h2>
+      async update(id, payload) {
+        const updated = await CLAP.API.put(`${this.endpoint}${id}/`, this.serialize(payload));
+        return this.normalize(updated);
+      },
 
-      <div class="add-assign-wrap">
+      async remove(id) {
+        return CLAP.API.delete(`${this.endpoint}${id}/`);
+      }
+    };
 
-        <div class="form-field">
-          <label>Course Code</label>
-          <input id="f-code">
-        </div>
+    const FALLBACK_ASSIGNMENTS = (CLAP.MockData?.assignments || []).map(item => AssignmentAPI.normalize(item));
 
-        <div class="form-field">
-          <label>Title</label>
-          <input id="f-title">
-        </div>
+    const state = {
+      assignments: [],
+      activeTab: 'progress',
+      editingId: null,
+      deleteId: null,
+      useFallback: false,
+    };
 
-        <div class="form-field">
-          <label>Deadline</label>
-          <input type="date" id="f-deadline">
-        </div>
+    const $ = id => document.getElementById(id);
 
-        <div class="form-field">
-          <label>Hours</label>
-          <input type="number" id="f-hours">
-        </div>
+    const els = {
+      progressList: $('progress-list'),
+      assignTbody: $('assign-tbody'),
+      tblSearchInput: $('tbl-search-input'),
+      viewProgress: $('view-progress'),
+      viewAll: $('view-all'),
+      viewForm: $('view-form'),
+      pageHeader: $('page-header'),
+      tabBar: $('tab-bar'),
+      infoFab: $('info-fab'),
+      legend: $('progress-legend'),
+      delModal: $('del-modal'),
+      assignmentForm: $('assignment-form'),
+      formTitle: $('form-title'),
+      backBtn: $('back-btn'),
+      addBtn: $('add-btn'),
+      saveBtn: $('save-btn'),
+      fields: {
+        code: $('f-code'),
+        title: $('f-title'),
+        deadline: $('f-deadline'),
+        hours: $('f-hours'),
+        difficulty: $('f-difficulty'),
+      },
+      fieldErrors: {
+        code: $('err-code'),
+        title: $('err-title'),
+        deadline: $('err-deadline'),
+        hours: $('err-hours'),
+        difficulty: $('err-difficulty'),
+      }
+    };
 
-        <div class="form-field">
-          <label>Difficulty</label>
-          <select id="f-difficulty">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
+    function escapeHtml(value) {
+      const div = document.createElement('div');
+      div.textContent = String(value ?? '');
+      return div.innerHTML;
+    }
 
-        <button class="save-btn" id="save-btn">Save</button>
+    function formatDate(dateString) {
+      if (!dateString) return '-';
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return dateString;
+      const day = date.getDate();
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    }
 
-      </div>
-    </div>
+    function getDifficultyLabel(value) {
+      const normalized = String(value || 'easy').toLowerCase();
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
 
-  </main>
-</div>
+    function getProgressMeta(progress) {
+      const pct = Number(progress) || 0;
+      if (pct >= 100) {
+        return {
+          fillClass: 'completed',
+          badgeClass: 'completed',
+          badgeText: '100%',
+        };
+      }
+      if (pct <= 0) {
+        return {
+          fillClass: 'not-started',
+          badgeClass: 'not-started',
+          badgeText: '0%',
+        };
+      }
+      return {
+        fillClass: 'progressing',
+        badgeClass: 'progressing',
+        badgeText: `${pct}%`,
+      };
+    }
 
-<!-- Scripts -->
-<script src="js/core.js"></script>
-<script src="js/app-shell.js"></script>
+    function getFilteredAssignments() {
+      const q = (state.activeTab === 'all' ? els.tblSearchInput.value : '').trim().toLowerCase();
+      if (!q) return [...state.assignments];
+      return state.assignments.filter(item => {
+        return (
+          item.course_code.toLowerCase().includes(q) ||
+          item.title.toLowerCase().includes(q) ||
+          String(item.deadline).toLowerCase().includes(q)
+        );
+      });
+    }
 
-<script>
-  AppShell.init('assignments.html', { showSearch: false });
-  /**
- * CLAP — My Assignments Page Script
- * ============================================================
- * Handles: data loading, progress view, table view, add/edit
- * form, delete modal, tab switching, search, and sidebar.
- *
- * Depends on: css/global.css, css/app.css
- * CONNECT: replace MOCK with real API calls via CLAP.API.*
- * ============================================================
- */
-'use strict';
+    function sortAssignments(rows) {
+      return [...rows].sort((a, b) => {
+        const ad = new Date(a.deadline || '2100-12-31').getTime();
+        const bd = new Date(b.deadline || '2100-12-31').getTime();
+        return ad - bd;
+      });
+    }
 
-/* ── MOCK DATA ─────────────────────────────────────────────────
-   Remove once GET /api/assignments/ is connected.
-   ─────────────────────────────────────────────────────────── */
-const MOCK = [
-  { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80  },
-  { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60  },
-  { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20  },
-  { id:4, course_code:'CSC2672', title:'UI/UX Design Prototype',         deadline:'2026-04-25', hours:20, difficulty:'hard',   progress:100 },
-  { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0   },
-];
+    function renderProgress() {
+      const items = sortAssignments(state.assignments);
+      if (!items.length) {
+        els.progressList.innerHTML = '<p class="assign-empty-state">No assignments available yet.</p>';
+        return;
+      }
 
-/* ── STATE ── */
-let assignments = [];
-let editingId   = null;
-let deleteId    = null;
-let activeTab   = 'progress';
+      els.progressList.innerHTML = items.map(item => {
+        const meta = getProgressMeta(item.progress);
+        return `
+          <article class="progress-item">
+            <div class="progress-item-header">
+              <h3 class="progress-item-name">${escapeHtml(item.course_code)} ${escapeHtml(item.title)}</h3>
+              <span class="progress-pct-badge ${meta.badgeClass}">${meta.badgeText}</span>
+            </div>
+            <div class="progress-bar-track" aria-label="${escapeHtml(item.title)} progress ${meta.badgeText}">
+              <div class="progress-fill ${meta.fillClass}" style="width:${item.progress}%"></div>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
 
-/* ── DOM REFS ── */
-const $ = id => document.getElementById(id);
+    function renderTable() {
+      const items = sortAssignments(getFilteredAssignments());
+      if (!items.length) {
+        els.assignTbody.innerHTML = '<tr><td colspan="7" class="assign-table-empty">No assignments found.</td></tr>';
+        return;
+      }
 
-const searchInput    = $('search-input');
-const tblSearchInput = $('tbl-search-input');
-const progressList   = $('progress-list');
-const assignTbody    = $('assign-tbody');
-const legendEl       = $('progress-legend');
-const infoFab        = $('info-fab');
-const viewProgress   = $('view-progress');
-const viewAll        = $('view-all');
-const viewForm       = $('view-form');
-const pageHeader     = $('page-header');
-const tabBar         = $('tab-bar');
-const headerSearch   = $('header-search');
-const delModal       = $('del-modal');
-const logoutModal    = $('logout-modal');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-/* ── TOAST ─────────────────────────────────────────────────── */
-function showToast(msg, type = 'success') {
-  const container = $('toast-container');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span>`;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.classList.add('hiding');
-    toast.addEventListener('animationend', () => toast.remove(), { once: true });
-    setTimeout(() => toast.remove(), 400);
-  }, 3500);
-}
+      els.assignTbody.innerHTML = items.map((item, index) => {
+        const deadlineDate = new Date(item.deadline);
+        const isOverdue = !Number.isNaN(deadlineDate.getTime()) && deadlineDate < today && (Number(item.progress) || 0) < 100;
+        return `
+          <tr class="${isOverdue ? 'overdue' : ''}">
+            <td>${index + 1}</td>
+            <td>${escapeHtml(item.course_code)}</td>
+            <td>${escapeHtml(item.title)}</td>
+            <td>${escapeHtml(formatDate(item.deadline))}</td>
+            <td>${escapeHtml(item.hours)}</td>
+            <td><span class="diff-badge ${escapeHtml(item.difficulty)}">${escapeHtml(getDifficultyLabel(item.difficulty))}</span></td>
+            <td>
+              <div class="table-actions">
+                <button class="tbl-action-btn edit" type="button" onclick="window.startEdit(${Number(item.id)})" aria-label="Edit ${escapeHtml(item.title)}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"></path></svg>
+                </button>
+                <button class="tbl-action-btn del" type="button" onclick="window.startDelete(${Number(item.id)})" aria-label="Delete ${escapeHtml(item.title)}">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
 
-/* ── ESCAPE HTML ── */
-function escHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
+    function setView(name) {
+      state.activeTab = name;
+      const isForm = name === 'form';
+      els.pageHeader.hidden = isForm;
+      els.tabBar.hidden = isForm;
+      els.viewProgress.hidden = name !== 'progress';
+      els.viewAll.hidden = name !== 'all';
+      els.viewForm.hidden = name !== 'form';
+      els.infoFab.hidden = name !== 'progress';
+      if (name !== 'progress') {
+        els.legend.hidden = true;
+      }
 
-/* ── LOAD ──────────────────────────────────────────────────────
-   Fetches from API; falls back to MOCK data.
-   CONNECT: replace with CLAP.API.get('/assignments/')
-   ─────────────────────────────────────────────────────────── */
-async function loadAssignments() {
-  try {
-    const res = await fetch('/api/assignments/');
-    if (!res.ok) throw new Error('API unavailable');
-    assignments = await res.json();
-  } catch {
-    assignments = MOCK;
-  }
-  renderProgress();
-  renderTable();
-}
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        const active = btn.dataset.tab === name;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
 
-/* ── RENDER PROGRESS VIEW ────────────────────────────────────── */
-function renderProgress() {
-  const q = (searchInput.value || '').toLowerCase();
-  const items = assignments.filter(a =>
-    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
-  );
+    function resetFormErrors() {
+      Object.values(els.fields).forEach(field => field.classList.remove('error'));
+      Object.values(els.fieldErrors).forEach(errorEl => errorEl.textContent = '');
+    }
 
-  if (!items.length) {
-    progressList.innerHTML =
-      '<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>';
-    return;
-  }
+    function openCreateForm() {
+      state.editingId = null;
+      els.formTitle.textContent = 'Add Assignment';
+      els.assignmentForm.reset();
+      els.fields.difficulty.value = 'easy';
+      resetFormErrors();
+      setView('form');
+    }
 
-  progressList.innerHTML = items.map(a => {
-    const pct        = a.progress ?? 0;
-    const isComplete = pct === 100;
-    const isNotStart = pct === 0;
+    function fillForm(item) {
+      els.fields.code.value = item.course_code;
+      els.fields.title.value = item.title;
+      els.fields.deadline.value = item.deadline;
+      els.fields.hours.value = item.hours;
+      els.fields.difficulty.value = item.difficulty;
+    }
 
-    const fillClass = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
-    const badgeBg   = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
-    const labelTxt  = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}%`;
+    function validateForm() {
+      resetFormErrors();
+      let valid = true;
 
-    return `
-      <div class="progress-item">
-        <div class="progress-item-header">
-          <div class="progress-item-name">${escHtml(a.course_code)} ${escHtml(a.title)}</div>
-          <div class="progress-pct-badge" style="background:${badgeBg}">${labelTxt}</div>
-        </div>
-        <div class="progress-bar-track">
-          <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
-        </div>
-      </div>`;
-  }).join('');
-}
+      const code = els.fields.code.value.trim();
+      const title = els.fields.title.value.trim();
+      const deadline = els.fields.deadline.value;
+      const hours = els.fields.hours.value.trim();
 
-/* ── RENDER TABLE VIEW ─────────────────────────────────────── */
-function renderTable() {
-  const q = ((tblSearchInput && tblSearchInput.value) || searchInput.value || '').toLowerCase();
-  const items = assignments.filter(a =>
-    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
-  );
+      if (!code) {
+        valid = false;
+        els.fields.code.classList.add('error');
+        els.fieldErrors.code.textContent = 'Course code is required.';
+      }
+      if (!title) {
+        valid = false;
+        els.fields.title.classList.add('error');
+        els.fieldErrors.title.textContent = 'Assignment title is required.';
+      }
+      if (!deadline) {
+        valid = false;
+        els.fields.deadline.classList.add('error');
+        els.fieldErrors.deadline.textContent = 'Deadline is required.';
+      }
+      if (!hours || Number(hours) <= 0) {
+        valid = false;
+        els.fields.hours.classList.add('error');
+        els.fieldErrors.hours.textContent = 'Estimated hours must be more than 0.';
+      }
 
-  if (!items.length) {
-    assignTbody.innerHTML =
-      '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>';
-    return;
-  }
+      return valid;
+    }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+    function getFormPayload() {
+      return {
+        course_code: els.fields.code.value.trim().toUpperCase(),
+        title: els.fields.title.value.trim(),
+        deadline: els.fields.deadline.value,
+        hours: Number(els.fields.hours.value),
+        difficulty: els.fields.difficulty.value,
+      };
+    }
 
-  assignTbody.innerHTML = items.map((a, i) => {
-    const dl    = new Date(a.deadline);
-    const over  = dl < today;
-    const dlStr = dl.toLocaleDateString('en-GB');
-    const diff  = a.difficulty || 'easy';
+    async function loadAssignments() {
+      try {
+        state.assignments = await AssignmentAPI.list();
+        state.useFallback = false;
+      } catch (error) {
+        console.warn('Assignments API unavailable, using fallback data.', error);
+        state.assignments = [...FALLBACK_ASSIGNMENTS];
+        state.useFallback = true;
+      }
+      renderProgress();
+      renderTable();
+      setView('progress');
+    }
 
-    return `
-      <tr class="${over ? 'overdue' : ''}">
-        <td>${i + 1}</td>
-        <td>${escHtml(a.course_code)}</td>
-        <td>${escHtml(a.title)}</td>
-        <td>${dlStr}</td>
-        <td>${a.hours}</td>
-        <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span></td>
-        <td style="display:flex;gap:4px;">
-          <button class="tbl-action-btn edit" onclick="startEdit(${a.id})"   title="Edit assignment"   aria-label="Edit ${escHtml(a.title)}">✏️</button>
-          <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete assignment" aria-label="Delete ${escHtml(a.title)}">🗑️</button>
-        </td>
-      </tr>`;
-  }).join('');
-}
+    async function saveAssignment(event) {
+      event.preventDefault();
+      if (!validateForm()) {
+        CLAP.Toast.error('Please complete all required fields.');
+        return;
+      }
 
-/* ── VIEW SWITCHER ──────────────────────────────────────────── */
-function showView(name) {
-  /* Hide/show header chrome based on view */
-  const isForm = name === 'form';
-  pageHeader.style.display = isForm ? 'none' : '';
-  tabBar.style.display     = isForm ? 'none' : '';
-  infoFab.style.display    = isForm ? 'none' : '';
+      const payload = getFormPayload();
+      els.saveBtn.disabled = true;
+      els.saveBtn.textContent = 'Saving...';
 
-  /* The header search bar is only shown in progress view;
-     the table view has its own internal search bar */
-  if (headerSearch) {
-    headerSearch.style.display = (name === 'all' || isForm) ? 'none' : '';
-  }
+      try {
+        if (state.editingId !== null) {
+          if (state.useFallback) {
+            const index = state.assignments.findIndex(item => item.id === state.editingId);
+            if (index !== -1) {
+              state.assignments[index] = { ...state.assignments[index], ...payload };
+            }
+          } else {
+            const updated = await AssignmentAPI.update(state.editingId, payload);
+            const index = state.assignments.findIndex(item => item.id === state.editingId);
+            if (index !== -1) state.assignments[index] = updated;
+          }
+          CLAP.Toast.success('Assignment updated successfully.');
+        } else {
+          if (state.useFallback) {
+            state.assignments.push({ id: Date.now(), progress: 0, ...payload });
+          } else {
+            const created = await AssignmentAPI.create(payload);
+            state.assignments.push({ ...created, progress: created.progress ?? 0 });
+          }
+          CLAP.Toast.success('Assignment added successfully.');
+        }
 
-  /* Toggle views */
-  viewProgress.style.display = name === 'progress' ? '' : 'none';
-  viewAll.style.display      = name === 'all'      ? '' : 'none';
-  viewForm.style.display     = name === 'form'     ? '' : 'none';
+        renderProgress();
+        renderTable();
+        setView('all');
+      } catch (error) {
+        console.error(error);
+        CLAP.Toast.error(error?.message || 'Unable to save assignment right now.');
+      } finally {
+        els.saveBtn.disabled = false;
+        els.saveBtn.textContent = 'Save';
+      }
+    }
 
-  /* Hide legend when not in progress view */
-  if (legendEl) {
-    legendEl.style.display = 'none';
-  }
+    async function confirmDelete() {
+      if (state.deleteId === null) return;
+      const id = state.deleteId;
+      $('del-confirm').disabled = true;
 
-  /* Sync tab active states */
-  $('tab-progress').classList.toggle('active', name === 'progress');
-  $('tab-all').classList.toggle('active',      name === 'all');
-}
+      try {
+        if (!state.useFallback) {
+          await AssignmentAPI.remove(id);
+        }
+        state.assignments = state.assignments.filter(item => item.id !== id);
+        CLAP.Toast.success('Assignment deleted successfully.');
+        renderProgress();
+        renderTable();
+      } catch (error) {
+        console.error(error);
+        CLAP.Toast.error(error?.message || 'Unable to delete assignment right now.');
+      } finally {
+        state.deleteId = null;
+        $('del-confirm').disabled = false;
+        els.delModal.classList.remove('open');
+        els.delModal.setAttribute('aria-hidden', 'true');
+      }
+    }
 
-/* ── TABS ── */
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => {
-      b.classList.remove('active');
-      b.setAttribute('aria-selected', 'false');
+    window.startEdit = function(id) {
+      const item = state.assignments.find(row => Number(row.id) === Number(id));
+      if (!item) return;
+      state.editingId = item.id;
+      els.formTitle.textContent = 'Edit Assignment';
+      fillForm(item);
+      resetFormErrors();
+      setView('form');
+    };
+
+    window.startDelete = function(id) {
+      state.deleteId = Number(id);
+      els.delModal.classList.add('open');
+      els.delModal.setAttribute('aria-hidden', 'false');
+    };
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
+        setView(target);
+        renderTable();
+      });
     });
-    btn.classList.add('active');
-    btn.setAttribute('aria-selected', 'true');
-    activeTab = btn.dataset.tab;
-    showView(activeTab);
-  });
-});
 
-/* ── SEARCH ── */
-searchInput.addEventListener('input', () => {
-  renderProgress();
-  renderTable();
-});
+    els.addBtn.addEventListener('click', openCreateForm);
+    els.backBtn.addEventListener('click', () => {
+      setView('all');
+      renderTable();
+    });
+    els.assignmentForm.addEventListener('submit', saveAssignment);
+    els.tblSearchInput.addEventListener('input', renderTable);
 
-if (tblSearchInput) {
-  tblSearchInput.addEventListener('input', () => renderTable());
-}
+    els.infoFab.addEventListener('click', () => {
+      els.legend.hidden = !els.legend.hidden;
+    });
 
-/* ── ADD ── */
-$('add-btn').addEventListener('click', () => {
-  editingId = null;
-  $('form-title').textContent = 'Add Assignment';
-  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => $(id).value = '');
-  $('f-difficulty').value = 'easy';
-  showView('form');
-});
+    $('del-cancel').addEventListener('click', () => {
+      state.deleteId = null;
+      els.delModal.classList.remove('open');
+      els.delModal.setAttribute('aria-hidden', 'true');
+    });
 
-/* ── EDIT ── */
-window.startEdit = function(id) {
-  const a = assignments.find(x => x.id === id);
-  if (!a) return;
-  editingId = id;
-  $('form-title').textContent   = 'Edit Assignment';
-  $('f-code').value             = a.course_code;
-  $('f-title').value            = a.title;
-  $('f-deadline').value         = a.deadline;
-  $('f-hours').value            = a.hours;
-  $('f-difficulty').value       = a.difficulty;
-  showView('form');
-};
+    $('del-confirm').addEventListener('click', confirmDelete);
 
-/* ── DELETE ── */
-window.startDelete = function(id) {
-  deleteId = id;
-  delModal.classList.add('open');
-};
+    els.delModal.addEventListener('click', event => {
+      if (event.target === els.delModal) {
+        state.deleteId = null;
+        els.delModal.classList.remove('open');
+        els.delModal.setAttribute('aria-hidden', 'true');
+      }
+    });
 
-$('del-cancel').addEventListener('click', () => delModal.classList.remove('open'));
-
-delModal.addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('open');
-});
-
-$('del-confirm').addEventListener('click', async () => {
-  delModal.classList.remove('open');
-  try {
-    await fetch(`/api/assignments/${deleteId}/`, { method: 'DELETE' });
-  } catch { /* Remove locally even if API fails */ }
-  assignments = assignments.filter(a => a.id !== deleteId);
-  renderProgress();
-  renderTable();
-  showToast('Assignment deleted.');
-});
-
-/* ── SAVE ── */
-$('save-btn').addEventListener('click', async () => {
-  const codeEl  = $('f-code');
-  const titleEl = $('f-title');
-  const dlEl    = $('f-deadline');
-  const hrsEl   = $('f-hours');
-
-  const code  = codeEl.value.trim();
-  const title = titleEl.value.trim();
-  const dl    = dlEl.value;
-  const hrs   = parseInt(hrsEl.value);
-  const diff  = $('f-difficulty').value;
-
-  /* Highlight invalid fields */
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
-    const invalid = !el.value.trim();
-    el.style.borderColor = invalid ? 'var(--danger)' : '';
-    el.style.background  = invalid ? 'var(--danger-light)' : '';
-  });
-
-  if (!code || !title || !dl || !hrs) {
-    showToast('Please fill all required fields.', 'error');
-    return;
-  }
-
-  /* Clear error styles */
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
-    el.style.borderColor = '';
-    el.style.background  = '';
-  });
-
-  const payload = { course_code: code, title, deadline: dl, hours: hrs, difficulty: diff };
-
-  try {
-    if (editingId) {
-      /* CONNECT: PUT /api/assignments/{id}/ */
-      await fetch(`/api/assignments/${editingId}/`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const idx = assignments.findIndex(a => a.id === editingId);
-      if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
-      showToast('Assignment updated!');
-    } else {
-      /* CONNECT: POST /api/assignments/ */
-      const res = await fetch('/api/assignments/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const created = await res.json().catch(() => null);
-      assignments.push(created || { id: Date.now(), ...payload, progress: 0 });
-      showToast('Assignment added!');
-    }
-  } catch {
-    /* Optimistic local update if API unreachable */
-    if (editingId) {
-      const idx = assignments.findIndex(a => a.id === editingId);
-      if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
-    } else {
-      assignments.push({ id: Date.now(), ...payload, progress: 0 });
-    }
-    showToast(editingId ? 'Assignment updated!' : 'Assignment added!');
-  }
-
-  renderProgress();
-  renderTable();
-  showView(activeTab);
-});
-
-/* ── BACK BUTTON ── */
-$('back-btn').addEventListener('click', () => showView(activeTab));
-
-/* ── INFO FAB — toggle legend ── */
-if (legendEl) legendEl.style.display = 'none';
-
-infoFab.addEventListener('click', () => {
-  if (!legendEl) return;
-  const hidden = legendEl.style.display === 'none' || legendEl.style.display === '';
-  legendEl.style.display = hidden ? 'flex' : 'none';
-});
-
-/* ── SIDEBAR MOBILE ── */
-const sidebarToggle   = $('sidebar-toggle');
-const sidebarEl       = $('sidebar');
-const sidebarBackdrop = $('sidebar-backdrop');
-
-sidebarToggle.addEventListener('click', () => {
-  const isOpen = sidebarEl.classList.contains('open');
-  sidebarEl.classList.toggle('open', !isOpen);
-  sidebarBackdrop.classList.toggle('open', !isOpen);
-  sidebarToggle.setAttribute('aria-expanded', String(!isOpen));
-});
-sidebarBackdrop.addEventListener('click', () => {
-  sidebarEl.classList.remove('open');
-  sidebarBackdrop.classList.remove('open');
-});
-
-/* ── LOGOUT ── */
-$('logout-btn').addEventListener('click', () => logoutModal.classList.add('open'));
-$('logout-cancel-btn').addEventListener('click', () => logoutModal.classList.remove('open'));
-logoutModal.addEventListener('click', function(e) {
-  if (e.target === this) this.classList.remove('open');
-});
-$('logout-confirm-btn').addEventListener('click', () => {
-  logoutModal.classList.remove('open');
-  /* CONNECT: CLAP.Auth.clearTokens(); */
-  window.location.href = 'signin.html';
-});
-
-/* ── INIT ── */
-loadAssignments();
-
-
-</script>
-
+    loadAssignments();
+  </script>
 </body>
 </html>
