@@ -27,28 +27,9 @@
      * If you intentionally want to hide it, remove the search wrapper
      * from the HTML instead of hiding it with CSS.
      */
-    .db-search    {
-      display:flex;
-      align-items:center;
-      gap:8px;
-      background:var(--bg-light);
-      border-radius:var(--radius-pill);
-      padding:8px 16px;
-      border:1.5px solid var(--border);
-      flex:0 0 260px;
+    .db-search { display: none;
     }
-    .db-search svg { color:var(--text-muted); flex-shrink:0; }
-    .db-search input {
-      border:none;
-      background:transparent;
-      font-size:0.85rem;
-      color:var(--text-primary);
-      font-family:inherit;
-      outline:none;
-      width:100%;
-    }
-    .db-search input::placeholder { color:var(--placeholder); }
-
+    
     /* ── Stats grid ── */
     .stats-grid {
       display:grid;
