@@ -18,11 +18,7 @@
     .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); }
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
-    .db-search    { flex:1; max-width:280px; position:relative; display:flex; align-items:center; }
-    .db-search svg{ position:absolute; left:14px; color:var(--placeholder); pointer-events:none; }
-    .db-search input{ width:100%; padding:10px 14px 10px 40px; background:var(--white); border:none; border-radius:999px; font-size:0.875rem; color:var(--text-primary); box-shadow:0 2px 12px rgba(26,58,92,0.08); font-family:inherit; }
-    .db-search input:focus{ outline:none; box-shadow:0 0 0 2px var(--clap-teal); }
-    .db-search input::placeholder{ color:var(--placeholder); }
+    .db-search    { display:none !important;}
 
     /* ── Stats grid ── */
     .stats-grid   { display:grid; grid-template-columns:1fr 1fr 200px; grid-template-rows:auto auto; gap:16px; }
