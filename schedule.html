@@ -297,14 +297,16 @@ function renderSchedule(data) {
    LOAD SCHEDULE FROM API
    ───────────────────────────────────────────────────────────── */
 async function loadSchedule() {
-  let data;
   try {
-    data = await CLAP.API.get('/schedule/');
-  } catch {
-    data = getMock();
-    CLAP.Toast.error('Could not load schedule.');
+    const data = await CLAP.API.get('/schedule/');
+    console.log('REAL SCHEDULE DATA:', data);
+    renderSchedule(data);
+  } catch (err) {
+    console.error('SCHEDULE LOAD ERROR:', err);
+    document.getElementById('sch-body').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;padding:24px;color:red">Failed to load real schedule data. Check console.</td></tr>';
+    CLAP.Toast.error('Could not load real schedule.');
   }
-  renderSchedule(data);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -352,19 +354,17 @@ document.getElementById('regen-modal').addEventListener('click', function(e) {
 
 document.getElementById('regen-confirm').addEventListener('click', async () => {
   document.getElementById('regen-modal').style.display = 'none';
+
   const btn = document.getElementById('regen-btn');
   btn.disabled = true;
   btn.style.opacity = '0.7';
 
   try {
-    /* ── CONNECT: replace the mock delay with the real API call ──
-       const data = await CLAP.API.post('/schedule/regenerate/', {});
-    ── */
-    await new Promise(r => setTimeout(r, 1200)); // simulated network delay
-    const data = getMock();
+    const data = await CLAP.API.post('/schedule/regenerate/', {});
     renderSchedule(data);
     CLAP.Toast.success('Schedule regenerated!');
-  } catch {
+  } catch (err) {
+    console.error('REGENERATE ERROR:', err);
     CLAP.Toast.error('Could not regenerate schedule.');
   } finally {
     btn.disabled = false;
