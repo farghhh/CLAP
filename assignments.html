@@ -124,14 +124,6 @@
 'use strict';
 AppShell.init('assignments.html');
 
-// const MOCK = [
-//   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
-//   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
-//   { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20 },
-//   { id:4, course_code:'CSC2672', title:'UI/UX Design Prototype',         deadline:'2026-04-25', hours:20, difficulty:'hard',   progress:100 },
-//   { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0 },
-// ];
-
 const MOCK = [
   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
@@ -165,16 +157,18 @@ function renderProgress() {
     const isComplete  = pct === 100;
     const isNotStart  = pct === 0;
     const fillClass   = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
+    const labelTxt    = isComplete ? 'C O M P L E T E D' : isNotStart ? 'N O T  S T A R T E D  Y E T' : '';
     const badgeBg     = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
-    const labelTxt    = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
     return `
       <div class="progress-item">
         <div class="progress-item-header">
-          <div class="progress-item-name">${esc(a.course_code)} — ${esc(a.title)}</div>
-          <div class="progress-pct-badge" style="background:${badgeBg};min-width:56px;border-radius:var(--radius-pill);padding:4px 10px;font-size:0.7rem">${labelTxt}</div>
+          <div class="progress-item-name">${esc(a.course_code)} ${esc(a.title)}</div>
+          <div class="progress-pct-badge" style="background:${badgeBg}">${pct}%</div>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
+          <div class="progress-fill ${fillClass}" style="width:${pct}%">
+            ${labelTxt ? `<span class="progress-label">${labelTxt}</span>` : ''}
+          </div>
         </div>
       </div>`;
   }).join('');
@@ -256,9 +250,6 @@ window.startDelete = function(id) {
   modal.style.display = 'flex';
 };
 document.getElementById('del-cancel').addEventListener('click', () => { document.getElementById('del-modal').style.display='none'; });
-document.getElementById('del-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
-});
 document.getElementById('del-confirm').addEventListener('click', async () => {
   document.getElementById('del-modal').style.display='none';
   try {
@@ -273,32 +264,13 @@ document.getElementById('del-confirm').addEventListener('click', async () => {
 
 /* ---- Save ---- */
 document.getElementById('save-btn').addEventListener('click', async () => {
-  const codeEl  = document.getElementById('f-code');
-  const titleEl = document.getElementById('f-title');
-  const dlEl    = document.getElementById('f-deadline');
-  const hrsEl   = document.getElementById('f-hours');
-
-  const code  = codeEl.value.trim();
-  const title = titleEl.value.trim();
-  const dl    = dlEl.value;
-  const hrs   = parseInt(hrsEl.value);
+  const code  = document.getElementById('f-code').value.trim();
+  const title = document.getElementById('f-title').value.trim();
+  const dl    = document.getElementById('f-deadline').value;
+  const hrs   = parseInt(document.getElementById('f-hours').value);
   const diff  = document.getElementById('f-difficulty').value;
 
-  // Highlight empty fields visually
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
-    if (!el.value.trim()) {
-      el.style.borderColor = 'var(--danger)';
-      el.style.background  = 'var(--danger-light)';
-    } else {
-      el.style.borderColor = '';
-      el.style.background  = '';
-    }
-  });
-
   if (!code || !title || !dl || !hrs) { CLAP.Toast.error('Please fill all required fields.'); return; }
-
-  // Clear error styles on valid submit
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => { el.style.borderColor = ''; el.style.background = ''; });
 
   const payload = { course_code:code, title, deadline:dl, hours:hrs, difficulty:diff };
   try {
