@@ -7,57 +7,51 @@
   <link rel="stylesheet" href="css/global.css"/>
   <link rel="stylesheet" href="css/app.css"/>
   <style>
-    /* ── Page header ── */
-    .sch-header  { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--space-lg); gap:var(--space-md); flex-wrap:wrap; }
-    .sch-title   { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--clap-teal); display:flex; align-items:center; gap:10px; margin-bottom:4px; }
-    .sch-meta    { font-size:0.82rem; color:var(--text-muted); font-weight:600; }
-    .sch-meta b  { color:var(--text-secondary); font-weight:700; }
-    .regen-btn   { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:var(--grad-primary); color:#fff; border:none; border-radius:var(--radius-pill); font-family:var(--font-heading); font-weight:700; font-size:0.875rem; box-shadow:0 4px 14px rgba(75,191,191,0.35); cursor:pointer; transition:all var(--transition); white-space:nowrap; }
-    .regen-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(75,191,191,0.45); }
-    .regen-btn svg{ transition:transform 0.4s; }
-    .regen-btn:hover svg{ animation:spin 0.6s linear; }
-    @keyframes spin{ to{ transform:rotate(360deg); } }
+    .sch-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:var(--space-lg);gap:var(--space-md);flex-wrap:wrap}
+    .sch-title{font-family:var(--font-heading);font-size:1.5rem;font-weight:800;color:var(--clap-teal);display:flex;align-items:center;gap:10px;margin-bottom:4px}
+    .sch-meta{font-size:.82rem;color:var(--text-muted);font-weight:600}
+    .sch-meta b{color:var(--text-secondary);font-weight:700}
+    .regen-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;background:var(--grad-primary);color:#fff;border:none;border-radius:var(--radius-pill);font-family:var(--font-heading);font-weight:700;font-size:.875rem;box-shadow:0 4px 14px rgba(75,191,191,.35);cursor:pointer;transition:all var(--transition);white-space:nowrap}
+    .regen-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(75,191,191,.45)}
+    .regen-btn svg{transition:transform .4s}
+    .regen-btn:hover svg{animation:spin .6s linear}
+    @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* ── Timetable card ── */
-    .timetable-card { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); overflow-x:auto; }
-    .timetable      { min-width:650px; width:100%; border-collapse:separate; border-spacing:4px; }
-    .timetable th   { font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:12px 6px; background:var(--bg-light); border-radius:var(--radius-sm); }
-    .timetable th.time-col{ text-align:left; background:transparent; color:var(--text-muted); font-size:0.72rem; min-width:60px; padding-left:4px; }
-    .timetable td   { vertical-align:top; padding:2px; min-width:110px; }
-    .timetable td.time-cell{ font-size:0.72rem; font-weight:700; color:var(--text-muted); text-align:left; padding-left:4px; padding-top:8px; min-width:60px; white-space:nowrap; vertical-align:top; }
+    .timetable-card{background:var(--white);border-radius:var(--radius-lg);padding:var(--space-lg);box-shadow:var(--shadow-card);overflow-x:auto}
+    .timetable{min-width:650px;width:100%;border-collapse:separate;border-spacing:4px}
+    .timetable th{font-family:var(--font-heading);font-size:.82rem;font-weight:700;color:var(--text-secondary);text-align:center;padding:12px 6px;background:var(--bg-light);border-radius:var(--radius-sm)}
+    .timetable th.time-col{text-align:left;background:transparent;color:var(--text-muted);font-size:.72rem;min-width:60px;padding-left:4px}
+    .timetable td{vertical-align:top;padding:2px;min-width:110px}
+    .timetable td.time-cell{font-size:.72rem;font-weight:700;color:var(--text-muted);text-align:left;padding-left:4px;padding-top:8px;min-width:60px;white-space:nowrap;vertical-align:top}
 
-    /* Task blocks — colours match difficulty */
-    .task-block   { border-radius:var(--radius-md); padding:10px 12px; font-size:0.72rem; font-weight:700; min-height:56px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:transform var(--transition), box-shadow var(--transition); position:relative; }
-    .task-block:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-    .task-block.easy  { background:#c8f0d4; color:#1a5c30; }
-    .task-block.medium{ background:#fde9c0; color:#7a4300; }
-    .task-block.hard  { background:#fac8c8; color:#7a1a1a; }
-    .tb-title  { font-size:0.78rem; font-weight:800; line-height:1.25; margin-bottom:2px; }
-    .tb-time   { font-size:0.66rem; font-weight:600; opacity:0.8; }
-    .tb-check  { position:absolute; bottom:8px; right:8px; width:20px; height:20px; border-radius:50%; border:2px solid rgba(255,255,255,0.8); background:rgba(255,255,255,0.5); cursor:pointer; transition:background var(--transition); display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent; }
-    .tb-check:hover { background:rgba(255,255,255,0.85); color:rgba(0,0,0,0.5); }
-    .tb-check.done { background:rgba(255,255,255,0.9); color:#27AE60; border-color:rgba(255,255,255,1); }
-    .tb-check::after { content:'✓'; font-size:10px; font-weight:800; }
-    .empty-cell{ height:56px; }
-    .gen-label { text-align:center; font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:var(--space-md); }
+    .task-block{border-radius:var(--radius-md);padding:10px 12px;font-size:.72rem;font-weight:700;min-height:56px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:transform var(--transition),box-shadow var(--transition);position:relative}
+    .task-block:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.12)}
+    .task-block.easy{background:#c8f0d4;color:#1a5c30}
+    .task-block.medium{background:#fde9c0;color:#7a4300}
+    .task-block.hard{background:#fac8c8;color:#7a1a1a}
+    .task-block.study{background:#b8d4f8;color:#1a3a7a}
+    .tb-title{font-size:.78rem;font-weight:800;line-height:1.25;margin-bottom:2px;white-space:pre-line}
+    .tb-time{font-size:.66rem;font-weight:600;opacity:.8}
+    .tb-check{position:absolute;bottom:8px;right:8px;width:20px;height:20px;border-radius:50%;border:2px solid rgba(255,255,255,.8);background:rgba(255,255,255,.5);cursor:pointer;transition:background var(--transition);display:flex;align-items:center;justify-content:center;font-size:10px;color:transparent}
+    .tb-check:hover{background:rgba(255,255,255,.85);color:rgba(0,0,0,.5)}
+    .tb-check.done{background:rgba(255,255,255,.9);color:#27AE60;border-color:rgba(255,255,255,1)}
+    .tb-check::after{content:'✓';font-size:10px;font-weight:800}
+    .empty-cell{height:56px}
+    .gen-label{text-align:center;font-size:.72rem;color:var(--text-muted);font-style:italic;margin-top:var(--space-md)}
+    .task-block.done{opacity:.5;text-decoration:line-through;filter:grayscale(.4)}
+    .tb-check.done{background:rgba(75,191,191,.8);border-color:var(--clap-teal)}
 
-    .task-block.done {
-      opacity: 0.5;
-      text-decoration: line-through;
-      filter: grayscale(0.4);
+    .info-fab{position:fixed;bottom:28px;right:28px;width:38px;height:38px;border-radius:50%;background:var(--clap-teal);color:#fff;border:none;cursor:pointer;font-size:1rem;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(75,191,191,.4);z-index:50}
+    .legend-popup{position:fixed;bottom:74px;right:28px;background:#fff;border-radius:var(--radius-md);padding:var(--space-md);box-shadow:var(--shadow-md);display:none;z-index:60;min-width:155px}
+    .legend-popup.show{display:block}
+    .leg-row{display:flex;align-items:center;gap:8px;font-size:.78rem;font-weight:600;color:var(--text-muted);padding:3px 0}
+    .leg-sw{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+
+    @media (max-width:768px){
+      .regen-btn{width:100%;justify-content:center}
+      .info-fab{bottom:18px;right:18px}
+      .legend-popup{right:18px;bottom:64px}
     }
-
-    .tb-check.done {
-      background: rgba(75, 191, 191, 0.8);
-      border-color: var(--clap-teal);
-    }
-
-    /* ── Legend popup ── */
-    .info-fab   { position:fixed; bottom:28px; right:28px; width:38px; height:38px; border-radius:50%; background:var(--clap-teal); color:#fff; border:none; cursor:pointer; font-size:1rem; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(75,191,191,0.4); z-index:50; }
-    .legend-popup{ position:fixed; bottom:74px; right:28px; background:#fff; border-radius:var(--radius-md); padding:var(--space-md); box-shadow:var(--shadow-md); display:none; z-index:60; min-width:155px; }
-    .legend-popup.show{ display:block; }
-    .leg-row   { display:flex; align-items:center; gap:8px; font-size:0.78rem; font-weight:600; color:var(--text-muted); padding:3px 0; }
-    .leg-sw    { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -67,59 +61,71 @@
 
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
+
   <main class="main-content">
+    <header id="topbar" class="topbar"></header>
 
     <div class="sch-header">
       <div>
         <div class="sch-title">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+            <path d="M16 2v4M8 2v4M3 10h18"></path>
+          </svg>
           Schedule
         </div>
         <div class="sch-meta" id="sch-week"><b>Week:</b> —</div>
       </div>
-      <button class="regen-btn" id="regen-btn">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Regenerate
+
+      <button class="regen-btn" id="regen-btn" type="button">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+          <path d="M21 2v6h-6"></path>
+          <path d="M3 12a9 9 0 0 1 15.55-6.36L21 8"></path>
+          <path d="M3 22v-6h6"></path>
+          <path d="M21 12a9 9 0 0 1-15.55 6.36L3 16"></path>
+        </svg>
+        Regenerate Schedule
       </button>
     </div>
 
     <div class="timetable-card">
-      <div style="overflow-x:auto;">
-        <table class="timetable">
-          <thead id="sch-thead">
-            <tr>
-              <th class="time-col">Day /<br>Time</th>
-              <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
-            </tr>
-          </thead>
-          <tbody id="sch-body">
-            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading schedule…</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="gen-label" id="gen-label">Generated by CLAP</div>
+      <table class="timetable">
+        <thead>
+          <tr>
+            <th class="time-col">Time</th>
+            <th>Monday</th>
+            <th>Tuesday</th>
+            <th>Wednesday</th>
+            <th>Thursday</th>
+            <th>Friday</th>
+          </tr>
+        </thead>
+        <tbody id="sch-body">
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+      <div class="gen-label">Generated from your assignment difficulty and study plan.</div>
     </div>
-
   </main>
 </div>
 
-<!-- Legend -->
-<button class="info-fab" id="info-fab">i</button>
+<button class="info-fab" id="info-fab" type="button">i</button>
+
 <div class="legend-popup" id="legend-popup">
-  <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
-  <div class="leg-row"><div class="leg-sw" style="background:#fde9c0"></div>Medium</div>
-  <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
+  <div class="leg-row"><span class="leg-sw" style="background:#c8f0d4"></span>Easy</div>
+  <div class="leg-row"><span class="leg-sw" style="background:#fde9c0"></span>Medium</div>
+  <div class="leg-row"><span class="leg-sw" style="background:#fac8c8"></span>Hard</div>
+  <div class="leg-row"><span class="leg-sw" style="background:#b8d4f8"></span>Study</div>
 </div>
 
-<!-- Regenerate Confirm Modal -->
-<div id="regen-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+<div id="regen-modal" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
     <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
     <div style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-sm)">Regenerate Schedule?</div>
-    <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:var(--space-xl);line-height:1.5">This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.</div>
+    <div style="color:var(--text-muted);font-size:.875rem;margin-bottom:var(--space-xl);line-height:1.5">This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.</div>
     <div style="display:flex;gap:var(--space-md);justify-content:center;">
-      <button class="btn btn-ghost btn-sm" id="regen-cancel">Cancel</button>
-      <button class="btn btn-primary btn-sm" id="regen-confirm">Yes, Regenerate</button>
+      <button class="btn btn-ghost btn-sm" id="regen-cancel" type="button">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="regen-confirm" type="button">Yes, Regenerate</button>
     </div>
   </div>
 </div>
@@ -129,195 +135,207 @@
 <script>
 'use strict';
 AppShell.init('schedule.html', { showTopbar: false });
+document.getElementById('topbar')?.remove();
 
-/* ─────────────────────────────────────────────
-   MOCK DATA — remove when backend ready
-   CONNECT: GET /api/schedule/
-   Expected shape:
-   {
-     week: "March 10 – 14",
-     slots: [
-       {
-         day: "Monday",           ← "Monday"–"Friday"
-         time: "10:00 AM",        ← display time label
-         end: "11:00 AM",
-         title: "Database (FP)",
-         difficulty: "easy"       ← "easy"|"medium"|"hard"|"study"
-       },
-       ...
-     ]
-   }
-   ──────────────────────────────────────────── */
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+function esc(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
+function parseTimeToMinutes(str) {
+  if (!str) return 0;
+  const s = String(str).trim().replace(/\./g, ':').toUpperCase();
+
+  if (s.includes('AM') || s.includes('PM')) {
+    const [time, ap] = s.split(/\s+/);
+    let [h, m] = time.split(':').map(Number);
+    if (ap === 'PM' && h !== 12) h += 12;
+    if (ap === 'AM' && h === 12) h = 0;
+    return h * 60 + (m || 0);
+  }
+
+  const [h, m] = s.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
 function getMock() {
-  return { 
+  return {
     week: 'March 10 – 14',
     slots: [
-      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)',                 difficulty:'easy'   },
-      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
-      { day:'Monday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
-      { day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)',                 difficulty:'easy'   },
-      { day:'Thursday',  time:'11.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Thursday',  time:'2.00 PM',  end:'3.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Thursday',  time:'4.00 PM',  end:'5.00 PM',  title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
-      { day:'Friday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
-      { day:'Friday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { id:1, day:'Monday', time:'10.00 AM', end:'11.00 AM', title:'Database (FP)', difficulty:'easy' },
+      { id:2, day:'Monday', time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium' },
+      { id:3, day:'Monday', time:'2.00 PM', end:'4.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { id:4, day:'Tuesday', time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { id:5, day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1', difficulty:'medium' },
+      { id:6, day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)', difficulty:'easy' },
+      { id:7, day:'Thursday', time:'11.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { id:8, day:'Thursday', time:'2.00 PM', end:'3.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { id:9, day:'Thursday', time:'4.00 PM', end:'5.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium' },
+      { id:10, day:'Friday', time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium' },
+      { id:11, day:'Friday', time:'2.00 PM', end:'4.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' }
     ]
   };
 }
 
-/* ─────────────────────────────────────────────
-   TIME ROWS — auto-derived from slots
-   ──────────────────────────────────────────── */
-const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+function normalizeSlots(data) {
+  if (Array.isArray(data?.slots)) {
+    return data.slots.map((s, idx) => ({
+      id: s.id || idx + 1,
+      day: s.day,
+      time: s.time,
+      end: s.end || s.time,
+      title: s.title || 'Untitled Task',
+      difficulty: (s.difficulty || 'study').toLowerCase(),
+      completed: !!s.completed
+    }));
+  }
+
+  if (data && typeof data === 'object') {
+    const out = [];
+    Object.entries(data).forEach(([day, tasks]) => {
+      if (!Array.isArray(tasks)) return;
+      tasks.forEach((s, idx) => {
+        out.push({
+          id: s.id || `${day}-${idx + 1}`,
+          day,
+          time: s.time,
+          end: s.end || s.time,
+          title: s.title || 'Untitled Task',
+          difficulty: (s.difficulty || 'study').toLowerCase(),
+          completed: !!s.completed
+        });
+      });
+    });
+    return out;
+  }
+
+  return [];
+}
 
 function buildTimeRows(slots) {
-  /* Collect all unique start times, sort */
   const seen = new Set();
   slots.forEach(s => seen.add(s.time));
-  return [...seen].sort((a, b) => {
-    /* Parse "HH.MM AM/PM" */
-    const parse = t => {
-      const [hm, ap] = t.split(' ');
-      let [h, mi] = hm.split('.').map(Number);
-      if (ap === 'PM' && h !== 12) h += 12;
-      if (ap === 'AM' && h === 12) h = 0;
-      return h * 60 + (mi || 0);
-    };
-    return parse(a) - parse(b);
-  });
+  return [...seen].sort((a, b) => parseTimeToMinutes(a) - parseTimeToMinutes(b));
 }
 
-function buildEndMinutes(time) {
-  const [hm, ap] = time.split(' ');
-  let [h, mi] = hm.split('.').map(Number);
-  if (ap === 'PM' && h !== 12) h += 12;
-  if (ap === 'AM' && h === 12) h = 0;
-  return h * 60 + (mi || 0);
-}
+function renderScheduleTable(payload) {
+  const body = document.getElementById('sch-body');
+  const weekEl = document.getElementById('sch-week');
 
-/* ─────────────────────────────────────────────
-   RENDER TIMETABLE
-   ──────────────────────────────────────────── */
-function renderSchedule(data) {
-  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
+  const slots = normalizeSlots(payload);
+  weekEl.innerHTML = `<b>Week:</b> ${esc(payload?.week || 'Current Week')}`;
 
-  const slots = data.slots || [];
-  const times = buildTimeRows(slots);
-  if (!times.length) {
-    document.getElementById('sch-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
+  if (!slots.length) {
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule available.</td></tr>';
     return;
   }
 
-  /* Map: day → startTime → slot */
+  const times = buildTimeRows(slots);
   const map = {};
-  DAYS.forEach(d => { map[d] = {}; });
-  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
-
-  /* Track skipped cells (rowspan) */
-  const rowspanSkip = {}; /* "day|timeIndex" → true */
+  DAYS.forEach(d => map[d] = {});
+  slots.forEach(s => {
+    if (map[s.day]) map[s.day][s.time] = s;
+  });
 
   let html = '';
-  times.forEach((time, ti) => {
-    html += `<tr><td class="time-cell">${time}</td>`;
+  times.forEach(time => {
+    html += `<tr><td class="time-cell">${esc(time)}</td>`;
     DAYS.forEach(day => {
-      const k = `${day}|${ti}`;
-      if (rowspanSkip[k]) return; /* merged into previous row */
-
-      const slot = map[day]?.[time];
-      if (slot) {
-        /* Calculate rowspan from end time */
-        const startMin = buildEndMinutes(slot.time);
-        const endMin   = buildEndMinutes(slot.end);
-        const durationMins = endMin - startMin;
-        /* How many time rows does this slot occupy? */
-        let span = 1;
-        for (let nxt = ti + 1; nxt < times.length; nxt++) {
-          const nxtMin = buildEndMinutes(times[nxt]);
-          if (nxtMin <= endMin) { span++; rowspanSkip[`${day}|${nxt}`] = true; }
-          else break;
-        }
-        const rs = span > 1 ? ` rowspan="${span}"` : '';
-        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
-        html += `<td${rs} style="vertical-align:top;padding:2px">
-          <div class="task-block ${slot.difficulty}" style="${ht}">
-            <div>
-              <div class="tb-title">${slot.title}</div>
-              <div class="tb-time">${slot.time} – ${slot.end}</div>
-            </div>
-            <button class="tb-check" onclick="toggleDone(this)" title="Mark done"></button>
-          </div>
-        </td>`;
-      } else {
-        html += `<td><div class="empty-cell"></div></td>`;
+      const task = map[day][time];
+      if (!task) {
+        html += '<td><div class="empty-cell"></div></td>';
+        return;
       }
+
+      html += `
+        <td>
+          <div class="task-block ${task.difficulty} ${task.completed ? 'done' : ''}" id="task-${task.id}">
+            <div>
+              <div class="tb-title">${esc(task.title)}</div>
+              <div class="tb-time">${esc(task.time)} - ${esc(task.end)}</div>
+            </div>
+            <button class="tb-check ${task.completed ? 'done' : ''}" onclick="toggleTask('${task.id}', this, event)"></button>
+          </div>
+        </td>
+      `;
     });
     html += '</tr>';
   });
 
-  document.getElementById('sch-body').innerHTML = html;
+  body.innerHTML = html;
 }
 
-/* ─────────────────────────────────────────────
-   LOAD
-   ──────────────────────────────────────────── */
+window.toggleTask = async function(id, btn, ev) {
+  ev.stopPropagation();
+  const block = document.getElementById(`task-${id}`);
+  const isDone = !btn.classList.contains('done');
+
+  btn.classList.toggle('done', isDone);
+  if (block) block.classList.toggle('done', isDone);
+
+  try {
+    await CLAP.API.patch(`/tasks/${id}/`, { completed: isDone });
+  } catch {}
+};
+
 async function loadSchedule() {
   let data;
   try {
-    /* ── CONNECT: Uncomment when backend ready
-       data = await CLAP.API.get('/schedule/');
-    ── */
-    data = getMock(); // ← remove when backend connected
+    data = await CLAP.API.get('/schedule/');
+    if (!data || typeof data !== 'object') throw new Error('Empty schedule response');
   } catch {
+    CLAP.Toast.warning('Using demo schedule data.');
     data = getMock();
-    CLAP.Toast.error('Could not load schedule.');
   }
-  renderSchedule(data);
+
+  renderScheduleTable(data);
 }
 
-window.toggleDone = function(btn) {
-  const taskBlock = btn.closest('.task-block');
-  const isDone = taskBlock.classList.toggle('done');
-  btn.classList.toggle('done', isDone);
-  btn.title = isDone ? 'Mark undone' : 'Mark done';
-};
-
-/* Legend */
 document.getElementById('info-fab').addEventListener('click', () => {
   document.getElementById('legend-popup').classList.toggle('show');
 });
+
 document.addEventListener('click', e => {
-  if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup'))
+  if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup')) {
     document.getElementById('legend-popup').classList.remove('show');
+  }
 });
 
-/* Regenerate — with confirmation modal */
 document.getElementById('regen-btn').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'flex';
 });
+
 document.getElementById('regen-cancel').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'none';
 });
+
 document.getElementById('regen-modal').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
 document.getElementById('regen-confirm').addEventListener('click', async () => {
   document.getElementById('regen-modal').style.display = 'none';
   const btn = document.getElementById('regen-btn');
-  btn.disabled = true; btn.style.opacity = '0.7';
+  btn.disabled = true;
+  btn.style.opacity = '.7';
+
   try {
-    /* const data = await CLAP.API.post('/schedule/regenerate/', {}); */
-    await new Promise(r => setTimeout(r, 1200));
-    const data = getMock();
-    renderSchedule(data);
+    await CLAP.API.post('/schedule/regenerate/', {});
     CLAP.Toast.success('Schedule regenerated!');
+    await loadSchedule();
   } catch {
-    CLAP.Toast.error('Could not regenerate schedule.');
+    CLAP.Toast.warning('Regenerate endpoint not ready yet.');
+    await loadSchedule();
   } finally {
-    btn.disabled = false; btn.style.opacity = '1';
+    btn.disabled = false;
+    btn.style.opacity = '1';
   }
 });
+
+loadSchedule();
 </script>
 </body>
 </html>
