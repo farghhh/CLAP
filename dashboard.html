@@ -7,18 +7,47 @@
   <link rel="stylesheet" href="css/global.css"/>
   <link rel="stylesheet" href="css/app.css"/>
   <style>
-    /* ── Layout ── */
+    /* ── Two-column layout: left content + right sidebar ── */
     .db-wrapper   { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
     .db-left      { display:flex; flex-direction:column; gap:20px; min-width:0; }
     .db-right     { display:flex; flex-direction:column; gap:20px; }
 
-    /* ── Greeting topbar ── */
+    /* ── Greeting topbar (self-contained on dashboard) ── */
     .db-topbar    { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
     .db-greet-row { display:flex; align-items:center; gap:14px; }
     .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); }
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
-    .db-search    { display: none !important; }
+
+    /*
+     * FIX: The original rule used `display:none !important` which made
+     * the search bar permanently invisible and prevented the clap:search
+     * custom event from being useful on the dashboard.
+     * Changed to a flex layout so the search bar renders correctly.
+     * If you intentionally want to hide it, remove the search wrapper
+     * from the HTML instead of hiding it with CSS.
+     */
+    .db-search    {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      background:var(--bg-light);
+      border-radius:var(--radius-pill);
+      padding:8px 16px;
+      border:1.5px solid var(--border);
+      flex:0 0 260px;
+    }
+    .db-search svg { color:var(--text-muted); flex-shrink:0; }
+    .db-search input {
+      border:none;
+      background:transparent;
+      font-size:0.85rem;
+      color:var(--text-primary);
+      font-family:inherit;
+      outline:none;
+      width:100%;
+    }
+    .db-search input::placeholder { color:var(--placeholder); }
 
     /* ── Stats grid ── */
     .stats-grid {
@@ -31,7 +60,7 @@
     .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
     .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
 
-    /* Cognitive sparkline card */
+    /* Cognitive-load sparkline card */
     .cog-row      { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
     .cog-pct      { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; }
     .cog-badge    { display:inline-block; padding:4px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; margin-top:6px; }
@@ -41,7 +70,7 @@
     .cog-badge.critical{ background:#E74C3C; color:#fff; animation:pulseBadge 1s ease-in-out infinite; }
     .cog-spark    { width:90px; height:48px; }
 
-    /* Next deadline — spans 2 cols row 2 */
+    /* Next deadline — spans 2 cols, row 2 */
     .dl-box       { grid-column:1/3; background:var(--white); border-radius:18px; padding:18px 24px; box-shadow:var(--shadow-card); display:flex; align-items:center; gap:14px; }
     .dl-lbl       { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
     .dl-icon-wrap { width:42px; height:42px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -53,21 +82,21 @@
     .dl-badge.warn   { background:#FFF3CD; color:#856404; }
     .dl-badge.safe   { background:var(--bg-light); color:var(--clap-teal); }
 
-    /* Focus card — spans 2 rows col 3 */
+    /* Focus card — spans 2 rows, col 3 */
     .focus-box    { grid-column:3; grid-row:1/3; background:linear-gradient(160deg,#4BBFBF 0%,#3DA8C8 60%,#5BB8D4 100%); border-radius:20px; padding:24px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; box-shadow:0 8px 24px rgba(75,191,191,0.4); color:#fff; }
     .focus-title  { font-size:0.9rem; font-weight:700; text-align:center; line-height:1.3; }
     .focus-clock  { width:90px; height:90px; border-radius:50%; border:3px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; }
     .focus-clock svg{ width:52px; height:52px; stroke:#fff; }
     .focus-hrs    { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; }
 
-    /* ── Plan card ── */
+    /* ── Generated study plan ── */
     .plan-card    { background:var(--white); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow-card); }
     .plan-hdr     { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
     .plan-ttl     { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); }
     .plan-link    { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
     .plan-link:hover{ color:var(--clap-teal); }
 
-    /* Timetable overrides for dashboard mini */
+    /* Mini timetable overrides for the dashboard widget */
     .timetable {
       width:100%;
       border-collapse:separate;
@@ -101,14 +130,14 @@
     .cal-d:hover  { background:var(--bg-light); }
     .cal-d.today  { background:var(--clap-teal); color:#fff; border-radius:50%; font-weight:800; }
     .cal-d.om     { color:var(--border); }
-    /* Coloured dots */
+    /* Coloured deadline dots */
     .cal-d::after { content:''; display:block; width:4px; height:4px; border-radius:50%; margin:1px auto 0; }
     .dot-teal::after   { background:var(--clap-teal); }
     .dot-red::after    { background:#E74C3C; }
     .dot-green::after  { background:#27AE60; }
     .dot-orange::after { background:#F5A623; }
 
-    /* ── Todo list ── */
+    /* ── Today must-do list ── */
     .todo-hdr     { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); margin-bottom:14px; }
     .todo-item    { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
     .todo-pill    { flex:1; display:flex; align-items:center; gap:10px; border-radius:14px; padding:11px 14px; min-width:0; }
@@ -125,20 +154,12 @@
     .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
     .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
     .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:#aaa; transition:all var(--transition); }
-    .todo-btn.chk:hover {
-      border-color:var(--success);
-      background:var(--success);
-      color:#fff;
-    }
-    .todo-btn.skp:hover {
-      border-color:var(--danger);
-      background:var(--danger);
-      color:#fff;
-    }
+    .todo-btn.chk:hover { border-color:var(--success); background:var(--success); color:#fff; }
+    .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
     .todo-item.done .todo-name{ text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
 
-    /* Responsive */
+    /* ── Responsive ── */
     @media(max-width:1100px){
       .db-wrapper{ grid-template-columns:1fr; }
       .db-right  { display:grid; grid-template-columns:1fr 1fr; }
@@ -148,6 +169,7 @@
       .focus-box { grid-column:1/3; grid-row:auto; }
       .dl-box    { grid-column:1/3; }
       .db-right  { grid-template-columns:1fr; }
+      .db-search { display:none; } /* hide search on very small screens */
     }
   </style>
 </head>
@@ -160,35 +182,50 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content">
 
-    <!-- Greeting -->
+    <!-- ── Greeting topbar (dashboard-specific, not via AppShell) ── -->
     <div class="db-topbar">
       <div class="db-greet-row">
+        <!-- Avatar initial; updated by JS from stored user profile -->
         <div class="db-avatar" id="db-av">S</div>
         <div>
           <div class="db-name" id="db-greet">Welcome Back!</div>
           <div class="db-sub">Nice to have you back.</div>
         </div>
       </div>
-      <div class="db-search">
-        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="search" id="db-search" placeholder="What are you looking for?" autocomplete="off"/>
+
+      <!--
+        FIX: The original CSS for .db-search had `display:none !important`
+        which permanently hid this element. The event listener on #db-search
+        still ran but had no visible effect. The rule is now a flex layout
+        so the search bar is visible and functional.
+      -->
+      <div class="db-search" role="search">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="search" id="db-search" placeholder="What are you looking for?"
+               autocomplete="off" aria-label="Search dashboard" />
       </div>
     </div>
 
     <div class="db-wrapper">
-      <!-- LEFT -->
+      <!-- ════ LEFT COLUMN ════ -->
       <div class="db-left">
 
-        <!-- Stats -->
+        <!-- Stats grid -->
         <div class="stats-grid">
+
+          <!-- Total tasks count -->
           <div class="stat-box">
             <div class="stat-lbl">Total Tasks</div>
             <div class="stat-num" id="s-tasks">—</div>
           </div>
 
+          <!-- Cognitive load with sparkline -->
           <div class="stat-box">
             <div class="stat-lbl">Cognitive Load</div>
             <div class="cog-row">
+              <!-- Canvas sparkline rendered by renderSparkline() -->
               <canvas class="cog-spark" id="cog-spark"></canvas>
               <div style="text-align:right">
                 <div class="cog-pct" id="s-cog-pct">—%</div>
@@ -197,11 +234,11 @@
             </div>
           </div>
 
-          <!-- Focus card (spans 2 rows) -->
+          <!-- Focus hours card (spans 2 grid rows, column 3) -->
           <div class="focus-box">
             <div class="focus-title">Focus Hours<br>Today</div>
-            <div class="focus-clock">
-              <!-- Clock SVG -->
+            <div class="focus-clock" aria-hidden="true">
+              <!-- Decorative analogue clock SVG -->
               <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
                 <circle cx="26" cy="26" r="24" stroke="rgba(255,255,255,0.5)"/>
                 <circle cx="26" cy="26" r="19" stroke="rgba(255,255,255,0.3)"/>
@@ -213,11 +250,13 @@
             <div class="focus-hrs" id="s-focus">— / — Hrs</div>
           </div>
 
-          <!-- Next Deadline (spans 2 cols) -->
+          <!-- Next deadline (spans columns 1-2, row 2) -->
           <div class="dl-box">
             <div class="dl-lbl">Next Deadline</div>
-            <div class="dl-icon-wrap">
-              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div class="dl-icon-wrap" aria-hidden="true">
+              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
             </div>
             <div>
               <div class="dl-course" id="dl-course">—</div>
@@ -225,22 +264,24 @@
             </div>
             <span class="dl-badge urgent" id="dl-badge">—</span>
           </div>
-        </div>
 
-        <!-- Generated Study Plan -->
+        </div><!-- /.stats-grid -->
+
+        <!-- Generated study plan mini-timetable -->
         <div class="plan-card">
           <div class="plan-hdr">
             <span class="plan-ttl">Generated Study Plan</span>
             <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
           </div>
           <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-            <table class="timetable">
+            <table class="timetable" aria-label="Weekly study plan">
               <thead>
                 <tr>
                   <th>Time / Day</th>
                   <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
                 </tr>
               </thead>
+              <!-- tbody populated by renderSchedule() -->
               <tbody id="plan-body">
                 <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
               </tbody>
@@ -248,12 +289,12 @@
           </div>
         </div>
 
-      </div><!-- /db-left -->
+      </div><!-- /.db-left -->
 
-      <!-- RIGHT -->
+      <!-- ════ RIGHT COLUMN ════ -->
       <div class="db-right">
 
-        <!-- Calendar -->
+        <!-- Mini calendar -->
         <div class="cal-card">
           <div class="cal-hdr">
             <div>
@@ -261,21 +302,23 @@
               <span class="cal-day-name"  id="cal-day">—</span>
             </div>
             <div class="cal-navs">
-              <button class="cal-btn" id="cal-prev">&#8249;</button>
-              <button class="cal-btn" id="cal-next">&#8250;</button>
+              <button class="cal-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
+              <button class="cal-btn" id="cal-next" aria-label="Next month">&#8250;</button>
             </div>
           </div>
-          <div class="cal-grid" id="cal-grid"></div>
+          <!-- Day cells injected by renderCalendar() -->
+          <div class="cal-grid" id="cal-grid" aria-label="Calendar"></div>
         </div>
 
-        <!-- Today Must-Do List -->
+        <!-- Today's must-do list -->
         <div>
           <div class="todo-hdr">Today Must-Do List</div>
+          <!-- Task rows injected by renderTodo() -->
           <div id="todo-list"></div>
         </div>
 
-      </div><!-- /db-right -->
-    </div>
+      </div><!-- /.db-right -->
+    </div><!-- /.db-wrapper -->
 
   </main>
 </div>
@@ -284,63 +327,63 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('dashboard.html', { showSearch: false });
 
-/* ─────────────────────────────────────────────
-   GREETING  (reads from CLAP.Auth.getUser())
-   Backend: user object stored after login
-   ──────────────────────────────────────────── */
-const _u = CLAP.Auth.getUser() || {};
+/*
+ * Dashboard has its own greeting topbar in the HTML above,
+ * so we pass showTopbar: false to prevent AppShell from
+ * creating a duplicate.
+ */
+AppShell.init('dashboard.html', { showTopbar: false });
+
+/* ── GREETING ───────────────────────────────────────────────
+   Populate the avatar initial and name from the stored profile.
+   CONNECT: user object is set by CLAP.Auth.setUser() after login.
+   ─────────────────────────────────────────────────────────── */
+const _u  = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
 document.getElementById('db-av').textContent    = (_u.name || 'S').charAt(0).toUpperCase();
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
-/* ─────────────────────────────────────────────
-   MOCK DATA  — remove each stub once backend ready
-   ──────────────────────────────────────────── */
+/* ── MOCK DATA ──────────────────────────────────────────────
+   Remove each stub once the Django endpoint is ready.
+   CONNECT: GET /api/dashboard/
+   Expected response shape:
+   {
+     total_tasks: 5,
+     cognitive_load: { value: 72, level: "moderate", trend: [40,45,55,50,72] },
+     focus: { used: 3, max: 6 },
+     next_deadline: { course: "CSC2383", title: "Database Project", days_left: 2 },
+     schedule: {
+       Monday: [{ time:"09:00", end:"10:00", title:"…", difficulty:"easy" }], …
+     },
+     today_tasks: [
+       { id:1, title:"…", start:"09:00 AM", end:"10:00 AM", difficulty:"easy" }, …
+     ]
+   }
+   ─────────────────────────────────────────────────────────── */
 function getMock() {
   return {
-    /* ── CONNECT: GET /api/dashboard/
-       Expected response shape:
-       {
-         total_tasks: 5,
-         cognitive_load: { value: 72, level: "moderate", trend: [40,45,55,50,72] },
-         focus: { used: 3, max: 6 },
-         next_deadline: { course: "CSC2383", title: "Database Project", days_left: 2 },
-         schedule: {
-           Monday: [{ time:"09:00", end:"10:00", title:"Database Project", difficulty:"easy" }],
-           ...
-         },
-         today_tasks: [
-           { id:1, title:"Database Project", start:"09:00 AM", end:"10:00 AM", color:"purple" },
-           ...
-         ],
-         recommendation: { alert:"...", suggestion:"...", reduction: 22 }
-       }
-    ── */
-    total_tasks: 5,
+    total_tasks:    5,
     cognitive_load: { value: 72, level: 'moderate', trend: [40, 45, 55, 50, 72] },
-    focus: { used: 3, max: 6 },
-    next_deadline: { course: 'CSC2383', title: 'Database Project', days_left: 2 },
+    focus:          { used: 3, max: 6 },
+    next_deadline:  { course: 'CSC2383', title: 'Database Project', days_left: 2 },
     schedule: {
       Monday:    [
-        { time:'09:00', end:'10:00', title:'Database Project',  difficulty:'easy' },
-        { time:'11:00', end:'12:00', title:'Parallel Comp.',    difficulty:'medium' },
+        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy'   },
+        { time:'11:00', end:'12:00', title:'Parallel Comp.',   difficulty:'medium' },
       ],
-      Tuesday:   [{ time:'09:00', end:'11:00', title:'Mobile App',      difficulty:'hard' }],
+      Tuesday:   [{ time:'09:00', end:'11:00', title:'Mobile App',     difficulty:'hard'   }],
       Wednesday: [
         { time:'09:00', end:'10:00', title:'Parallel Comp.',  difficulty:'medium' },
-        { time:'11:00', end:'12:00', title:'Mobile App',       difficulty:'hard' },
+        { time:'11:00', end:'12:00', title:'Mobile App',      difficulty:'hard'   },
       ],
-      Thursday:  [{ time:'09:00', end:'10:00', title:'Mobile App',      difficulty:'hard' }],
+      Thursday:  [{ time:'09:00', end:'10:00', title:'Mobile App',     difficulty:'hard'   }],
       Friday:    [
-        { time:'09:00', end:'10:00', title:'Parallel Comp.', difficulty:'medium' },
-        { time:'11:00', end:'12:00', title:'Mobile App',      difficulty:'hard' },
+        { time:'09:00', end:'10:00', title:'Parallel Comp.',  difficulty:'medium' },
+        { time:'11:00', end:'12:00', title:'Mobile App',      difficulty:'hard'   },
       ],
     },
     today_tasks: [
-      /* color maps to pill style: easy→green, medium→orange, hard→purple, study→blue
-         CONNECT: backend should send difficulty OR color field */
       { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
       { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
       { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', difficulty:'hard',   color:'purple' },
@@ -348,15 +391,15 @@ function getMock() {
   };
 }
 
-/* ─────────────────────────────────────────────
-   LOAD DASHBOARD
-   ──────────────────────────────────────────── */
+/* ── LOAD DASHBOARD ─────────────────────────────────────────
+   Fetches data from the API and falls back to mock on error.
+   ─────────────────────────────────────────────────────────── */
 async function loadDashboard() {
   let data;
   try {
-      data = await CLAP.API.get('/dashboard/');
-    // data = getMock(); // ← remove this line when backend connected
+    data = await CLAP.API.get('/dashboard/');
   } catch (err) {
+    /* API unavailable — use mock data so the UI is never blank. */
     CLAP.Toast.error('Could not load dashboard data.');
     data = getMock();
   }
@@ -368,76 +411,99 @@ async function loadDashboard() {
   renderTodo(data.today_tasks);
 }
 
-/* ─────────────────────────────────────────────
-   STATS
-   ──────────────────────────────────────────── */
+/* ── STATS ──────────────────────────────────────────────────
+   Populate the three stat cards from the API response.
+   ─────────────────────────────────────────────────────────── */
 function renderStats(d) {
+  /* Total task count */
   document.getElementById('s-tasks').textContent = d.total_tasks ?? '—';
 
+  /* Cognitive load percentage + badge level */
   const cog = d.cognitive_load || {};
   document.getElementById('s-cog-pct').textContent = cog.value != null ? cog.value + '%' : '—%';
   const badge = document.getElementById('s-cog-badge');
-  const lv = (cog.level || 'moderate').toLowerCase();
+  const lv    = (cog.level || 'moderate').toLowerCase();
   badge.className   = 'cog-badge ' + lv;
   badge.textContent = lv.charAt(0).toUpperCase() + lv.slice(1);
 
+  /* Focus hours used vs. daily maximum */
   const f = d.focus || {};
   document.getElementById('s-focus').textContent = `${f.used ?? '—'} / ${f.max ?? '—'} Hrs`;
 }
 
-/* ─────────────────────────────────────────────
-   COGNITIVE LOAD SPARKLINE (canvas)
-   ──────────────────────────────────────────── */
+/* ── COGNITIVE LOAD SPARKLINE (canvas) ──────────────────────
+   Draws a simple line graph with an arrowhead on the trend array.
+   ─────────────────────────────────────────────────────────── */
 function renderSparkline(trend) {
   const c = document.getElementById('cog-spark');
   if (!c) return;
+
   const ctx = c.getContext('2d');
   c.width = 90; c.height = 48;
-  const max = Math.max(...trend), min = Math.min(...trend), rng = max - min || 1;
+
+  const max = Math.max(...trend);
+  const min = Math.min(...trend);
+  const rng = max - min || 1;
+
+  /* Map trend values to canvas coordinates. */
   const pts = trend.map((v, i) => ({
     x: (i / (trend.length - 1)) * 78 + 6,
-    y: 42 - ((v - min) / rng) * 36
+    y: 42 - ((v - min) / rng) * 36,
   }));
+
   ctx.clearRect(0, 0, 90, 48);
-  ctx.strokeStyle = '#7B68EE'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
-  /* arrowhead */
-  const e = pts[pts.length-1], p = pts[pts.length-2];
-  const a = Math.atan2(e.y-p.y, e.x-p.x);
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth   = 2.5;
+  ctx.lineJoin    = 'round';
+
+  /* Draw the sparkline. */
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  /* Draw the arrowhead at the last point. */
+  const e = pts[pts.length - 1];
+  const p = pts[pts.length - 2];
+  const a = Math.atan2(e.y - p.y, e.x - p.x);
   ctx.beginPath();
   ctx.moveTo(e.x, e.y);
-  ctx.lineTo(e.x - 8*Math.cos(a-0.35), e.y - 8*Math.sin(a-0.35));
+  ctx.lineTo(e.x - 8 * Math.cos(a - 0.35), e.y - 8 * Math.sin(a - 0.35));
   ctx.moveTo(e.x, e.y);
-  ctx.lineTo(e.x - 8*Math.cos(a+0.35), e.y - 8*Math.sin(a+0.35));
-  ctx.strokeStyle = '#7B68EE'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.lineTo(e.x - 8 * Math.cos(a + 0.35), e.y - 8 * Math.sin(a + 0.35));
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth   = 2;
+  ctx.stroke();
 }
 
-/* ─────────────────────────────────────────────
-   NEXT DEADLINE
-   ──────────────────────────────────────────── */
+/* ── NEXT DEADLINE ──────────────────────────────────────────
+   Show the nearest deadline with an urgency badge.
+   ─────────────────────────────────────────────────────────── */
 function renderDeadline(dl) {
   if (!dl) return;
   document.getElementById('dl-course').textContent = dl.course || '';
   document.getElementById('dl-name').textContent   = dl.title  || '';
+
   const b = document.getElementById('dl-badge');
   const d = dl.days_left;
-  if (d <= 1)      { b.textContent = 'Due Today!';         b.className = 'dl-badge urgent'; }
-  else if (d <= 3) { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge urgent'; }
-  else if (d <= 7) { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge warn'; }
-  else             { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge safe'; }
+
+  if (d <= 1)      { b.textContent = 'Due Today!';       b.className = 'dl-badge urgent'; }
+  else if (d <= 3) { b.textContent = `Due in ${d} Days`; b.className = 'dl-badge urgent'; }
+  else if (d <= 7) { b.textContent = `Due in ${d} Days`; b.className = 'dl-badge warn';   }
+  else             { b.textContent = `Due in ${d} Days`; b.className = 'dl-badge safe';   }
 }
 
-/* ─────────────────────────────────────────────
-   GENERATED STUDY PLAN TIMETABLE
-   difficulty → colour class: easy=green, medium=yellow, hard=red, study=blue
-   ──────────────────────────────────────────── */
+/* ── GENERATED STUDY PLAN MINI-TIMETABLE ────────────────────
+   difficulty → colour: easy=green, medium=yellow, hard=red
+   ─────────────────────────────────────────────────────────── */
 const DIFF_COLOR = { easy:'green', medium:'yellow', hard:'red', study:'blue' };
-const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const TIMES = ['09:00','10:00','11:00','12:00','13:00'];
+const DAYS  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00'];
 
 function renderSchedule(schedule) {
   if (!schedule) return;
+
+  /* Build a 2-D lookup: day → time → task. */
   const map = {};
   DAYS.forEach(d => { map[d] = {}; });
   Object.entries(schedule).forEach(([day, tasks]) => {
@@ -445,77 +511,115 @@ function renderSchedule(schedule) {
     tasks.forEach(t => { if (map[day]) map[day][t.time] = t; });
   });
 
+  /* Track cells already occupied by a rowspan. */
   const skip = {};
   let html = '';
+
   TIMES.forEach((time, ti) => {
     html += `<tr><td>${time}</td>`;
     DAYS.forEach(day => {
       const k = day + ti;
-      if (skip[k]) return;
+      if (skip[k]) return; /* cell already covered */
+
       const task = map[day]?.[time];
       if (task) {
-        /* difficulty → colour: easy=green, medium=yellow, hard=red, study=blue */
+        /* Calculate how many time slots this task spans. */
         const startH = parseInt(time.split(':')[0]);
         const endH   = task.end ? parseInt(task.end.split(':')[0]) : startH + 1;
         const span   = Math.max(1, endH - startH);
-        for (let s = 1; s < span; s++) skip[day + (ti+s)] = true;
+
+        /* Mark subsequent rows as occupied. */
+        for (let s = 1; s < span; s++) skip[day + (ti + s)] = true;
+
         const col = DIFF_COLOR[task.difficulty] || 'blue';
         const rs  = span > 1 ? ` rowspan="${span}"` : '';
+
         html += `<td${rs} style="vertical-align:top;padding:2px">
           <a href="schedule.html" title="View full schedule" style="text-decoration:none;display:block;">
             <div class="t-block ${col}" style="cursor:pointer;" title="${task.title} — click to view schedule">${task.title}</div>
           </a>
         </td>`;
-      } else { html += '<td></td>'; }
+      } else {
+        html += '<td></td>';
+      }
     });
     html += '</tr>';
   });
-  html += `<tr class="rec-row"><td>14:00</td><td colspan="5" style="cursor:pointer" onclick="location.href='schedule.html'">R E C O V E R Y / R E S T</td></tr>`;
+
+  /* Recovery/rest row at the bottom. */
+  html += `<tr class="rec-row">
+    <td>14:00</td>
+    <td colspan="5" style="cursor:pointer" onclick="location.href='schedule.html'">R E C O V E R Y / R E S T</td>
+  </tr>`;
+
   document.getElementById('plan-body').innerHTML = html;
 }
 
-/* ─────────────────────────────────────────────
-   CALENDAR
-   ──────────────────────────────────────────── */
+/* ── CALENDAR ───────────────────────────────────────────────
+   Simple inline calendar with month navigation and deadline dots.
+   CONNECT: replace DOT_MAP with real deadline dates from the API.
+   ─────────────────────────────────────────────────────────── */
 let calDate = new Date();
-/* Dots: date number → CSS dot class
-   CONNECT: replace with real deadline dates from API */
-const DOT_MAP = { 9:'dot-teal', 11:'dot-orange', 12:'dot-teal', 16:'dot-orange',
-                  17:'dot-teal', 20:'dot-orange', 22:'dot-red',  25:'dot-red',
-                  26:'dot-teal', 27:'dot-green',  31:'dot-red' };
+
+/* Map day-of-month → CSS dot class (mock deadline indicators). */
+const DOT_MAP = {
+   9:'dot-teal', 11:'dot-orange', 12:'dot-teal', 16:'dot-orange',
+  17:'dot-teal', 20:'dot-orange', 22:'dot-red',  25:'dot-red',
+  26:'dot-teal', 27:'dot-green', 31:'dot-red',
+};
 const DN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function renderCalendar() {
-  const y = calDate.getFullYear(), m = calDate.getMonth();
+  const y     = calDate.getFullYear();
+  const m     = calDate.getMonth();
   const today = new Date();
   const isCur = y === today.getFullYear() && m === today.getMonth();
   const td    = today.getDate();
+
+  /* Update header: show today's date number when on current month. */
   document.getElementById('cal-title').textContent = `${MN[m]}, ${isCur ? td : 1}`;
   document.getElementById('cal-day').textContent   = isCur ? DN[today.getDay()] : '';
 
   const firstDow    = new Date(y, m, 1).getDay();
-  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
   let html = DN.map(d => `<div class="cal-dn">${d}</div>`).join('');
+
+  /* Leading empty cells for days before the 1st. */
   for (let i = 0; i < firstDow; i++) html += `<div class="cal-d om"></div>`;
+
+  /* Day cells. */
   for (let d = 1; d <= daysInMonth; d++) {
-    const isT  = isCur && d === td;
-    const dot  = !isT && DOT_MAP[d] ? DOT_MAP[d] : '';
+    const isT = isCur && d === td;
+    const dot = !isT && DOT_MAP[d] ? DOT_MAP[d] : '';
     html += `<div class="cal-d ${isT ? 'today' : ''} ${dot}">${d}</div>`;
   }
+
   document.getElementById('cal-grid').innerHTML = html;
 }
-document.getElementById('cal-prev').onclick = () => { calDate.setMonth(calDate.getMonth()-1); renderCalendar(); };
-document.getElementById('cal-next').onclick = () => { calDate.setMonth(calDate.getMonth()+1); renderCalendar(); };
+
+/* Calendar month navigation. */
+document.getElementById('cal-prev').onclick = () => {
+  calDate.setMonth(calDate.getMonth() - 1);
+  renderCalendar();
+};
+document.getElementById('cal-next').onclick = () => {
+  calDate.setMonth(calDate.getMonth() + 1);
+  renderCalendar();
+};
 renderCalendar();
 
-/* ─────────────────────────────────────────────
-   TODAY MUST-DO LIST
-   ──────────────────────────────────────────── */
-/* difficulty → pill colour matching the timetable */
+/* ── TODAY MUST-DO LIST ─────────────────────────────────────
+   Renders a task list with colour-coded pills and
+   done/skip action buttons.
+   ─────────────────────────────────────────────────────────── */
+/* Maps difficulty level → pill CSS class. */
 const DIFF_TO_COLOR = { easy:'green', medium:'orange', hard:'purple', study:'blue' };
+/* Maps pill colour → emoji icon. */
 const COLOR_ICONS   = { purple:'🗄️', orange:'⚙️', blue:'📱', green:'📗', red:'📕' };
-/* Resolve colour: use difficulty mapping if available, else fall back to task.color */
+
+/** Resolve the colour class: prefer difficulty mapping, fall back to task.color. */
 function taskColor(t) {
   if (t.difficulty && DIFF_TO_COLOR[t.difficulty]) return DIFF_TO_COLOR[t.difficulty];
   return t.color || 'blue';
@@ -528,39 +632,48 @@ function renderTodo(tasks) {
     return;
   }
   el.innerHTML = tasks.map(t => {
-    const col = taskColor(t);
+    const col  = taskColor(t);
     const icon = COLOR_ICONS[col] || '📝';
     return `
     <div class="todo-item" id="td-${t.id}">
       <div class="todo-pill ${col}">
-        <div class="todo-icon-wrap">${icon}</div>
+        <div class="todo-icon-wrap" aria-hidden="true">${icon}</div>
         <div>
           <div class="todo-name ${col}">${t.title}</div>
           <div class="todo-time">${t.start} – ${t.end}</div>
         </div>
       </div>
       <div class="todo-btns">
-        <button class="todo-btn chk" onclick="markTask(${t.id},true)"  title="Done">✓</button>
-        <button class="todo-btn skp" onclick="markTask(${t.id},false)" title="Skip">✕</button>
+        <button class="todo-btn chk" onclick="markTask(${t.id}, true)"  title="Mark done"  aria-label="Mark ${t.title} as done">✓</button>
+        <button class="todo-btn skp" onclick="markTask(${t.id}, false)" title="Skip task"  aria-label="Skip ${t.title}">✕</button>
       </div>
     </div>`;
   }).join('');
 }
 
+/**
+ * Toggle the done/skipped visual state and notify the API.
+ * CONNECT: PATCH /api/tasks/{id}/ { completed: true/false }
+ */
 window.markTask = async function(id, done) {
-  const el = document.getElementById('td-'+id);
-  if (el) {
-    el.classList.toggle('done', done);
-  }
-  try { await CLAP.API.patch(`/tasks/${id}/`, { completed: done }); } catch {}
+  const el = document.getElementById('td-' + id);
+  if (el) el.classList.toggle('done', done);
+
+  try { await CLAP.API.patch(`/tasks/${id}/`, { completed: done }); } catch { /* best-effort */ }
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };
 
-/* Search bar */
+/* ── SEARCH ─────────────────────────────────────────────────
+   Dispatch the clap:search custom event so the rest of the
+   UI (or other pages) can filter content accordingly.
+   ─────────────────────────────────────────────────────────── */
 document.getElementById('db-search').addEventListener('input', e => {
-  document.dispatchEvent(new CustomEvent('clap:search', { detail: e.target.value.toLowerCase() }));
+  document.dispatchEvent(new CustomEvent('clap:search', {
+    detail: e.target.value.toLowerCase(),
+  }));
 });
 
+/* ── INIT ───────────────────────────────────────────────────── */
 loadDashboard();
 </script>
 </body>

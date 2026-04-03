@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/auth.css" />
   <style>
+    /* Mobile: invert the side-panel button style */
     @media (max-width: 768px) {
       .auth-side-panel { min-height: 190px; }
       .btn-outline {
@@ -17,50 +18,55 @@
       }
       .btn-outline:hover { background: var(--white); }
     }
+    /* Give the input icon wrapper consistent spacing. */
     .form-input-wrap { margin-bottom: 2px; }
+    /* Strength bar sits just below the password input. */
     .pw-strength { padding-top: 4px; }
   </style>
 </head>
 <body>
 
-<!-- Page Loader -->
+<!-- Full-screen page loader (removed by CLAP.hideLoader()) -->
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
+  <div class="loader-logo">
+    <img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" />
+    <div class="loader-spinner"></div>
+  </div>
 </div>
 
-<!-- Toast Container -->
+<!-- Toast notifications injected here by Toast.show() -->
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
-<!-- ========== SIGN UP PAGE ========== -->
+<!-- ══════════════ SIGN UP PAGE ══════════════ -->
 <main class="auth-page" id="signup-page">
   <div class="auth-split">
 
-    <!-- LEFT: Form Panel -->
+    <!-- ── LEFT: Registration form panel ── -->
     <section class="auth-form-panel" aria-label="Create account form">
-      <!-- Logo -->
+
+      <!-- Brand logo -->
       <div class="auth-logo" aria-label="CLAP Logo">
-        <img src="assets/logo.png" alt="CLAP Logo"/>
+        <img src="assets/logo.png" alt="CLAP Logo" />
       </div>
 
       <h1 class="auth-form-title">Create Account</h1>
 
-      <!-- Social sign-up buttons
-      <div class="social-btns" role="group" aria-label="Sign up with social accounts">
-        <button class="social-btn" aria-label="Sign up with Facebook" type="button"
-                onclick="CLAP.Toast.info('Social sign-up coming soon!')">f</button>
-        <button class="social-btn" aria-label="Sign up with Google" type="button"
-                onclick="CLAP.Toast.info('Social sign-up coming soon!')">G+</button>
-        <button class="social-btn" aria-label="Sign up with LinkedIn" type="button"
-                onclick="CLAP.Toast.info('Social sign-up coming soon!')">in</button>
-      </div>
+      <!--
+        Social sign-up buttons are commented out pending backend OAuth support.
+        Uncomment and wire up when Google / Facebook / LinkedIn is ready.
+        <div class="social-btns" role="group" aria-label="Sign up with social accounts">
+          <button class="social-btn" type="button" onclick="CLAP.Toast.info('Social sign-up coming soon!')">f</button>
+          <button class="social-btn" type="button" onclick="CLAP.Toast.info('Social sign-up coming soon!')">G+</button>
+          <button class="social-btn" type="button" onclick="CLAP.Toast.info('Social sign-up coming soon!')">in</button>
+        </div>
+        <div class="social-divider" role="separator">or use your email for registration:</div>
+      -->
 
-      <div class="social-divider" role="separator">or use your email for registration:</div> -->
-
-      <!-- Sign Up Form -->
+      <!-- Registration form -->
       <form id="signup-form" novalidate autocomplete="off">
         <div class="auth-fields">
 
-          <!-- Name -->
+          <!-- Full name field -->
           <div class="form-group">
             <label class="form-label sr-only" for="signup-name">Full Name</label>
             <div class="form-input-wrap">
@@ -84,7 +90,7 @@
             <span class="field-error" id="signup-name-error" role="alert"></span>
           </div>
 
-          <!-- Email -->
+          <!-- Email field -->
           <div class="form-group">
             <label class="form-label sr-only" for="signup-email">Email</label>
             <div class="form-input-wrap">
@@ -108,7 +114,7 @@
             <span class="field-error" id="signup-email-error" role="alert"></span>
           </div>
 
-          <!-- Password -->
+          <!-- Password field + strength meter + visibility toggle -->
           <div class="form-group">
             <label class="form-label sr-only" for="signup-password">Password</label>
             <div class="form-input-wrap">
@@ -128,9 +134,11 @@
                 aria-describedby="signup-password-error signup-pw-label"
                 maxlength="128"
               />
+              <!-- Toggle button wired up by CLAP.initPwToggle() -->
               <button type="button" class="pw-toggle" id="signup-pw-toggle" aria-label="Show password">👁</button>
             </div>
-            <!-- Password strength -->
+
+            <!-- Strength progress bar (coloured fill + label updated by CLAP.initPasswordStrength()) -->
             <div class="pw-strength" aria-live="polite">
               <div class="pw-strength-bar" role="progressbar" aria-label="Password strength">
                 <div class="pw-strength-fill" id="signup-pw-bar"></div>
@@ -152,8 +160,9 @@
       </form>
     </section>
 
-    <!-- RIGHT: Teal Panel -->
+    <!-- ── RIGHT: Teal side panel with sign-in prompt ── -->
     <aside class="auth-side-panel teal-bg" aria-label="Sign in prompt">
+      <!-- Geometric decorative shapes -->
       <div class="geo-tri-1" aria-hidden="true"></div>
       <div class="geo-tri-2" aria-hidden="true"></div>
       <div class="geo-rect"  aria-hidden="true"></div>
@@ -175,10 +184,14 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  /* Redirect if already logged in */
-  CLAP.Auth.requireGuest(); // works from localStorage — no backend needed
+  /*
+   * If the user already has a valid session, redirect them to the
+   * dashboard immediately — they don't need to register again.
+   * This check is local (localStorage) so no backend round-trip.
+   */
+  CLAP.Auth.requireGuest();
 
-  /* DOM refs */
+  /* ── DOM references ── */
   const form      = document.getElementById('signup-form');
   const nameInp   = document.getElementById('signup-name');
   const emailInp  = document.getElementById('signup-email');
@@ -189,20 +202,21 @@
   const submitBtn = document.getElementById('signup-btn');
   const statusEl  = document.getElementById('signup-submit-status');
 
-  /* Init helpers */
+  /* Wire up password visibility toggle and strength meter. */
   CLAP.initPwToggle(pwToggle, pwInp);
   CLAP.initPasswordStrength(pwInp, pwBar, pwLabel);
 
-  /* Live validation */
+  /* Attach live validation: shows errors on blur and clears them when fixed. */
   const { Validate } = CLAP;
   Validate.attachLive(nameInp,  [Validate.rules.required, Validate.rules.minLen(2)]);
   Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
   Validate.attachLive(pwInp,    [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength]);
 
-  /* Form submit */
+  /* ── Form submit ── */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    /* Run full client-side validation before calling the API. */
     const valid = Validate.form([
       { input: nameInp,  rules: [Validate.rules.required, Validate.rules.minLen(2)] },
       { input: emailInp, rules: [Validate.rules.required, Validate.rules.email] },
@@ -213,23 +227,30 @@
       return;
     }
 
+    /* Show loading state. */
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
     statusEl.textContent = 'Creating your account…';
 
     try {
+      /*
+       * CONNECT: POST /api/auth/register/
+       * Expected response: { access, refresh, user: { name, email, … } }
+       */
       const data = await CLAP.API.post('/auth/register/', {
         name:     nameInp.value.trim(),
         email:    emailInp.value.trim().toLowerCase(),
         password: pwInp.value,
       }, { auth: false });
 
+      /* Persist tokens and user profile from the response. */
       CLAP.Auth.setTokens(data.access, data.refresh);
       CLAP.Auth.setUser(data.user || { name: nameInp.value.trim(), email: emailInp.value.trim() });
 
       CLAP.Toast.success('Account created! Setting up your routine…');
       statusEl.textContent = 'Account created successfully.';
 
+      /* Send new users to the daily-routine onboarding flow. */
       setTimeout(() => { window.location.href = 'onboarding.html'; }, 1200);
 
     } catch (err) {
@@ -238,14 +259,18 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
 
-      /* Highlight field if Django returned field-specific errors */
+      /*
+       * Django REST returns field-specific errors in err.data.
+       * Surface them next to the relevant input if present.
+       */
       if (err.data) {
         if (err.data.email) Validate.setError(emailInp, err.data.email[0]);
-        if (err.data.name)  Validate.setError(nameInp, err.data.name[0]);
+        if (err.data.name)  Validate.setError(nameInp,  err.data.name[0]);
       }
     }
   });
 
+  /* Hide the loading overlay once the form is ready. */
   CLAP.hideLoader();
 })();
 </script>

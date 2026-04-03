@@ -16,19 +16,22 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
 
-    <!-- Page Title (no topbar on settings) -->
+    <!-- ── Page title ── -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-xl);">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--clap-teal)" stroke-width="2.5">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--clap-teal)" stroke-width="2.5" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
       <h1 class="page-title">Settings</h1>
     </div>
 
+    <!-- ── Two-column layout: left nav + right panel ── -->
     <div class="settings-layout">
-      <!-- Left nav -->
-      <nav class="settings-sidenav">
+
+      <!-- Left navigation -->
+      <nav class="settings-sidenav" aria-label="Settings sections">
         <button class="settings-sidenav-item" data-sec="general-menu">General</button>
+        <!-- Sub-items revealed when "General" is active -->
         <div id="general-subnav" class="settings-subnav" style="display:none">
           <button class="settings-subnav-item" data-sub="profile">Profile</button>
           <button class="settings-subnav-item" data-sub="study-prefs">Study Preferences</button>
@@ -36,10 +39,13 @@
         <button class="settings-sidenav-item" data-sec="about">About Us</button>
       </nav>
 
-      <!-- Right panel -->
+      <!-- Right content panel — innerHTML replaced by setSection() -->
       <div class="settings-panel" id="settings-panel">
-        <p style="color:var(--text-muted);text-align:center;padding:40px 0">Select a section from the left to get started.</p>
+        <p style="color:var(--text-muted);text-align:center;padding:40px 0">
+          Select a section from the left to get started.
+        </p>
       </div>
+
     </div>
   </main>
 </div>
@@ -48,161 +54,308 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('settings.html', { showSearch: false });
 
-const user  = CLAP.Auth.getUser() || {};
-let curSec  = '';
-let curSub  = 'profile';
+/*
+ * Settings has its own page title in the HTML above,
+ * so we do not need the AppShell topbar greeting.
+ */
+AppShell.init('settings.html', { showSearch: false, showTopbar: false });
 
-/* ── PANEL CONTENT ── */
+/* Read the stored user profile (set during sign-in). */
+const user = CLAP.Auth.getUser() || {};
+
+/* Track the current section and sub-section. */
+let curSec = '';
+let curSub = 'profile'; // default sub-section within "General"
+
+/*
+ * FIX: panelStudyPrefs originally read from localStorage('clap_prefs'),
+ * but preferences are saved via the API in onboarding and never written
+ * to localStorage — so the panel always showed default/empty values.
+ *
+ * Now preferences are fetched from GET /api/users/preferences/ and stored
+ * in the module-level `prefs` object. A loading state is shown while the
+ * request is in flight.
+ */
+let prefs = {}; // populated by loadPreferences()
+
+/** Fetch study preferences from the API once per page load. */
+async function loadPreferences() {
+  try {
+    prefs = await CLAP.API.get('/users/preferences/');
+  } catch {
+    /* Fall back to safe defaults if the API is not yet available. */
+    prefs = {
+      sleep_start:     '23:00',
+      sleep_end:       '07:00',
+      study_start:     '09:00',
+      study_end:       '18:00',
+      max_focus_hours: 6,
+    };
+  }
+}
+
+/* ── PANEL BUILDERS ─────────────────────────────────────────── */
+
+/**
+ * Entry point for the "General" section.
+ * Ensures the sub-nav is visible and delegates to the active sub-panel.
+ */
 function panelGeneral() {
   document.getElementById('general-subnav').style.display = 'flex';
   return curSub === 'study-prefs' ? panelStudyPrefs() : panelProfile();
 }
 
+/** Renders the profile editing panel. */
 function panelProfile() {
-  const initial = (user.name||'S').charAt(0).toUpperCase();
+  const initial = (user.name || 'S').charAt(0).toUpperCase();
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Profile</span></div>
+
+    <!-- Avatar: preview + upload/remove buttons -->
     <div class="profile-pic-wrap">
-      <div class="profile-avatar" id="av-preview">${initial}</div>
+      <div class="profile-avatar" id="av-preview" aria-label="Profile picture preview">${initial}</div>
       <div>
         <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
         <div style="display:flex;gap:8px">
-          <button class="upload-btn" id="del-avatar-btn" style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)" title="Remove photo">🗑️ Remove</button>
-          <label class="upload-btn" style="cursor:pointer;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <!-- Remove photo -->
+          <button class="upload-btn" id="del-avatar-btn"
+                  style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)"
+                  title="Remove photo" aria-label="Remove profile photo">
+            🗑️ Remove
+          </button>
+          <!-- Upload new photo -->
+          <label class="upload-btn" style="cursor:pointer;" title="Upload photo" aria-label="Upload profile photo">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
             Upload
-            <input type="file" id="avatar-file-input" accept="image/*" style="display:none" />
+            <input type="file" id="avatar-file-input" accept="image/*" style="display:none"
+                   aria-label="Choose profile photo file" />
           </label>
         </div>
       </div>
     </div>
+
+    <!-- Editable profile fields -->
     <div class="settings-row" id="row-name">
-      <div><div class="settings-row-label">Full Name</div><div class="settings-row-value" id="val-name">${user.name||'—'}</div></div>
+      <div>
+        <div class="settings-row-label">Full Name</div>
+        <div class="settings-row-value" id="val-name">${user.name || '—'}</div>
+      </div>
       <button class="edit-btn" onclick="startInlineEdit('name','Full Name')">Edit</button>
     </div>
     <div class="settings-row" id="row-email">
-      <div><div class="settings-row-label">Email</div><div class="settings-row-value" id="val-email">${user.email||'—'}</div></div>
+      <div>
+        <div class="settings-row-label">Email</div>
+        <div class="settings-row-value" id="val-email">${user.email || '—'}</div>
+      </div>
       <button class="edit-btn" onclick="startInlineEdit('email','Email')">Edit</button>
     </div>
     <div class="settings-row" style="border:none" id="row-program">
-      <div><div class="settings-row-label">Program</div><div class="settings-row-value" id="val-program">${user.program||'Computer Science'}</div></div>
+      <div>
+        <div class="settings-row-label">Program</div>
+        <div class="settings-row-value" id="val-program">${user.program || 'Computer Science'}</div>
+      </div>
       <button class="edit-btn" onclick="startInlineEdit('program','Program')">Edit</button>
     </div>
+
     <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>`;
 }
 
+/**
+ * FIX: Previously read from localStorage('clap_prefs') which was
+ * never written to — preferences were always empty/default.
+ * Now renders from the `prefs` object populated by loadPreferences()
+ * via GET /api/users/preferences/.
+ */
 function panelStudyPrefs() {
-  const p = JSON.parse(localStorage.getItem('clap_prefs')||'{}');
+  /* Format a "HH:MM" 24-hour time string into a human-readable label. */
+  function fmtTime(t) {
+    if (!t) return '—';
+    const [h, m] = t.split(':').map(Number);
+    const ampm = h < 12 ? 'AM' : 'PM';
+    const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${String(h12).padStart(2, '0')}:${String(m || 0).padStart(2, '0')} ${ampm}`;
+  }
+
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Study Preferences</span></div>
-    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-md)">Study Preferences</h3>
-    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">To update your sleep or study hours, use the Daily Routine setup in Onboarding. Backend editing will be available soon.</p>
+    <h3 style="font-family:var(--font-heading);font-size:1rem;font-weight:700;
+               color:var(--text-primary);margin-bottom:var(--space-md)">Study Preferences</h3>
+    <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:var(--space-lg)">
+      To update your sleep or study hours, use the Daily Routine setup in Onboarding.
+      Backend editing will be available soon.
+    </p>
+
     <div class="settings-row">
-      <div><div class="settings-row-label">Sleep Time</div><div class="settings-row-value">${p.sleep_start||'11:00 PM'} to ${p.sleep_end||'7:00 AM'}</div></div>
+      <div>
+        <div class="settings-row-label">Sleep Time</div>
+        <div class="settings-row-value">
+          ${fmtTime(prefs.sleep_start)} to ${fmtTime(prefs.sleep_end)}
+        </div>
+      </div>
     </div>
     <div class="settings-row">
-      <div><div class="settings-row-label">Active Study Hours</div><div class="settings-row-value">${p.study_start||'9:00 AM'} to ${p.study_end||'7:00 PM'}</div></div>
+      <div>
+        <div class="settings-row-label">Active Study Hours</div>
+        <div class="settings-row-value">
+          ${fmtTime(prefs.study_start)} to ${fmtTime(prefs.study_end)}
+        </div>
+      </div>
     </div>
     <div class="settings-row" style="border:none">
-      <div><div class="settings-row-label">Daily Study Limit</div><div class="settings-row-value">${p.max_focus_hours||6} Hours</div></div>
+      <div>
+        <div class="settings-row-label">Daily Study Limit</div>
+        <div class="settings-row-value">${prefs.max_focus_hours || 6} Hours</div>
+      </div>
     </div>`;
 }
 
+/** Renders the About Us panel. */
 function panelAbout() {
   return `
     <div class="settings-breadcrumb">Settings › <span>About Us</span></div>
     <div class="about-section">
       <h3>About CLAP:</h3>
-      <p>CLAP (Cognitive Load-Based Adaptive Academic Planner) is a smart academic planning system designed to help students manage their workload effectively.</p>
-      <p style="margin-top:8px">It uses cognitive load principles to generate balanced study schedules, reduce stress, and prevent burnout.</p>
+      <p>CLAP (Cognitive Load-Based Adaptive Academic Planner) is a smart academic planning system
+         designed to help students manage their workload effectively.</p>
+      <p style="margin-top:8px">It uses cognitive load principles to generate balanced study schedules,
+         reduce stress, and prevent burnout.</p>
     </div>
     <div class="about-section">
       <h3>The Problem:</h3>
-      <p>CLAP analyzes assignments, deadlines, and workload to automatically generate an optimized study plan. It also monitors cognitive load and provides smart recommendations to help students stay productive while maintaining balance.</p>
+      <p>CLAP analyzes assignments, deadlines, and workload to automatically generate an optimized
+         study plan. It also monitors cognitive load and provides smart recommendations to help
+         students stay productive while maintaining balance.</p>
     </div>
     <div class="about-section">
       <h3>Key Features:</h3>
-      <p>• AI-generated study planning<br>• Cognitive load tracking<br>• Smart task prioritization<br>• Adaptive schedule adjustments</p>
+      <p>• AI-generated study planning<br>• Cognitive load tracking<br>
+         • Smart task prioritization<br>• Adaptive schedule adjustments</p>
     </div>
     <div class="about-version">CLAP v1.0.0 — Developed for IIEF 2026</div>`;
 }
 
-/* ── NAVIGATION ── */
+/* ── SECTION NAVIGATION ─────────────────────────────────────── */
+
+/**
+ * Switch the visible section in the right panel.
+ * @param {string} sec  'general-menu' | 'about'
+ */
 function setSection(sec) {
   curSec = sec;
-  document.getElementById('general-subnav').style.display = 'none';
-  document.querySelectorAll('.settings-sidenav-item').forEach(b => b.classList.toggle('active', b.dataset.sec === sec));
-  document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.remove('active'));
 
+  /* Reset UI state. */
+  document.getElementById('general-subnav').style.display = 'none';
+  document.querySelectorAll('.settings-sidenav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.sec === sec);
+  });
+  document.querySelectorAll('.settings-subnav-item').forEach(b => {
+    b.classList.remove('active');
+  });
+
+  /* Build panel HTML. */
   let html = '';
-  if (sec === 'general-menu') { html = panelGeneral(); document.getElementById('general-subnav').style.display='flex'; }
-  else if (sec === 'about')   html = panelAbout();
+  if (sec === 'general-menu') {
+    html = panelGeneral();
+    document.getElementById('general-subnav').style.display = 'flex';
+  } else if (sec === 'about') {
+    html = panelAbout();
+  }
 
   document.getElementById('settings-panel').innerHTML = html;
-  document.querySelectorAll('.settings-subnav-item').forEach(b => b.classList.toggle('active', b.dataset.sub === curSub));
 
-  /* Attach avatar handlers after innerHTML is set */
+  /* Highlight the active sub-item. */
+  document.querySelectorAll('.settings-subnav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.sub === curSub);
+  });
+
+  /* Wire up avatar file-picker handlers after innerHTML replacement. */
   if (sec === 'general-menu' && curSub === 'profile') {
     attachAvatarHandlers();
   }
 }
 
+/* Main nav click handlers. */
 document.querySelectorAll('.settings-sidenav-item').forEach(btn => {
   btn.addEventListener('click', () => setSection(btn.dataset.sec));
 });
+
+/* Sub-nav click handlers. */
 document.querySelectorAll('.settings-subnav-item').forEach(btn => {
-  btn.addEventListener('click', () => { curSub = btn.dataset.sub; setSection('general-menu'); });
+  btn.addEventListener('click', () => {
+    curSub = btn.dataset.sub;
+    setSection('general-menu');
+  });
 });
 
-/* ── INLINE EDIT ── */
+/* ── INLINE EDIT ────────────────────────────────────────────── */
+
+/**
+ * Replace a static value display with an editable input + Save/Cancel.
+ * @param {string} field  Key in the `user` object ('name'|'email'|'program').
+ * @param {string} label  Human-readable label for the input.
+ */
 window.startInlineEdit = function(field, label) {
   const valEl = document.getElementById('val-' + field);
-  const rowEl = document.getElementById('row-' + field);
-  if (!valEl || !rowEl) return;
-
+  if (!valEl) return;
   const currentVal = user[field] || '';
+
   valEl.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <input id="edit-input-${field}" class="inline-input" type="text"
              value="${currentVal}" placeholder="${label}"
-             style="flex:1;min-width:140px;" />
+             style="flex:1;min-width:140px;" aria-label="Edit ${label}" />
       <button class="edit-btn" style="color:var(--success);border:1px solid var(--success);"
               onclick="commitInlineEdit('${field}')">Save</button>
-      <button class="edit-btn" onclick="cancelInlineEdit('${field}','${currentVal}')">Cancel</button>
+      <button class="edit-btn"
+              onclick="cancelInlineEdit('${field}','${currentVal}')">Cancel</button>
     </div>`;
   document.getElementById('edit-input-' + field)?.focus();
 };
 
+/**
+ * Commit the inline edit value to the local `user` object.
+ * Changes are persisted to the server when "Save Changes" is clicked.
+ */
 window.commitInlineEdit = function(field) {
   const input = document.getElementById('edit-input-' + field);
   if (!input) return;
   const newVal = input.value.trim();
   if (!newVal) { CLAP.Toast.error('Field cannot be empty.'); return; }
+
   user[field] = newVal;
   document.getElementById('val-' + field).textContent = newVal;
   CLAP.Toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated. Click Save Changes to persist.`);
 };
 
+/** Revert the field back to its original value (cancel the edit). */
 window.cancelInlineEdit = function(field, originalVal) {
   const valEl = document.getElementById('val-' + field);
   if (valEl) valEl.textContent = originalVal || '—';
 };
 
-/* ── AVATAR HANDLERS ── */
+/* ── AVATAR UPLOAD/REMOVE ───────────────────────────────────── */
+
+/**
+ * Attach change and click handlers to the avatar controls after
+ * they are injected into the DOM by panelProfile().
+ */
 function attachAvatarHandlers() {
   const fileInput = document.getElementById('avatar-file-input');
   const delBtn    = document.getElementById('del-avatar-btn');
   const preview   = document.getElementById('av-preview');
 
+  /* Read selected image file and show it as a circular preview. */
   if (fileInput) {
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (e) => {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Avatar"
+        preview.innerHTML = `<img src="${e.target.result}" alt="Profile photo"
           style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
         user.avatarDataUrl = e.target.result;
         CLAP.Toast.success('Photo updated. Click Save Changes to persist.');
@@ -211,6 +364,7 @@ function attachAvatarHandlers() {
     });
   }
 
+  /* Remove the photo and revert to the initial letter. */
   if (delBtn) {
     delBtn.addEventListener('click', () => {
       const initial = (user.name || 'S').charAt(0).toUpperCase();
@@ -221,14 +375,35 @@ function attachAvatarHandlers() {
   }
 }
 
-/* ── SAVE PROFILE ── */
+/* ── SAVE PROFILE ───────────────────────────────────────────── */
+
+/**
+ * Send the modified profile fields to the API and update localStorage.
+ * CONNECT: PATCH /api/users/me/
+ */
 window.saveProfile = async function() {
   try {
-    await CLAP.API.patch('/users/me/', { name: user.name, email: user.email, program: user.program });
+    await CLAP.API.patch('/users/me/', {
+      name:    user.name,
+      email:   user.email,
+      program: user.program,
+    });
+    /* Persist locally so the name/avatar shows correctly on other pages. */
     localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
-  } catch {}
+  } catch {
+    /* Save locally even if the API call fails. */
+    localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
+  }
   CLAP.Toast.success('Profile saved!');
 };
+
+/* ── INIT ───────────────────────────────────────────────────── */
+
+/*
+ * Load preferences from the API before rendering the panel,
+ * so that panelStudyPrefs() has real data available.
+ */
+loadPreferences(); // async; prefs will be populated by the time user navigates to that section
 </script>
 </body>
 </html>

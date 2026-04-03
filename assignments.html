@@ -16,34 +16,49 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
 
-    <!-- Header row -->
+    <!-- ── Page header: title, search bar, add button ── -->
     <div class="assign-page-header">
       <h1 class="assign-page-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        </svg>
         My Assignments
       </h1>
+
+      <!-- Search bar filters both progress and table views -->
       <div class="assign-search">
-        <span class="s-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></span>
-        <input type="search" id="search-input" placeholder="Find your past assignments." autocomplete="off" />
+        <span class="s-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </span>
+        <input type="search" id="search-input" placeholder="Find your past assignments."
+               autocomplete="off" aria-label="Search assignments" />
       </div>
-      <button class="add-btn ml-auto" id="add-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+
+      <!-- Opens the add-assignment form -->
+      <button class="add-btn ml-auto" id="add-btn" aria-label="Add new assignment">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+        </svg>
         Add Assignment
       </button>
     </div>
 
-    <!-- Tabs -->
+    <!-- ── Tab bar ── -->
     <div class="tab-bar" role="tablist">
-      <button class="tab-btn active" id="tab-progress" role="tab" data-tab="progress">Assignment Progress</button>
-      <button class="tab-btn"        id="tab-all"      role="tab" data-tab="all">All Assignments</button>
+      <button class="tab-btn active" id="tab-progress" role="tab"
+              data-tab="progress" aria-selected="true">Assignment Progress</button>
+      <button class="tab-btn"        id="tab-all"      role="tab"
+              data-tab="all"         aria-selected="false">All Assignments</button>
     </div>
 
-    <!-- Progress View -->
+    <!-- ── Progress view: visual progress bars ── -->
     <div id="view-progress">
       <div class="progress-card" id="progress-list">
         <p style="color:var(--text-muted);text-align:center;padding:20px">Loading…</p>
       </div>
-      <!-- Legend -->
+      <!-- Legend explaining the bar colour coding -->
       <div class="progress-legend" style="margin-top:var(--space-md);">
         <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Completed</div>
         <div class="legend-item"><div class="legend-dot" style="background:#222"></div>Not Started Yet</div>
@@ -51,16 +66,17 @@
       </div>
     </div>
 
-    <!-- All Assignments View -->
+    <!-- ── All assignments table view ── -->
     <div id="view-all" style="display:none">
       <div class="assignments-table-wrap">
-        <table class="assignments-table" id="assign-table">
+        <table class="assignments-table" id="assign-table" aria-label="All assignments">
           <thead>
             <tr>
               <th>No.</th><th>Code</th><th>Assignment Title</th>
               <th>Deadline</th><th>Hours</th><th>Difficulty</th><th>Actions</th>
             </tr>
           </thead>
+          <!-- tbody rows injected by renderTable() -->
           <tbody id="assign-tbody">
             <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
           </tbody>
@@ -68,30 +84,33 @@
       </div>
     </div>
 
-    <!-- Add / Edit Form (hidden by default) -->
+    <!-- ── Add / Edit form (hidden by default) ── -->
     <div id="view-form" style="display:none">
-      <button class="back-btn" id="back-btn">&#8249; Back</button>
+      <button class="back-btn" id="back-btn" aria-label="Go back">&#8249; Back</button>
       <h2 class="add-assign-title" id="form-title">Add Assignment</h2>
       <div class="add-assign-wrap">
         <div class="form-field">
-          <label>Course Code<span>*</span></label>
-          <input type="text" id="f-code" placeholder="Eg; CSC2343" maxlength="20" />
+          <label for="f-code">Course Code<span aria-hidden="true">*</span></label>
+          <input type="text" id="f-code" placeholder="Eg; CSC2343" maxlength="20"
+                 aria-required="true" />
         </div>
         <div class="form-field">
-          <label>Assignment Title<span>*</span></label>
-          <input type="text" id="f-title" placeholder="Eg; Database Final Project" maxlength="100" />
+          <label for="f-title">Assignment Title<span aria-hidden="true">*</span></label>
+          <input type="text" id="f-title" placeholder="Eg; Database Final Project" maxlength="100"
+                 aria-required="true" />
         </div>
         <div class="form-field">
-          <label>Deadline<span>*</span></label>
-          <input type="date" id="f-deadline" />
+          <label for="f-deadline">Deadline<span aria-hidden="true">*</span></label>
+          <input type="date" id="f-deadline" aria-required="true" />
         </div>
         <div class="form-field">
-          <label>Estimated Hours<span>*</span></label>
-          <input type="number" id="f-hours" placeholder="Eg; 6 Hours" min="1" max="999" />
+          <label for="f-hours">Estimated Hours<span aria-hidden="true">*</span></label>
+          <input type="number" id="f-hours" placeholder="Eg; 6" min="1" max="999"
+                 aria-required="true" />
         </div>
         <div class="form-field">
-          <label>Difficulty Level<span>*</span></label>
-          <select id="f-difficulty">
+          <label for="f-difficulty">Difficulty Level<span aria-hidden="true">*</span></label>
+          <select id="f-difficulty" aria-required="true">
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
@@ -104,14 +123,19 @@
   </main>
 </div>
 
-<!-- Delete Modal -->
-<div id="del-modal" class="modal-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
-  <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
-    <div class="delete-modal-icon">🗑️</div>
-    <div class="delete-modal-title">Delete Assignment?</div>
+<!-- ── Delete confirmation modal ── -->
+<div id="del-modal" class="modal-overlay"
+     style="display:none;position:fixed;inset:0;z-index:9000;
+            background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);
+            align-items:center;justify-content:center;"
+     role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
+  <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);
+              max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
+    <div class="delete-modal-icon" aria-hidden="true">🗑️</div>
+    <div class="delete-modal-title" id="del-modal-title">Delete Assignment?</div>
     <div class="delete-modal-sub">This will permanently remove the assignment. This action cannot be undone.</div>
     <div class="delete-modal-actions">
-      <button class="btn btn-ghost btn-sm" id="del-cancel">Cancel</button>
+      <button class="btn btn-ghost btn-sm"  id="del-cancel">Cancel</button>
       <button class="btn btn-danger btn-sm" id="del-confirm">Delete</button>
     </div>
   </div>
@@ -121,59 +145,87 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('assignments.html');
-window.addEventListener('load', () => {
-  document.getElementById('topbar')?.remove();
-});
 
-// const MOCK = [
-//   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
-//   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
-//   { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20 },
-//   { id:4, course_code:'CSC2672', title:'UI/UX Design Prototype',         deadline:'2026-04-25', hours:20, difficulty:'hard',   progress:100 },
-//   { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0 },
-// ];
+/*
+ * Assignments page uses its own header (assign-page-header)
+ * instead of the AppShell topbar, so showTopbar: false.
+ */
+AppShell.init('assignments.html', { showTopbar: false });
 
+/*
+ * FIX: The original file had two copies of the MOCK array —
+ * one commented-out block immediately followed by an identical
+ * live block. The commented block is removed here; only the
+ * active definition below remains.
+ *
+ * CONNECT: replace MOCK with real data from GET /api/assignments/
+ */
 const MOCK = [
-  { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
-  { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60 },
-  { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20 },
+  { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80  },
+  { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60  },
+  { id:3, course_code:'CSC2434', title:'Mobile Application Development', deadline:'2026-03-31', hours:25, difficulty:'hard',   progress:20  },
   { id:4, course_code:'CSC2672', title:'UI/UX Design Prototype',         deadline:'2026-04-25', hours:20, difficulty:'hard',   progress:100 },
-  { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0 },
+  { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0   },
 ];
 
-let assignments = [];
-let editingId   = null;
-let deleteId    = null;
-let activeTab   = 'progress';
+/* ── State ── */
+let assignments = []; // current working dataset (API or mock)
+let editingId   = null; // id of the assignment being edited (null = adding new)
+let deleteId    = null; // id queued for deletion
+let activeTab   = 'progress'; // which tab is currently visible
 
-/* ---- Load ---- */
+/* ── LOAD ───────────────────────────────────────────────────
+   Fetch the assignment list from the API; fall back to MOCK.
+   CONNECT: GET /api/assignments/
+   ─────────────────────────────────────────────────────────── */
 async function loadAssignments() {
-  try { assignments = await CLAP.API.get('/assignments/'); }
-  catch { assignments = MOCK; }
+  try {
+    assignments = await CLAP.API.get('/assignments/');
+  } catch {
+    /* Backend not yet connected — use static mock data. */
+    assignments = MOCK;
+  }
   renderProgress();
   renderTable();
 }
 
-/* ---- Progress View ---- */
+/* ── PROGRESS VIEW ──────────────────────────────────────────
+   Renders visual progress bars for each assignment.
+   Respects the current search query.
+   ─────────────────────────────────────────────────────────── */
 function renderProgress() {
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q    = document.getElementById('search-input').value.toLowerCase();
   const list = document.getElementById('progress-list');
-  const items = assignments.filter(a => !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q));
-  if (!items.length) { list.innerHTML='<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>'; return; }
+
+  /* Filter by search query across title and course code. */
+  const items = assignments.filter(a =>
+    !q ||
+    a.title.toLowerCase().includes(q) ||
+    a.course_code.toLowerCase().includes(q)
+  );
+
+  if (!items.length) {
+    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>';
+    return;
+  }
 
   list.innerHTML = items.map(a => {
-    const pct = a.progress ?? 0;
-    const isComplete  = pct === 100;
-    const isNotStart  = pct === 0;
-    const fillClass   = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
-    const badgeBg     = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
-    const labelTxt    = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
+    const pct        = a.progress ?? 0;
+    const isComplete = pct === 100;
+    const isNotStart = pct === 0;
+
+    /* Colour and label vary by completion status. */
+    const fillClass = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
+    const badgeBg   = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
+    const labelTxt  = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
+
     return `
       <div class="progress-item">
         <div class="progress-item-header">
           <div class="progress-item-name">${esc(a.course_code)} — ${esc(a.title)}</div>
-          <div class="progress-pct-badge" style="background:${badgeBg};min-width:56px;border-radius:var(--radius-pill);padding:4px 10px;font-size:0.7rem">${labelTxt}</div>
+          <div class="progress-pct-badge"
+               style="background:${badgeBg};min-width:56px;border-radius:var(--radius-pill);
+                      padding:4px 10px;font-size:0.7rem">${labelTxt}</div>
         </div>
         <div class="progress-bar">
           <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
@@ -182,39 +234,65 @@ function renderProgress() {
   }).join('');
 }
 
-/* ---- Table View ---- */
+/* ── TABLE VIEW ─────────────────────────────────────────────
+   Renders the full assignments table with edit/delete actions.
+   Overdue rows are styled with the .overdue class.
+   ─────────────────────────────────────────────────────────── */
 function renderTable() {
   const q = document.getElementById('search-input').value.toLowerCase();
-  const items = assignments.filter(a => !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q));
+  const items = assignments.filter(a =>
+    !q ||
+    a.title.toLowerCase().includes(q) ||
+    a.course_code.toLowerCase().includes(q)
+  );
+
   const tbody = document.getElementById('assign-tbody');
-  if (!items.length) { tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>'; return; }
-  const today = new Date(); today.setHours(0,0,0,0);
-  tbody.innerHTML = items.map((a,i) => {
-    const dl   = new Date(a.deadline);
-    const over = dl < today;
+
+  if (!items.length) {
+    tbody.innerHTML =
+      '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>';
+    return;
+  }
+
+  /* Strip time portion so today's date is never falsely flagged as overdue. */
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  tbody.innerHTML = items.map((a, i) => {
+    const dl    = new Date(a.deadline);
+    const over  = dl < today;
     const dlStr = dl.toLocaleDateString('en-GB');
     const diff  = a.difficulty || 'easy';
+
     return `
-      <tr class="${over?'overdue':''}">
-        <td>${i+1}</td>
+      <tr class="${over ? 'overdue' : ''}">
+        <td>${i + 1}</td>
         <td>${esc(a.course_code)}</td>
         <td>${esc(a.title)}</td>
         <td>${dlStr}</td>
         <td>${a.hours}</td>
-        <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase()+diff.slice(1)}</span></td>
+        <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span></td>
         <td style="display:flex;gap:4px;">
-          <button class="tbl-action-btn edit" onclick="startEdit(${a.id})" title="Edit">✏️</button>
-          <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete">🗑️</button>
+          <button class="tbl-action-btn edit" onclick="startEdit(${a.id})"   title="Edit assignment"   aria-label="Edit ${esc(a.title)}">✏️</button>
+          <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete assignment" aria-label="Delete ${esc(a.title)}">🗑️</button>
         </td>
       </tr>`;
   }).join('');
 }
 
-/* ---- Tabs ---- */
+/* ── TABS ───────────────────────────────────────────────────
+   Toggle between progress and table views.
+   ─────────────────────────────────────────────────────────── */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    /* Update active tab button. */
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
     btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+
     activeTab = btn.dataset.tab;
     document.getElementById('view-progress').style.display = activeTab === 'progress' ? '' : 'none';
     document.getElementById('view-all').style.display      = activeTab === 'all'      ? '' : 'none';
@@ -222,58 +300,90 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-/* ---- Search ---- */
-document.getElementById('search-input').addEventListener('input', () => { renderProgress(); renderTable(); });
+/* ── SEARCH ─────────────────────────────────────────────────
+   Re-render both views whenever the search query changes.
+   Also listens for the global clap:search custom event.
+   ─────────────────────────────────────────────────────────── */
+document.getElementById('search-input').addEventListener('input', () => {
+  renderProgress();
+  renderTable();
+});
 document.addEventListener('clap:search', e => {
   document.getElementById('search-input').value = e.detail;
-  renderProgress(); renderTable();
+  renderProgress();
+  renderTable();
 });
 
-/* ---- Add ---- */
+/* ── ADD ────────────────────────────────────────────────────
+   Clear the form and switch to the add view.
+   ─────────────────────────────────────────────────────────── */
 document.getElementById('add-btn').addEventListener('click', () => {
   editingId = null;
   document.getElementById('form-title').textContent = 'Add Assignment';
-  ['f-code','f-title','f-deadline','f-hours'].forEach(id => document.getElementById(id).value='');
+  /* Clear all inputs. */
+  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
   document.getElementById('f-difficulty').value = 'easy';
   showView('form');
 });
 
-/* ---- Edit ---- */
+/* ── EDIT ───────────────────────────────────────────────────
+   Populate the form with the selected assignment's data.
+   CONNECT: data comes from the local `assignments` array
+   (already fetched from GET /api/assignments/ on load).
+   ─────────────────────────────────────────────────────────── */
 window.startEdit = function(id) {
-  const a = assignments.find(x => x.id === id); if (!a) return;
+  const a = assignments.find(x => x.id === id);
+  if (!a) return;
+
   editingId = id;
-  document.getElementById('form-title').textContent = 'Edit Assignment';
-  document.getElementById('f-code').value       = a.course_code;
-  document.getElementById('f-title').value      = a.title;
-  document.getElementById('f-deadline').value   = a.deadline;
-  document.getElementById('f-hours').value      = a.hours;
-  document.getElementById('f-difficulty').value = a.difficulty;
+  document.getElementById('form-title').textContent    = 'Edit Assignment';
+  document.getElementById('f-code').value              = a.course_code;
+  document.getElementById('f-title').value             = a.title;
+  document.getElementById('f-deadline').value          = a.deadline;
+  document.getElementById('f-hours').value             = a.hours;
+  document.getElementById('f-difficulty').value        = a.difficulty;
   showView('form');
 };
 
-/* ---- Delete ---- */
+/* ── DELETE ─────────────────────────────────────────────────
+   Show the confirmation modal; actual deletion in del-confirm.
+   CONNECT: DELETE /api/assignments/{id}/
+   ─────────────────────────────────────────────────────────── */
 window.startDelete = function(id) {
   deleteId = id;
-  const modal = document.getElementById('del-modal');
-  modal.style.display = 'flex';
+  document.getElementById('del-modal').style.display = 'flex';
 };
-document.getElementById('del-cancel').addEventListener('click', () => { document.getElementById('del-modal').style.display='none'; });
+
+/* Close modal on Cancel click. */
+document.getElementById('del-cancel').addEventListener('click', () => {
+  document.getElementById('del-modal').style.display = 'none';
+});
+
+/* Close modal on backdrop click. */
 document.getElementById('del-modal').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
+
+/* Confirm deletion: call API then update local state. */
 document.getElementById('del-confirm').addEventListener('click', async () => {
-  document.getElementById('del-modal').style.display='none';
+  document.getElementById('del-modal').style.display = 'none';
   try {
     await CLAP.API.delete(`/assignments/${deleteId}/`);
-    assignments = assignments.filter(a => a.id !== deleteId);
   } catch {
-    assignments = assignments.filter(a => a.id !== deleteId);
+    /* Remove locally even if API fails (optimistic UI). */
   }
-  renderProgress(); renderTable();
+  assignments = assignments.filter(a => a.id !== deleteId);
+  renderProgress();
+  renderTable();
   CLAP.Toast.success('Assignment deleted.');
 });
 
-/* ---- Save ---- */
+/* ── SAVE ───────────────────────────────────────────────────
+   Validate form fields, then POST (new) or PUT (edit).
+   CONNECT: POST /api/assignments/  or  PUT /api/assignments/{id}/
+   ─────────────────────────────────────────────────────────── */
 document.getElementById('save-btn').addEventListener('click', async () => {
   const codeEl  = document.getElementById('f-code');
   const titleEl = document.getElementById('f-title');
@@ -283,38 +393,45 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   const code  = codeEl.value.trim();
   const title = titleEl.value.trim();
   const dl    = dlEl.value;
-  const hrs   = parseInt(hrsEl.value);
+  const hrs   = parseInt(hrsEl.value); // NaN when empty → falsy
   const diff  = document.getElementById('f-difficulty').value;
 
-  // Highlight empty fields visually
+  /* Highlight empty/invalid fields with a red border. */
   [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
-    if (!el.value.trim()) {
-      el.style.borderColor = 'var(--danger)';
-      el.style.background  = 'var(--danger-light)';
-    } else {
-      el.style.borderColor = '';
-      el.style.background  = '';
-    }
+    const invalid = !el.value.trim();
+    el.style.borderColor = invalid ? 'var(--danger)' : '';
+    el.style.background  = invalid ? 'var(--danger-light)' : '';
   });
 
-  if (!code || !title || !dl || !hrs) { CLAP.Toast.error('Please fill all required fields.'); return; }
+  /* Guard: all required fields must have a value. */
+  if (!code || !title || !dl || !hrs) {
+    CLAP.Toast.error('Please fill all required fields.');
+    return;
+  }
 
-  // Clear error styles on valid submit
-  [codeEl, titleEl, dlEl, hrsEl].forEach(el => { el.style.borderColor = ''; el.style.background = ''; });
+  /* All valid — clear error styles. */
+  [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
+    el.style.borderColor = '';
+    el.style.background  = '';
+  });
 
-  const payload = { course_code:code, title, deadline:dl, hours:hrs, difficulty:diff };
+  const payload = { course_code: code, title, deadline: dl, hours: hrs, difficulty: diff };
+
   try {
     if (editingId) {
-      const updated = await CLAP.API.put(`/assignments/${editingId}/`, payload);
+      /* Update an existing assignment. */
+      await CLAP.API.put(`/assignments/${editingId}/`, payload);
       const idx = assignments.findIndex(a => a.id === editingId);
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
       CLAP.Toast.success('Assignment updated!');
     } else {
+      /* Create a new assignment. */
       const created = await CLAP.API.post('/assignments/', payload);
       assignments.push(created || { id: Date.now(), ...payload, progress: 0 });
       CLAP.Toast.success('Assignment added!');
     }
   } catch {
+    /* Optimistic local update if API call fails. */
     if (editingId) {
       const idx = assignments.findIndex(a => a.id === editingId);
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
@@ -323,17 +440,27 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     }
     CLAP.Toast.success(editingId ? 'Assignment updated!' : 'Assignment added!');
   }
-  renderProgress(); renderTable();
+
+  renderProgress();
+  renderTable();
   showView(activeTab);
 });
 
-/* ---- Back ---- */
+/* ── BACK BUTTON ────────────────────────────────────────────
+   Return from the form view to whichever tab was active.
+   ─────────────────────────────────────────────────────────── */
 document.getElementById('back-btn').addEventListener('click', () => showView(activeTab));
 
+/* ── VIEW SWITCHER ──────────────────────────────────────────
+   Controls which of the three sections is visible and keeps
+   the tab button states in sync.
+   @param {'progress'|'all'|'form'} name
+   ─────────────────────────────────────────────────────────── */
 function showView(name) {
   const header = document.querySelector('.assign-page-header');
   const tabs   = document.querySelector('.tab-bar');
 
+  /* Hide the header and tab bar when showing the form. */
   if (name === 'form') {
     header.style.display = 'none';
     tabs.style.display   = 'none';
@@ -342,23 +469,29 @@ function showView(name) {
     tabs.style.display   = '';
   }
 
-  // views
-  document.getElementById('view-progress').style.display = name==='progress' ? '' : 'none';
-  document.getElementById('view-all').style.display      = name==='all'      ? '' : 'none';
-  document.getElementById('view-form').style.display     = name==='form'     ? '' : 'none';
+  document.getElementById('view-progress').style.display = name === 'progress' ? '' : 'none';
+  document.getElementById('view-all').style.display      = name === 'all'      ? '' : 'none';
+  document.getElementById('view-form').style.display     = name === 'form'     ? '' : 'none';
 
-  // reset tab active
+  /* Keep tab active classes in sync with the current view. */
   document.getElementById('tab-progress').classList.remove('active');
   document.getElementById('tab-all').classList.remove('active');
-
   if (name === 'progress') document.getElementById('tab-progress').classList.add('active');
   if (name === 'all')      document.getElementById('tab-all').classList.add('active');
 }
 
+/**
+ * HTML-escape a string to safely render user-supplied text in innerHTML.
+ * @param {string} s  Raw string.
+ * @returns {string}  Escaped HTML string.
+ */
 function esc(s) {
-  const d = document.createElement('div'); d.textContent=s; return d.innerHTML;
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
 }
 
+/* ── INIT ───────────────────────────────────────────────────── */
 loadAssignments();
 </script>
 </body>
