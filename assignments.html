@@ -122,7 +122,9 @@
 <script>
 'use strict';
 AppShell.init('assignments.html');
-document.getElementById('topbar')?.remove();
+window.addEventListener('load', () => {
+  document.getElementById('topbar')?.remove();
+});
 
 // const MOCK = [
 //   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80 },
