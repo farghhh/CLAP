@@ -76,8 +76,8 @@
       display:flex;
       justify-content: center;
       align-items:center;
-      margin-top: 8px;
-      margin-bottom: 20px;
+      margin-top: 4px;
+      margin-bottom: 16px;
       justify-content: center;
     }
 
@@ -99,13 +99,13 @@
       display:flex;
       align-items:center;
       gap:12px;
-      padding:8px 16px;              /* ⬅ smaller */
+      padding:6px 12px;              /* ⬅ smaller */
       border-radius:999px;
-      background:rgba(255,255,255,0.6); /* ⬅ lighter */
-      border:1px solid rgba(0,0,0,0.05); /* ⬅ softer */
+      background:transparent;              /* ⬅ remove bg */
+      border:none;
       box-shadow:none;              /* ⬅ REMOVE heavy shadow */
-      font-weight:800;
-      font-size:0.9rem;
+      font-weight:700;
+      font-size:0.95rem;
       color:var(--clap-teal);
     }
 
@@ -121,16 +121,16 @@
 
     .nav-arrow {
       cursor:pointer;
-      padding:4px 8px;       /* ⬅ smaller */
-      font-size:1.1rem;
+      padding:2px 6px;       /* ⬅ smaller */
+      font-size:1.2rem;
       font-weight:900;
       color:var(--text-muted);
-      background:none;       /* ⬅ remove circle */
+      background:none;   
+      padding: 2px 6px;    /* ⬅ remove circle */
     }
 
     .nav-arrow:hover {
       color:var(--clap-teal);
-      transform:translateX(2px);
     }
 
     @keyframes spin { to { transform:rotate(360deg); } }
