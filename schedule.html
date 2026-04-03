@@ -49,7 +49,7 @@
       align-items:center;
       justify-content:center;
       gap:10px;
-      flex:1;
+      margin: 8px 0 18px;
     }
 
     /* Date */
@@ -64,12 +64,14 @@
       cursor:pointer;
       font-size:1.4rem;
       font-weight:900;
-      color:var(--text-muted);
-      padding:6px 8px;
-      border-radius:6px;
+      transform: scale(1.2);
       display: flex;
       align-items: center;
       justify-content: center;
+      padding:6px 8px;
+      border-radius:6px;
+      color: var(--clap-teal);
+      opacity: 0.9;
       transition:all 0.2s ease;
     }
     .nav-arrow:hover {
@@ -306,13 +308,6 @@
           <b>Week:</b> —
         </div>
       </div>
-
-      <!-- CENTER -->
-      <div class="week-nav">
-        <span id="prev-week-btn" class="nav-arrow">←</span>
-        <span id="week-nav-label" class="nav-label">—</span>
-        <span id="next-week-btn" class="nav-arrow">→</span>
-      </div>
       
       <!-- RIGHT -->
       <button class="regen-btn" id="regen-btn">
@@ -323,6 +318,14 @@
         </svg>
         Regenerate
       </button>
+
+      <!-- CENTER -->
+      <div class="week-nav">
+        <span id="prev-week-btn" class="nav-arrow">‹</span>
+        <span id="week-nav-label" class="nav-label">—</span>
+        <span id="next-week-btn" class="nav-arrow">›</span>
+      </div>
+
     </div>
 
     <!-- Timetable -->
