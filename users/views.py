@@ -1,5 +1,5 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -19,6 +19,7 @@ def get_tokens_for_user(user):
         'access': str(refresh.access_token),
     }
 
+#register user function
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -171,8 +172,8 @@ CLAP Team
 def reset_password(request):
     uid = request.data.get('uid')
     token = request.data.get('token')
-    new_password1 = request.data.get('new_password1')  # ← changed
-    new_password2 = request.data.get('new_password2')  # ← changed
+    new_password1 = request.data.get('new_password1')
+    new_password2 = request.data.get('new_password2') 
 
     if not all([uid, token, new_password1, new_password2]):
         return Response(
@@ -208,4 +209,91 @@ def reset_password(request):
 
     return Response({
         'message': 'Password reset successfully!'
+    }, status=status.HTTP_200_OK)
+
+#change email and password function
+@api_view(['GET', 'PUT'])
+@permission_classes([IsAuthenticated])
+def profile(request):
+    user = request.user
+
+    #return profile info
+    if request.method == 'GET':
+        return Response({
+            'name': user.username,
+            'email': user.email,
+            'onboarding_complete': user.profile.onboarding_complete,
+        }, status=status.HTTP_200_OK)
+
+    #update profile info
+    if request.method == 'PUT':
+        name = request.data.get('name', user.username)
+        email = request.data.get('email', user.email)
+
+        #check if new email is taken by another user
+        if email != user.email and User.objects.filter(email=email).exists():
+            return Response(
+                {'error': 'Email already in use'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Check if new name is taken by another user
+        if name != user.username and User.objects.filter(username=name).exists():
+            return Response(
+                {'error': 'Username already taken'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.username = name
+        user.email = email
+        user.save()
+
+        return Response({
+            'message': 'Profile updated successfully!',
+            'name': user.username,
+            'email': user.email,
+        }, status=status.HTTP_200_OK)
+
+
+#change password function
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    user = request.user
+    old_password = request.data.get('old_password')
+    new_password1 = request.data.get('new_password1')
+    new_password2 = request.data.get('new_password2')
+
+    if not all([old_password, new_password1, new_password2]):
+        return Response(
+            {'error': 'All fields are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    #verify old password
+    if not user.check_password(old_password):
+        return Response(
+            {'error': 'Current password is incorrect'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    #check new passwords match
+    if new_password1 != new_password2:
+        return Response(
+            {'error': 'New passwords do not match'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    #check new password is different
+    if old_password == new_password1:
+        return Response(
+            {'error': 'New password must be different from current password'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user.set_password(new_password1)
+    user.save()
+
+    return Response({
+        'message': 'Password changed successfully!'
     }, status=status.HTTP_200_OK)

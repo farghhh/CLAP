@@ -64,3 +64,41 @@ def get_preferences(request):
         'study_end': str(preference.active_study_end),
         'max_focus_hours': preference.max_focus_hours,
     }, status=status.HTTP_200_OK)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_preferences(request):
+    user = request.user
+
+    # Check preferences exist first
+    try:
+        preference = SleepStudyPreference.objects.get(user=user)
+    except SleepStudyPreference.DoesNotExist:
+        return Response(
+            {'error': 'Preferences not found. Please complete onboarding first.'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Get data — use existing values as defaults if not provided
+    sleep_start = request.data.get('sleep_start', str(preference.sleep_start))
+    sleep_end = request.data.get('sleep_end', str(preference.sleep_end))
+    study_start = request.data.get('study_start', str(preference.active_study_start))
+    study_end = request.data.get('study_end', str(preference.active_study_end))
+    max_focus_hours = request.data.get('max_focus_hours', preference.max_focus_hours)
+
+    # Update
+    preference.sleep_start = sleep_start
+    preference.sleep_end = sleep_end
+    preference.active_study_start = study_start
+    preference.active_study_end = study_end
+    preference.max_focus_hours = max_focus_hours
+    preference.save()
+
+    return Response({
+        'message': 'Preferences updated successfully!',
+        'sleep_start': str(preference.sleep_start),
+        'sleep_end': str(preference.sleep_end),
+        'study_start': str(preference.active_study_start),
+        'study_end': str(preference.active_study_end),
+        'max_focus_hours': preference.max_focus_hours,
+    }, status=status.HTTP_200_OK)
