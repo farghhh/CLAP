@@ -8,56 +8,306 @@
   <link rel="stylesheet" href="css/app.css"/>
   <style>
     /* ── Page header ── */
-    .sch-header  { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--space-lg); gap:var(--space-md); flex-wrap:wrap; }
-    .sch-title   { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--clap-teal); display:flex; align-items:center; gap:10px; margin-bottom:4px; }
-    .sch-meta    { font-size:0.82rem; color:var(--text-muted); font-weight:600; }
-    .sch-meta b  { color:var(--text-secondary); font-weight:700; }
-    .regen-btn   { display:inline-flex; align-items:center; gap:8px; padding:11px 22px; background:var(--grad-primary); color:#fff; border:none; border-radius:var(--radius-pill); font-family:var(--font-heading); font-weight:700; font-size:0.875rem; box-shadow:0 4px 14px rgba(75,191,191,0.35); cursor:pointer; transition:all var(--transition); white-space:nowrap; }
-    .regen-btn:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(75,191,191,0.45); }
-    .regen-btn svg{ transition:transform 0.4s; }
-    .regen-btn:hover svg{ animation:spin 0.6s linear; }
-    @keyframes spin{ to{ transform:rotate(360deg); } }
+    .sch-header  {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      margin-bottom:var(--space-lg);
+      gap:var(--space-md);
+      flex-wrap:wrap;
+    }
+    .sch-title   {
+      font-family:var(--font-heading);
+      font-size:1.5rem;
+      font-weight:800;
+      color:var(--clap-teal);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:4px;
+    }
+    .sch-meta    {
+      font-size:0.82rem;
+      color:var(--text-muted);
+      font-weight:600;
+    }
+    .sch-meta b  {
+      color:var(--text-secondary);
+      font-weight:700;
+    }
+
+    .regen-btn,
+    .week-nav-btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:11px 18px;
+      border:none;
+      border-radius:var(--radius-pill);
+      font-family:var(--font-heading);
+      font-weight:700;
+      font-size:0.875rem;
+      cursor:pointer;
+      transition:all var(--transition);
+      white-space:nowrap;
+    }
+
+    .regen-btn {
+      background:var(--grad-primary);
+      color:#fff;
+      box-shadow:0 4px 14px rgba(75,191,191,0.35);
+    }
+    .regen-btn:hover {
+      transform:translateY(-1px);
+      box-shadow:0 6px 20px rgba(75,191,191,0.45);
+    }
+    .regen-btn svg { transition:transform 0.4s; }
+    .regen-btn:hover svg { animation:spin 0.6s linear; }
+
+    .sch-actions {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .week-nav {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:var(--space-md);
+      flex-wrap:wrap;
+    }
+
+    .week-nav-btn {
+      background:var(--white);
+      color:var(--text-secondary);
+      border:1.5px solid var(--border);
+      box-shadow:var(--shadow-sm);
+    }
+    .week-nav-btn:hover {
+      border-color:var(--clap-teal);
+      color:var(--clap-teal);
+      transform:translateY(-1px);
+    }
+
+    .week-nav-center {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      min-width:180px;
+      padding:10px 16px;
+      border-radius:999px;
+      background:var(--bg-light);
+      font-weight:800;
+      color:var(--clap-teal);
+      font-family:var(--font-heading);
+    }
+
+    @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ── Timetable card ── */
-    .timetable-card { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); overflow-x:auto; }
-    .timetable      { min-width:650px; width:100%; border-collapse:separate; border-spacing:4px; }
-    .timetable th   { font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:12px 6px; background:var(--bg-light); border-radius:var(--radius-sm); }
-    .timetable th.time-col{ text-align:left; background:transparent; color:var(--text-muted); font-size:0.72rem; min-width:60px; padding-left:4px; }
-    .timetable td   { vertical-align:top; padding:2px; min-width:110px; }
-    .timetable td.time-cell{ font-size:0.72rem; font-weight:700; color:var(--text-muted); text-align:left; padding-left:4px; padding-top:8px; min-width:60px; white-space:nowrap; vertical-align:top; }
+    .timetable-card {
+      background:var(--white);
+      border-radius:var(--radius-lg);
+      padding:var(--space-lg);
+      box-shadow:var(--shadow-card);
+      overflow-x:auto;
+    }
+    .timetable {
+      min-width:650px;
+      width:100%;
+      border-collapse:separate;
+      border-spacing:4px;
+    }
+    .timetable th {
+      font-family:var(--font-heading);
+      font-size:0.82rem;
+      font-weight:700;
+      color:var(--text-secondary);
+      text-align:center;
+      padding:12px 6px;
+      background:var(--bg-light);
+      border-radius:var(--radius-sm);
+    }
+    .timetable th.time-col {
+      text-align:left;
+      background:transparent;
+      color:var(--text-muted);
+      font-size:0.72rem;
+      min-width:60px;
+      padding-left:4px;
+    }
+    .timetable td {
+      vertical-align:top;
+      padding:2px;
+      min-width:110px;
+    }
+    .timetable td.time-cell {
+      font-size:0.72rem;
+      font-weight:700;
+      color:var(--text-muted);
+      text-align:left;
+      padding-left:4px;
+      padding-top:8px;
+      min-width:60px;
+      white-space:nowrap;
+      vertical-align:top;
+    }
 
-    /* Task blocks — colours match difficulty */
-    .task-block   { border-radius:var(--radius-md); padding:10px 12px; font-size:0.72rem; font-weight:700; min-height:56px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; transition:transform var(--transition), box-shadow var(--transition); position:relative; }
-    .task-block:hover{ transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-    .task-block.easy  { background:#c8f0d4; color:#1a5c30; }
-    .task-block.medium{ background:#fde9c0; color:#7a4300; }
-    .task-block.hard  { background:#fac8c8; color:#7a1a1a; }
-    .tb-title  { font-size:0.78rem; font-weight:800; line-height:1.25; margin-bottom:2px; }
-    .tb-time   { font-size:0.66rem; font-weight:600; opacity:0.8; }
-    .tb-check  { position:absolute; bottom:8px; right:8px; width:20px; height:20px; border-radius:50%; border:2px solid rgba(255,255,255,0.8); background:rgba(255,255,255,0.5); cursor:pointer; transition:background var(--transition); display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent; }
-    .tb-check:hover { background:rgba(255,255,255,0.85); color:rgba(0,0,0,0.5); }
-    .tb-check.done { background:rgba(255,255,255,0.9); color:#27AE60; border-color:rgba(255,255,255,1); }
-    .tb-check::after { content:'✓'; font-size:10px; font-weight:800; }
-    .empty-cell{ height:56px; }
-    .gen-label { text-align:center; font-size:0.72rem; color:var(--text-muted); font-style:italic; margin-top:var(--space-md); }
+    /* Task blocks */
+    .task-block {
+      border-radius:var(--radius-md);
+      padding:10px 12px;
+      font-size:0.72rem;
+      font-weight:700;
+      min-height:56px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      cursor:pointer;
+      transition:transform var(--transition), box-shadow var(--transition);
+      position:relative;
+    }
+    .task-block:hover {
+      transform:translateY(-2px);
+      box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    }
+    .task-block.easy   { background:#c8f0d4; color:#1a5c30; }
+    .task-block.medium { background:#fde9c0; color:#7a4300; }
+    .task-block.hard   { background:#fac8c8; color:#7a1a1a; }
 
-    /* Completed task styling */
-    .task-block.done {
-      opacity: 0.5;
-      text-decoration: line-through;
-      filter: grayscale(0.4);
+    .tb-title {
+      font-size:0.78rem;
+      font-weight:800;
+      line-height:1.25;
+      margin-bottom:2px;
+      white-space:pre-line;
+    }
+    .tb-time {
+      font-size:0.66rem;
+      font-weight:600;
+      opacity:0.8;
+    }
+
+    .tb-check {
+      position:absolute;
+      bottom:8px;
+      right:8px;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,0.8);
+      background:rgba(255,255,255,0.5);
+      cursor:pointer;
+      transition:background var(--transition);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      color:transparent;
+    }
+    .tb-check:hover {
+      background:rgba(255,255,255,0.85);
+      color:rgba(0,0,0,0.5);
     }
     .tb-check.done {
-      background: rgba(75, 191, 191, 0.8);
-      border-color: var(--clap-teal);
+      background:rgba(255,255,255,0.9);
+      color:#27AE60;
+      border-color:rgba(255,255,255,1);
+    }
+    .tb-check::after {
+      content:'✓';
+      font-size:10px;
+      font-weight:800;
+    }
+
+    .empty-cell { height:56px; }
+
+    .gen-label {
+      text-align:center;
+      font-size:0.72rem;
+      color:var(--text-muted);
+      font-style:italic;
+      margin-top:var(--space-md);
+    }
+
+    .task-block.done {
+      opacity:0.5;
+      text-decoration:line-through;
+      filter:grayscale(0.4);
+    }
+    .tb-check.done {
+      background:rgba(75, 191, 191, 0.8);
+      border-color:var(--clap-teal);
     }
 
     /* ── Legend popup ── */
-    .info-fab   { position:fixed; bottom:28px; right:28px; width:38px; height:38px; border-radius:50%; background:var(--clap-teal); color:#fff; border:none; cursor:pointer; font-size:1rem; font-weight:800; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(75,191,191,0.4); z-index:50; }
-    .legend-popup{ position:fixed; bottom:74px; right:28px; background:#fff; border-radius:var(--radius-md); padding:var(--space-md); box-shadow:var(--shadow-md); display:none; z-index:60; min-width:155px; }
-    .legend-popup.show{ display:block; }
-    .leg-row   { display:flex; align-items:center; gap:8px; font-size:0.78rem; font-weight:600; color:var(--text-muted); padding:3px 0; }
-    .leg-sw    { width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+    .info-fab {
+      position:fixed;
+      bottom:28px;
+      right:28px;
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      background:var(--clap-teal);
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-size:1rem;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 4px 14px rgba(75,191,191,0.4);
+      z-index:50;
+    }
+    .legend-popup {
+      position:fixed;
+      bottom:74px;
+      right:28px;
+      background:#fff;
+      border-radius:var(--radius-md);
+      padding:var(--space-md);
+      box-shadow:var(--shadow-md);
+      display:none;
+      z-index:60;
+      min-width:155px;
+    }
+    .legend-popup.show { display:block; }
+    .leg-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:0.78rem;
+      font-weight:600;
+      color:var(--text-muted);
+      padding:3px 0;
+    }
+    .leg-sw {
+      width:14px;
+      height:14px;
+      border-radius:4px;
+      flex-shrink:0;
+    }
+
+    @media (max-width: 700px) {
+      .sch-header {
+        align-items:stretch;
+      }
+      .sch-actions {
+        width:100%;
+        justify-content:space-between;
+      }
+      .week-nav {
+        justify-content:space-between;
+      }
+      .week-nav-center {
+        order:-1;
+        width:100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -69,35 +319,58 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content">
 
-    <!-- Page header: title + regenerate button -->
+    <!-- Page header -->
     <div class="sch-header">
       <div>
         <div class="sch-title">
-          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
           Schedule
         </div>
-        <!-- Week label populated by renderSchedule() -->
         <div class="sch-meta" id="sch-week"><b>Week:</b> —</div>
       </div>
-      <button class="regen-btn" id="regen-btn">
-        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Regenerate
-      </button>
+
+      <div class="sch-actions">
+        <button class="regen-btn" id="regen-btn">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+          Regenerate
+        </button>
+      </div>
     </div>
 
-    <!-- Scrollable timetable -->
+    <!-- Week navigation -->
+    <div class="week-nav">
+      <button class="week-nav-btn" id="prev-week-btn">← Previous Week</button>
+      <div class="week-nav-center" id="week-nav-label">This Week</div>
+      <button class="week-nav-btn" id="next-week-btn">Next Week →</button>
+    </div>
+
+    <!-- Timetable -->
     <div class="timetable-card">
       <div style="overflow-x:auto;">
         <table class="timetable">
           <thead id="sch-thead">
             <tr>
               <th class="time-col">Day /<br>Time</th>
-              <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
+              <th>Monday</th>
+              <th>Tuesday</th>
+              <th>Wednesday</th>
+              <th>Thursday</th>
+              <th>Friday</th>
             </tr>
           </thead>
-          <!-- tbody rows built by renderSchedule() -->
           <tbody id="sch-body">
-            <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading schedule…</td></tr>
+            <tr>
+              <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">
+                Loading schedule…
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -120,7 +393,9 @@
   <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
     <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
     <div style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-sm)">Regenerate Schedule?</div>
-    <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:var(--space-xl);line-height:1.5">This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.</div>
+    <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:var(--space-xl);line-height:1.5">
+      This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.
+    </div>
     <div style="display:flex;gap:var(--space-md);justify-content:center;">
       <button class="btn btn-ghost btn-sm" id="regen-cancel">Cancel</button>
       <button class="btn btn-primary btn-sm" id="regen-confirm">Yes, Regenerate</button>
@@ -133,65 +408,30 @@
 <script>
 'use strict';
 
-/*
- * showTopbar: false — this page uses its own .sch-header section
- * instead of the shared AppShell topbar greeting.
- */
 AppShell.init('schedule.html', { showTopbar: false });
 
-/* ─────────────────────────────────────────────────────────────
-   MOCK DATA — remove when backend ready
-   CONNECT: GET /api/schedule/
-   Expected shape:
-   {
-     week: "March 10 – 14",
-     slots: [
-       {
-         day:        "Monday",     ← one of the five weekday strings
-         time:       "10.00 AM",   ← display start-time label
-         end:        "11.00 AM",   ← display end-time label
-         title:      "Database (FP)",
-         difficulty: "easy"        ← "easy" | "medium" | "hard"
-       }, …
-     ]
-   }
-   ───────────────────────────────────────────────────────────── */
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+let weekOffset = 0;
+
+/* ── MOCK DATA ───────────────────────────────────────────── */
 function getMock() {
   return {
     week: 'March 10 – 14',
     slots: [
-      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)',                     difficulty:'easy'   },
-      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1',  difficulty:'easy'   },
-      { day:'Monday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)', difficulty:'easy' },
+      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
       { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1',  difficulty:'medium' },
-      { day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)',                     difficulty:'easy'   },
-      { day:'Thursday',  time:'11.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Thursday',  time:'2.00 PM',  end:'3.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Thursday',  time:'4.00 PM',  end:'5.00 PM',  title:'Parallel Computing\nAssignment 1',  difficulty:'medium' },
-      { day:'Friday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1',  difficulty:'medium' },
-      { day:'Friday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-    ],
+      { day:'Friday',    time:'9.00 AM',  end:'1.00 PM',  title:'CSC123 Yapping', difficulty:'hard' }
+    ]
   };
 }
 
-/* ─────────────────────────────────────────────────────────────
-   TIME ROWS — auto-derived from the slot list
-   ───────────────────────────────────────────────────────────── */
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
-/**
- * Collect every unique start time from the slot list,
- * then sort them chronologically.
- * @param {object[]} slots
- * @returns {string[]} Sorted time strings, e.g. ["10.00 AM", "11.00 AM", …]
- */
+/* ── TIME HELPERS ────────────────────────────────────────── */
 function buildTimeRows(slots) {
   const seen = new Set();
   slots.forEach(s => seen.add(s.time));
 
   return [...seen].sort((a, b) => {
-    /* Convert "HH.MM AM/PM" to total minutes for comparison. */
     const parse = t => {
       const [hm, ap] = t.split(' ');
       let [h, mi] = hm.split('.').map(Number);
@@ -203,122 +443,12 @@ function buildTimeRows(slots) {
   });
 }
 
-/**
- * Parse a "HH.MM AM/PM" time string into total minutes since midnight.
- * Used for rowspan calculations.
- * @param {string} time
- * @returns {number}
- */
 function buildEndMinutes(time) {
   const [hm, ap] = time.split(' ');
   let [h, mi] = hm.split('.').map(Number);
   if (ap === 'PM' && h !== 12) h += 12;
   if (ap === 'AM' && h === 12) h = 0;
   return h * 60 + (mi || 0);
-}
-
-/* ─────────────────────────────────────────────────────────────
-   RENDER TIMETABLE
-   Populates #sch-body and #sch-week from the API/mock data.
-   ───────────────────────────────────────────────────────────── */
-function renderSchedule(data) {
-  /* Update the week label in the header. */
-  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
-
-  const slots = data.slots || [];
-  const times = buildTimeRows(slots);
-
-  /* Show a placeholder row when there are no slots yet. */
-  if (!times.length) {
-    document.getElementById('sch-body').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
-    return;
-  }
-
-  /* Build a 2-D lookup: day → startTime → slot object. */
-  const map = {};
-  DAYS.forEach(d => { map[d] = {}; });
-  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
-
-  /* Track cells that are already covered by a rowspan so we skip them. */
-  const rowspanSkip = {}; /* key: "Day|timeIndex" → true */
-
-  let html = '';
-  times.forEach((time, ti) => {
-    html += `<tr><td class="time-cell">${time}</td>`;
-
-    DAYS.forEach(day => {
-      const k = `${day}|${ti}`;
-
-      /* This cell is merged into a previous row — emit nothing. */
-      if (rowspanSkip[k]) return;
-
-      const slot = map[day]?.[time];
-      if (slot) {
-        /* Calculate how many time-rows this slot spans. */
-        const endMin = buildEndMinutes(slot.end);
-        let span = 1;
-        for (let nxt = ti + 1; nxt < times.length; nxt++) {
-          const nxtMin = buildEndMinutes(times[nxt]);
-          if (nxtMin <= endMin) {
-            span++;
-            rowspanSkip[`${day}|${nxt}`] = true; // mark as occupied
-          } else {
-            break;
-          }
-        }
-
-        const rs = span > 1 ? ` rowspan="${span}"` : '';
-        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
-
-        html += `<td${rs} style="vertical-align:top;padding:2px">
-          <div class="task-block ${slot.difficulty}" style="${ht}">
-            <div>
-              <div class="tb-title">${slot.title}</div>
-              <div class="tb-time">${slot.time} – ${slot.end}</div>
-            </div>
-            <!-- Mark-done toggle; toggleDone() defined below -->
-            <button class="tb-check" onclick="toggleDone(this)" title="Mark done"></button>
-          </div>
-        </td>`;
-      } else {
-        /* Empty slot — render a spacer cell. */
-        html += `<td><div class="empty-cell"></div></td>`;
-      }
-    });
-
-    html += '</tr>';
-  });
-
-  document.getElementById('sch-body').innerHTML = html;
-}
-
-function normalizeScheduleData(apiData) {
-  const dayMap = {
-    mon: 'Monday',
-    tue: 'Tuesday',
-    wed: 'Wednesday',
-    thu: 'Thursday',
-    fri: 'Friday'
-  };
-
-  const slots = (apiData.slots || []).map(slot => {
-    const startTime = formatTime(slot.time);
-    const endTime = addHoursToTime(slot.time, slot.duration || 1);
-
-    return {
-      day: dayMap[(slot.day || '').toLowerCase()] || slot.day,
-      time: startTime,
-      end: endTime,
-      title: `${slot.code || ''} ${slot.subject || ''}`.trim(),
-      difficulty: mapDifficulty(slot.duration || 1)
-    };
-  });
-
-  return {
-    week: apiData.week || 'This Week',
-    slots
-  };
 }
 
 function formatTime(time24) {
@@ -330,21 +460,24 @@ function formatTime(time24) {
   if (hour === 0) hour = 12;
   else if (hour > 12) hour -= 12;
 
-  return `${hour}.00 ${ampm}`.replace('.0 ', '.00 ');
+  return `${hour}.${String(minute).padStart(2, '0')} ${ampm}`;
 }
 
 function addHoursToTime(time24, duration) {
   if (!time24) return '';
 
   let [hour, minute] = time24.split(':').map(Number);
-  hour += duration;
+  const startTotal = hour * 60 + minute;
+  const endTotal = startTotal + (duration * 60);
 
-  const ampm = hour >= 12 ? 'PM' : 'AM';
+  let endHour = Math.floor(endTotal / 60) % 24;
+  const endMinute = endTotal % 60;
+  const ampm = endHour >= 12 ? 'PM' : 'AM';
 
-  if (hour === 0) hour = 12;
-  else if (hour > 12) hour -= 12;
+  if (endHour === 0) endHour = 12;
+  else if (endHour > 12) endHour -= 12;
 
-  return `${hour}.00 ${ampm}`.replace('.0 ', '.00 ');
+  return `${endHour}.${String(endMinute).padStart(2, '0')} ${ampm}`;
 }
 
 function mapDifficulty(duration) {
@@ -353,12 +486,123 @@ function mapDifficulty(duration) {
   return 'hard';
 }
 
-/* ─────────────────────────────────────────────────────────────
-   LOAD SCHEDULE FROM API
-   ───────────────────────────────────────────────────────────── */
-async function loadSchedule() {
+/* ── NORMALIZE BACKEND RESPONSE ──────────────────────────── */
+function normalizeScheduleData(apiData) {
+  if (!apiData) return { week: '—', slots: [] };
+
+  const dayMap = {
+    mon: 'Monday',
+    tue: 'Tuesday',
+    wed: 'Wednesday',
+    thu: 'Thursday',
+    fri: 'Friday'
+  };
+
+  const slots = (apiData.slots || []).map(slot => {
+    return {
+      day: dayMap[(slot.day || '').toLowerCase()] || slot.day,
+      time: formatTime(slot.time),
+      end: addHoursToTime(slot.time, slot.duration || 1),
+      title: [slot.code, slot.subject].filter(Boolean).join(' '),
+      difficulty: mapDifficulty(slot.duration || 1),
+      is_completed: slot.is_completed || false
+    };
+  });
+
+  return {
+    week: apiData.week || getWeekLabelFromOffset(weekOffset),
+    slots
+  };
+}
+
+/* ── WEEK LABEL ──────────────────────────────────────────── */
+function getWeekLabelFromOffset(offset) {
+  if (offset === 0) return 'This Week';
+  if (offset === 1) return 'Next Week';
+  if (offset === -1) return 'Last Week';
+  if (offset > 1) return `${offset} Weeks Ahead`;
+  return `${Math.abs(offset)} Weeks Ago`;
+}
+
+function updateWeekNavLabel() {
+  document.getElementById('week-nav-label').textContent = getWeekLabelFromOffset(weekOffset);
+}
+
+/* ── RENDER TIMETABLE ────────────────────────────────────── */
+function renderSchedule(data) {
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
+
+  const slots = data.slots || [];
+  const times = buildTimeRows(slots);
+
+  if (!times.length) {
+    document.getElementById('sch-body').innerHTML =
+      '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
+    return;
+  }
+
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
+
+  const rowspanSkip = {};
+  let html = '';
+
+  times.forEach((time, ti) => {
+    html += `<tr><td class="time-cell">${time}</td>`;
+
+    DAYS.forEach(day => {
+      const key = `${day}|${ti}`;
+      if (rowspanSkip[key]) return;
+
+      const slot = map[day]?.[time];
+      if (slot) {
+        const endMin = buildEndMinutes(slot.end);
+        let span = 1;
+
+        for (let nxt = ti + 1; nxt < times.length; nxt++) {
+          const nxtMin = buildEndMinutes(times[nxt]);
+          if (nxtMin <= endMin) {
+            span++;
+            rowspanSkip[`${day}|${nxt}`] = true;
+          } else {
+            break;
+          }
+        }
+
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
+        const doneClass = slot.is_completed ? 'done' : '';
+        const checkDoneClass = slot.is_completed ? 'done' : '';
+
+        html += `
+          <td${rs} style="vertical-align:top;padding:2px">
+            <div class="task-block ${slot.difficulty} ${doneClass}" style="${ht}">
+              <div>
+                <div class="tb-title">${slot.title}</div>
+                <div class="tb-time">${slot.time} – ${slot.end}</div>
+              </div>
+              <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
+            </div>
+          </td>
+        `;
+      } else {
+        html += `<td><div class="empty-cell"></div></td>`;
+      }
+    });
+
+    html += `</tr>`;
+  });
+
+  document.getElementById('sch-body').innerHTML = html;
+}
+
+/* ── LOAD SCHEDULE ───────────────────────────────────────── */
+async function loadSchedule(offset = 0) {
+  updateWeekNavLabel();
+
   try {
-    const apiData = await CLAP.API.get('/schedule/');
+    const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
     console.log('RAW SCHEDULE DATA:', apiData);
 
     const normalizedData = normalizeScheduleData(apiData);
@@ -367,42 +611,46 @@ async function loadSchedule() {
     renderSchedule(normalizedData);
   } catch (err) {
     console.error('SCHEDULE LOAD ERROR:', err);
-    document.getElementById('sch-body').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:24px;color:red">Failed to load schedule.</td></tr>';
-    CLAP.Toast.error('Could not load schedule.');
+
+    /* fallback mock for frontend testing only */
+    const mockData = getMock();
+    renderSchedule(mockData);
+
+    CLAP.Toast.error('Could not load schedule. Showing fallback data.');
   }
 }
 
-/* ─────────────────────────────────────────────────────────────
-   MARK TASK DONE / UNDONE
-   Toggles the visual strikethrough + teal-check state.
-   CONNECT: send PATCH /api/tasks/{id}/ { completed: true/false }
-   ───────────────────────────────────────────────────────────── */
+/* ── DONE TOGGLE ─────────────────────────────────────────── */
 window.toggleDone = function(btn) {
   const taskBlock = btn.closest('.task-block');
-  const isDone    = taskBlock.classList.toggle('done');
+  const isDone = taskBlock.classList.toggle('done');
   btn.classList.toggle('done', isDone);
   btn.title = isDone ? 'Mark undone' : 'Mark done';
 };
 
-/* ─────────────────────────────────────────────────────────────
-   LEGEND POPUP
-   ───────────────────────────────────────────────────────────── */
+/* ── WEEK NAVIGATION ─────────────────────────────────────── */
+document.getElementById('prev-week-btn').addEventListener('click', () => {
+  weekOffset--;
+  loadSchedule(weekOffset);
+});
+
+document.getElementById('next-week-btn').addEventListener('click', () => {
+  weekOffset++;
+  loadSchedule(weekOffset);
+});
+
+/* ── LEGEND POPUP ────────────────────────────────────────── */
 document.getElementById('info-fab').addEventListener('click', () => {
   document.getElementById('legend-popup').classList.toggle('show');
 });
 
-/* Close the legend when clicking anywhere else on the page. */
 document.addEventListener('click', e => {
   if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup')) {
     document.getElementById('legend-popup').classList.remove('show');
   }
 });
 
-/* ─────────────────────────────────────────────────────────────
-   REGENERATE — confirmation modal flow
-   CONNECT: POST /api/schedule/regenerate/
-   ───────────────────────────────────────────────────────────── */
+/* ── REGENERATE ──────────────────────────────────────────── */
 document.getElementById('regen-btn').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'flex';
 });
@@ -411,7 +659,6 @@ document.getElementById('regen-cancel').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'none';
 });
 
-/* Close modal on backdrop click. */
 document.getElementById('regen-modal').addEventListener('click', function(e) {
   if (e.target === this) this.style.display = 'none';
 });
@@ -437,12 +684,8 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
   }
 });
 
-/* ─────────────────────────────────────────────────────────────
-   INIT
-   FIX: loadSchedule() was defined but never called, so the
-   timetable always showed "Loading schedule…" indefinitely.
-   ───────────────────────────────────────────────────────────── */
-loadSchedule(); // ← was missing; added to trigger initial render
+/* ── INIT ────────────────────────────────────────────────── */
+loadSchedule(weekOffset);
 </script>
 </body>
 </html>
