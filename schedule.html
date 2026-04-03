@@ -46,6 +46,7 @@
       text-decoration: line-through;
       filter: grayscale(0.4);
     }
+
     .tb-check.done {
       background: rgba(75, 191, 191, 0.8);
       border-color: var(--clap-teal);
@@ -103,8 +104,8 @@
 </div>
 
 <!-- Legend -->
-<button class="info-fab" id="info-fab" aria-label="Show legend">i</button>
-<div class="legend-popup" id="legend-popup" role="tooltip">
+<button class="info-fab" id="info-fab">i</button>
+<div class="legend-popup" id="legend-popup">
   <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
   <div class="leg-row"><div class="leg-sw" style="background:#fde9c0"></div>Medium</div>
   <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
@@ -127,7 +128,7 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('schedule.html', { showSearch: false });
+AppShell.init('schedule.html', { showTopbar: false });
 
 /* ─────────────────────────────────────────────
    MOCK DATA — remove when backend ready
@@ -138,8 +139,8 @@ AppShell.init('schedule.html', { showSearch: false });
      slots: [
        {
          day: "Monday",           ← "Monday"–"Friday"
-         time: "10.00 AM",        ← display time label
-         end: "11.00 AM",
+         time: "10:00 AM",        ← display time label
+         end: "11:00 AM",
          title: "Database (FP)",
          difficulty: "easy"       ← "easy"|"medium"|"hard"|"study"
        },
@@ -148,19 +149,19 @@ AppShell.init('schedule.html', { showSearch: false });
    }
    ──────────────────────────────────────────── */
 function getMock() {
-  return {
+  return { 
     week: 'March 10 – 14',
     slots: [
-      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)',                      difficulty:'easy'   },
-      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1',   difficulty:'easy'   },
+      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)',                 difficulty:'easy'   },
+      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
       { day:'Monday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
       { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1',   difficulty:'medium' },
-      { day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)',                      difficulty:'easy'   },
+      { day:'Wednesday', time:'10.00 AM', end:'11.00 AM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
+      { day:'Wednesday', time:'11.00 AM', end:'12.00 PM', title:'Database (FP)',                 difficulty:'easy'   },
       { day:'Thursday',  time:'11.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
       { day:'Thursday',  time:'2.00 PM',  end:'3.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Thursday',  time:'4.00 PM',  end:'5.00 PM',  title:'Parallel Computing\nAssignment 1',   difficulty:'medium' },
-      { day:'Friday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1',   difficulty:'medium' },
+      { day:'Thursday',  time:'4.00 PM',  end:'5.00 PM',  title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
+      { day:'Friday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'medium'},
       { day:'Friday',    time:'2.00 PM',  end:'4.00 PM',  title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
     ]
   };
@@ -172,9 +173,11 @@ function getMock() {
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 
 function buildTimeRows(slots) {
+  /* Collect all unique start times, sort */
   const seen = new Set();
   slots.forEach(s => seen.add(s.time));
   return [...seen].sort((a, b) => {
+    /* Parse "HH.MM AM/PM" */
     const parse = t => {
       const [hm, ap] = t.split(' ');
       let [h, mi] = hm.split('.').map(Number);
@@ -186,7 +189,7 @@ function buildTimeRows(slots) {
   });
 }
 
-function timeToMinutes(time) {
+function buildEndMinutes(time) {
   const [hm, ap] = time.split(' ');
   let [h, mi] = hm.split('.').map(Number);
   if (ap === 'PM' && h !== 12) h += 12;
@@ -203,8 +206,7 @@ function renderSchedule(data) {
   const slots = data.slots || [];
   const times = buildTimeRows(slots);
   if (!times.length) {
-    document.getElementById('sch-body').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
+    document.getElementById('sch-body').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
     return;
   }
 
@@ -214,23 +216,26 @@ function renderSchedule(data) {
   slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
 
   /* Track skipped cells (rowspan) */
-  const rowspanSkip = {};
+  const rowspanSkip = {}; /* "day|timeIndex" → true */
 
   let html = '';
   times.forEach((time, ti) => {
     html += `<tr><td class="time-cell">${time}</td>`;
     DAYS.forEach(day => {
       const k = `${day}|${ti}`;
-      if (rowspanSkip[k]) return;
+      if (rowspanSkip[k]) return; /* merged into previous row */
 
       const slot = map[day]?.[time];
       if (slot) {
-        const startMin    = timeToMinutes(slot.time);
-        const endMin      = timeToMinutes(slot.end);
+        /* Calculate rowspan from end time */
+        const startMin = buildEndMinutes(slot.time);
+        const endMin   = buildEndMinutes(slot.end);
+        const durationMins = endMin - startMin;
+        /* How many time rows does this slot occupy? */
         let span = 1;
         for (let nxt = ti + 1; nxt < times.length; nxt++) {
-          const nxtMin = timeToMinutes(times[nxt]);
-          if (nxtMin < endMin) { span++; rowspanSkip[`${day}|${nxt}`] = true; }
+          const nxtMin = buildEndMinutes(times[nxt]);
+          if (nxtMin <= endMin) { span++; rowspanSkip[`${day}|${nxt}`] = true; }
           else break;
         }
         const rs = span > 1 ? ` rowspan="${span}"` : '';
@@ -241,7 +246,7 @@ function renderSchedule(data) {
               <div class="tb-title">${slot.title}</div>
               <div class="tb-time">${slot.time} – ${slot.end}</div>
             </div>
-            <button class="tb-check" onclick="toggleDone(this)" title="Mark done" aria-label="Toggle task done"></button>
+            <button class="tb-check" onclick="toggleDone(this)" title="Mark done"></button>
           </div>
         </td>`;
       } else {
@@ -260,26 +265,26 @@ function renderSchedule(data) {
 async function loadSchedule() {
   let data;
   try {
-    /* CONNECT: uncomment when backend ready */
-    data = await CLAP.API.get('/schedule/');
+    /* ── CONNECT: Uncomment when backend ready
+       data = await CLAP.API.get('/schedule/');
+    ── */
+    data = getMock(); // ← remove when backend connected
   } catch {
-    /* Fall back to mock data silently */
     data = getMock();
+    CLAP.Toast.error('Could not load schedule.');
   }
   renderSchedule(data);
 }
 
 window.toggleDone = function(btn) {
   const taskBlock = btn.closest('.task-block');
-  const isDone    = taskBlock.classList.toggle('done');
+  const isDone = taskBlock.classList.toggle('done');
   btn.classList.toggle('done', isDone);
   btn.title = isDone ? 'Mark undone' : 'Mark done';
-  /* CONNECT: PATCH /api/schedule/slot/:id/ { completed: isDone } */
 };
 
 /* Legend */
-document.getElementById('info-fab').addEventListener('click', (e) => {
-  e.stopPropagation();
+document.getElementById('info-fab').addEventListener('click', () => {
   document.getElementById('legend-popup').classList.toggle('show');
 });
 document.addEventListener('click', e => {
@@ -302,8 +307,8 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
   const btn = document.getElementById('regen-btn');
   btn.disabled = true; btn.style.opacity = '0.7';
   try {
-    /* CONNECT: const data = await CLAP.API.post('/schedule/regenerate/', {}); */
-    await new Promise(r => setTimeout(r, 1200)); // remove this stub when backend ready
+    /* const data = await CLAP.API.post('/schedule/regenerate/', {}); */
+    await new Promise(r => setTimeout(r, 1200));
     const data = getMock();
     renderSchedule(data);
     CLAP.Toast.success('Schedule regenerated!');
@@ -313,9 +318,6 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
     btn.disabled = false; btn.style.opacity = '1';
   }
 });
-
-/* FIX: loadSchedule was missing — this call is required to initialise the page */
-loadSchedule();
 </script>
 </body>
 </html>

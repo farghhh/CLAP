@@ -46,19 +46,17 @@
   --sidebar-hover:  #EBF7F8;
   --sidebar-active: var(--clap-teal);
 
-  --space-xs:    4px;
-  --space-sm:    8px;
-  --space-md:    16px;
-  --space-lg:    24px;
-  --space-xl:    32px;
-  /* FIX: added missing --space-1.5xl variable referenced in auth.css */
-  --space-1\.5xl: 40px;
-  --space-2xl:   48px;
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+  --space-2xl: 48px;
 
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   20px;
-  --radius-xl:   28px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
   --radius-pill: 999px;
 
   --shadow-sm:   0 2px 8px rgba(75,191,191,0.12);

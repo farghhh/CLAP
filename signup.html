@@ -23,25 +23,40 @@
 </head>
 <body>
 
+<!-- Page Loader -->
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo">
-    <img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" />
-    <div class="loader-spinner"></div>
-  </div>
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
 </div>
+
+<!-- Toast Container -->
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+<!-- ========== SIGN UP PAGE ========== -->
 <main class="auth-page" id="signup-page">
   <div class="auth-split">
 
     <!-- LEFT: Form Panel -->
     <section class="auth-form-panel" aria-label="Create account form">
+      <!-- Logo -->
       <div class="auth-logo" aria-label="CLAP Logo">
         <img src="assets/logo.png" alt="CLAP Logo"/>
       </div>
 
       <h1 class="auth-form-title">Create Account</h1>
 
+      <!-- Social sign-up buttons
+      <div class="social-btns" role="group" aria-label="Sign up with social accounts">
+        <button class="social-btn" aria-label="Sign up with Facebook" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">f</button>
+        <button class="social-btn" aria-label="Sign up with Google" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">G+</button>
+        <button class="social-btn" aria-label="Sign up with LinkedIn" type="button"
+                onclick="CLAP.Toast.info('Social sign-up coming soon!')">in</button>
+      </div>
+
+      <div class="social-divider" role="separator">or use your email for registration:</div> -->
+
+      <!-- Sign Up Form -->
       <form id="signup-form" novalidate autocomplete="off">
         <div class="auth-fields">
 
@@ -127,11 +142,13 @@
 
         </div><!-- /.auth-fields -->
 
+        <!-- Submit -->
         <button type="submit" class="btn btn-primary btn-full" id="signup-btn"
                 aria-describedby="signup-submit-status">
           SIGN UP
         </button>
         <span class="sr-only" id="signup-submit-status" aria-live="polite"></span>
+
       </form>
     </section>
 
@@ -158,8 +175,10 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  CLAP.Auth.requireGuest();
+  /* Redirect if already logged in */
+  CLAP.Auth.requireGuest(); // works from localStorage — no backend needed
 
+  /* DOM refs */
   const form      = document.getElementById('signup-form');
   const nameInp   = document.getElementById('signup-name');
   const emailInp  = document.getElementById('signup-email');
@@ -170,28 +189,17 @@
   const submitBtn = document.getElementById('signup-btn');
   const statusEl  = document.getElementById('signup-submit-status');
 
+  /* Init helpers */
   CLAP.initPwToggle(pwToggle, pwInp);
   CLAP.initPasswordStrength(pwInp, pwBar, pwLabel);
 
+  /* Live validation */
   const { Validate } = CLAP;
+  Validate.attachLive(nameInp,  [Validate.rules.required, Validate.rules.minLen(2)]);
+  Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
+  Validate.attachLive(pwInp,    [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength]);
 
-  /* FIX: attachLive only listens to blur+input; also attach paste so pasted
-     values get validated immediately after the browser updates the input value. */
-  function attachLiveWithPaste(input, rules) {
-    Validate.attachLive(input, rules);
-    input.addEventListener('paste', () => {
-      // paste event fires before the input value updates, so defer validation
-      setTimeout(() => {
-        const err = Validate.field(input.value, rules);
-        Validate.setError(input, err);
-      }, 0);
-    });
-  }
-
-  attachLiveWithPaste(nameInp,  [Validate.rules.required, Validate.rules.minLen(2)]);
-  attachLiveWithPaste(emailInp, [Validate.rules.required, Validate.rules.email]);
-  attachLiveWithPaste(pwInp,    [Validate.rules.required, Validate.rules.minLen(8), Validate.rules.pwStrength]);
-
+  /* Form submit */
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -210,7 +218,6 @@
     statusEl.textContent = 'Creating your account…';
 
     try {
-      /* CONNECT: POST /api/auth/register/ */
       const data = await CLAP.API.post('/auth/register/', {
         name:     nameInp.value.trim(),
         email:    emailInp.value.trim().toLowerCase(),
@@ -233,8 +240,8 @@
 
       /* Highlight field if Django returned field-specific errors */
       if (err.data) {
-        if (err.data.email) Validate.setError(emailInp, Array.isArray(err.data.email) ? err.data.email[0] : err.data.email);
-        if (err.data.name)  Validate.setError(nameInp,  Array.isArray(err.data.name)  ? err.data.name[0]  : err.data.name);
+        if (err.data.email) Validate.setError(emailInp, err.data.email[0]);
+        if (err.data.name)  Validate.setError(nameInp, err.data.name[0]);
       }
     }
   });

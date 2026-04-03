@@ -21,10 +21,7 @@
 <body>
 
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo">
-    <img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" />
-    <div class="loader-spinner"></div>
-  </div>
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
 </div>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
@@ -148,15 +145,15 @@
 
   /* ---- Build time options ---- */
   function buildTimeOptions(selectEl, defaultVal) {
-    const hours   = Array.from({ length: 24 }, (_, i) => i);
+    const hours   = Array.from({length:24}, (_,i) => i);
     const minutes = ['00'];
     selectEl.innerHTML = '';
     hours.forEach(h => {
       minutes.forEach(m => {
         const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
         const ampm = h < 12 ? 'AM' : 'PM';
-        const label = `${String(h12).padStart(2, '0')}.${m} ${ampm}`;
-        const val   = `${String(h).padStart(2, '0')}:${m}`;
+        const label = `${String(h12).padStart(2,'0')}.${m} ${ampm}`;
+        const val   = `${String(h).padStart(2,'0')}:${m}`;
         const opt = document.createElement('option');
         opt.value = val;
         opt.textContent = label;
@@ -175,36 +172,22 @@
   getStarted.addEventListener('click', () => {
     stepWelcome.style.display = 'none';
     stepPrefs.style.display   = 'flex';
-    const firstField = stepPrefs.querySelector('select, input');
-    if (firstField) firstField.focus();
+    stepPrefs.querySelector('select, input')?.focus();
   });
 
-  /* ---- Helper: parse "HH:MM" to total minutes ---- */
-  function toMinutes(timeStr) {
-    const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + (m || 0);
-  }
-
   /* ---- Validation helpers ---- */
-  function clearError(id) {
-    document.getElementById(id).textContent = '';
-  }
-  function setError(id, msg) {
-    const el = document.getElementById(id);
-    el.textContent = msg;
-    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  function validateTimeRange(startSel, endSel, errId, label, requireStartBeforeEnd) {
-    clearError(errId);
+  function validateTimeRange(startSel, endSel, errId, label) {
+    const errEl = document.getElementById(errId);
     if (!startSel.value || !endSel.value) {
-      setError(errId, `${label} is required.`);
+      errEl.textContent = `${label} is required.`;
       return false;
     }
-    if (requireStartBeforeEnd && toMinutes(startSel.value) >= toMinutes(endSel.value)) {
-      setError(errId, `${label} end time must be after start time.`);
+    /* Study hours: start must be before end */
+    if (startSel.id.startsWith('study') && startSel.value >= endSel.value) {
+      errEl.textContent = 'Study end time must be after start time.';
       return false;
     }
+    errEl.textContent = '';
     return true;
   }
 
@@ -217,39 +200,39 @@
     const studyStart = document.getElementById('study-start');
     const studyEnd   = document.getElementById('study-end');
     const maxFocus   = document.getElementById('max-focus');
+    const focusErr   = document.getElementById('focus-error');
 
-    /* Validate each range */
     let valid = true;
-    /* Sleep: wraps midnight so start > end is allowed (e.g. 23:00 → 07:00) */
-    if (!validateTimeRange(sleepStart, sleepEnd, 'sleep-error', 'Sleep time', false)) valid = false;
-    /* Study: must be a forward range */
-    if (!validateTimeRange(studyStart, studyEnd, 'study-error', 'Study hours', true)) valid = false;
+    if (!validateTimeRange(sleepStart, sleepEnd,   'sleep-error', 'Sleep time'))  valid = false;
+    if (!validateTimeRange(studyStart, studyEnd,   'study-error', 'Study hours')) valid = false;
 
-    clearError('focus-error');
     if (!maxFocus.value) {
-      setError('focus-error', 'Please select maximum focus hours.');
+      focusErr.textContent = 'Please select maximum focus hours.';
       valid = false;
+    } else {
+      focusErr.textContent = '';
     }
 
     if (!valid) { CLAP.Toast.error('Please complete all fields.'); return; }
 
-    /* FIX: Proper sleep overlap check.
-       Sleep wraps midnight: treat sleep as unavailable from sleepStart to (sleepEnd + 24h).
-       Study must not start before sleep ends (in 24h terms). */
-    const sleepEndMins  = toMinutes(sleepEnd.value);   // e.g. 07:00 → 420
-    const studyStartMins = toMinutes(studyStart.value); // e.g. 08:00 → 480
-
-    if (studyStartMins < sleepEndMins) {
-      setError('study-error', 'Study start time overlaps with sleep end time.');
+    /* Extra check: study hours should not overlap sleep */
+    const studyStartHour = parseInt(studyStart.value);
+    const sleepEndHour   = parseInt(sleepEnd.value);
+    if (studyStartHour < sleepEndHour) {
+      const errEl = document.getElementById('study-error');
+      errEl.textContent = 'Study hours overlap with sleep time.';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       CLAP.Toast.warning('Study hours overlap with your sleep time. Please adjust.');
       return;
     }
 
     /* Max focus should not exceed study window */
-    const studyDuration = toMinutes(studyEnd.value) - toMinutes(studyStart.value);
-    if (parseInt(maxFocus.value, 10) > Math.floor(studyDuration / 60)) {
-      setError('focus-error', `Exceeds your study window (${Math.floor(studyDuration / 60)}h).`);
-      CLAP.Toast.warning(`Max focus hours (${maxFocus.value}h) exceeds your study window.`);
+    const studyDuration = (parseInt(studyEnd.value) - parseInt(studyStart.value) + 24) % 24;
+    if (parseInt(maxFocus.value) > studyDuration) {
+      const errEl = document.getElementById('focus-error');
+      errEl.textContent = 'Exceeds your study window duration.';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      CLAP.Toast.warning(`Max focus hours (${maxFocus.value}h) exceeds your study window (${studyDuration}h).`);
       return;
     }
 
@@ -262,24 +245,20 @@
       sleep_end:       sleepEnd.value,
       study_start:     studyStart.value,
       study_end:       studyEnd.value,
-      max_focus_hours: parseInt(maxFocus.value, 10),
+      max_focus_hours: parseInt(maxFocus.value),
     };
 
     try {
-      /* CONNECT: POST /api/users/preferences/ */
       await CLAP.API.post('/users/preferences/', payload);
+      CLAP.Toast.success('Preferences saved! Redirecting to dashboard…');
+      statusEl.textContent = 'Preferences saved.';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
     } catch (err) {
-      /* Non-fatal — store locally so Settings can still read the values */
-      console.warn('Could not save preferences to server:', err.message);
+      CLAP.Toast.error(err.message || 'Failed to save preferences.');
+      statusEl.textContent = 'Save failed.';
+      saveBtn.classList.remove('loading');
+      saveBtn.disabled = false;
     }
-
-    /* FIX: Always persist preferences locally under 'clap_prefs' so the
-       Settings page can display them without requiring a backend call. */
-    localStorage.setItem('clap_prefs', JSON.stringify(payload));
-
-    CLAP.Toast.success('Preferences saved! Redirecting to dashboard…');
-    statusEl.textContent = 'Preferences saved.';
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
   });
 
   CLAP.hideLoader();

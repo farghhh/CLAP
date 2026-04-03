@@ -18,14 +18,15 @@
     .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); }
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
-    .db-search    { flex:1; max-width:280px; position:relative; display:flex; align-items:center; }
-    .db-search svg{ position:absolute; left:14px; color:var(--placeholder); pointer-events:none; }
-    .db-search input{ width:100%; padding:10px 14px 10px 40px; background:var(--white); border:none; border-radius:999px; font-size:0.875rem; color:var(--text-primary); box-shadow:0 2px 12px rgba(26,58,92,0.08); font-family:inherit; }
-    .db-search input:focus{ outline:none; box-shadow:0 0 0 2px var(--clap-teal); }
-    .db-search input::placeholder{ color:var(--placeholder); }
+    .db-search    { display: none !important; }
 
     /* ── Stats grid ── */
-    .stats-grid   { display:grid; grid-template-columns:1fr 1fr 200px; grid-template-rows:auto auto; gap:16px; }
+    .stats-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr minmax(180px, 240px);
+      grid-template-rows:auto auto;
+      gap:16px;
+    }
     .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
     .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
     .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
@@ -67,7 +68,11 @@
     .plan-link:hover{ color:var(--clap-teal); }
 
     /* Timetable overrides for dashboard mini */
-    .timetable    { min-width:480px; width:100%; border-collapse:separate; border-spacing:3px; }
+    .timetable {
+      width:100%;
+      border-collapse:separate;
+      border-spacing:3px;
+    }
     .timetable th { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; }
     .timetable th:first-child{ text-align:right; background:transparent; color:var(--text-muted); font-size:0.68rem; }
     .timetable td { vertical-align:top; padding:2px; min-width:70px; }
@@ -120,8 +125,16 @@
     .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
     .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
     .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:#aaa; transition:all var(--transition); }
-    .todo-btn.chk:hover{ border-color:var(--success); color:var(--success); }
-    .todo-btn.skp:hover{ border-color:var(--danger);  color:var(--danger); }
+    .todo-btn.chk:hover {
+      border-color:var(--success);
+      background:var(--success);
+      color:#fff;
+    }
+    .todo-btn.skp:hover {
+      border-color:var(--danger);
+      background:var(--danger);
+      color:#fff;
+    }
     .todo-item.done .todo-name{ text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
 
@@ -188,6 +201,7 @@
           <div class="focus-box">
             <div class="focus-title">Focus Hours<br>Today</div>
             <div class="focus-clock">
+              <!-- Clock SVG -->
               <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
                 <circle cx="26" cy="26" r="24" stroke="rgba(255,255,255,0.5)"/>
                 <circle cx="26" cy="26" r="19" stroke="rgba(255,255,255,0.3)"/>
@@ -270,33 +284,40 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('dashboard.html');
+AppShell.init('dashboard.html', { showSearch: false });
 
-/* Greeting */
-const _u  = CLAP.Auth.getUser() || {};
+/* ─────────────────────────────────────────────
+   GREETING  (reads from CLAP.Auth.getUser())
+   Backend: user object stored after login
+   ──────────────────────────────────────────── */
+const _u = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
 document.getElementById('db-av').textContent    = (_u.name || 'S').charAt(0).toUpperCase();
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
 /* ─────────────────────────────────────────────
-   MOCK DATA — remove each stub once backend ready
-   CONNECT: GET /api/dashboard/
-   Expected response shape:
-   {
-     total_tasks: 5,
-     cognitive_load: { value: 72, level: "moderate", trend: [40,45,55,50,72] },
-     focus: { used: 3, max: 6 },
-     next_deadline: { course: "CSC2383", title: "Database Project", days_left: 2 },
-     schedule: {
-       Monday: [{ time:"09:00", end:"10:00", title:"Database Project", difficulty:"easy" }], ...
-     },
-     today_tasks: [
-       { id:1, title:"Database Project", start:"09:00 AM", end:"10:00 AM", difficulty:"easy" }, ...
-     ]
-   }
+   MOCK DATA  — remove each stub once backend ready
    ──────────────────────────────────────────── */
 function getMock() {
   return {
+    /* ── CONNECT: GET /api/dashboard/
+       Expected response shape:
+       {
+         total_tasks: 5,
+         cognitive_load: { value: 72, level: "moderate", trend: [40,45,55,50,72] },
+         focus: { used: 3, max: 6 },
+         next_deadline: { course: "CSC2383", title: "Database Project", days_left: 2 },
+         schedule: {
+           Monday: [{ time:"09:00", end:"10:00", title:"Database Project", difficulty:"easy" }],
+           ...
+         },
+         today_tasks: [
+           { id:1, title:"Database Project", start:"09:00 AM", end:"10:00 AM", color:"purple" },
+           ...
+         ],
+         recommendation: { alert:"...", suggestion:"...", reduction: 22 }
+       }
+    ── */
     total_tasks: 5,
     cognitive_load: { value: 72, level: 'moderate', trend: [40, 45, 55, 50, 72] },
     focus: { used: 3, max: 6 },
@@ -318,6 +339,8 @@ function getMock() {
       ],
     },
     today_tasks: [
+      /* color maps to pill style: easy→green, medium→orange, hard→purple, study→blue
+         CONNECT: backend should send difficulty OR color field */
       { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
       { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
       { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', difficulty:'hard',   color:'purple' },
@@ -331,10 +354,10 @@ function getMock() {
 async function loadDashboard() {
   let data;
   try {
-    /* CONNECT: uncomment the API call and remove getMock() when backend is ready */
-    data = await CLAP.API.get('/dashboard/');
-  } catch {
-    /* Silently fall back to mock data — no error toast on initial load */
+      data = await CLAP.API.get('/dashboard/');
+    // data = getMock(); // ← remove this line when backend connected
+  } catch (err) {
+    CLAP.Toast.error('Could not load dashboard data.');
     data = getMock();
   }
 
@@ -380,13 +403,13 @@ function renderSparkline(trend) {
   ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
   pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y)); ctx.stroke();
   /* arrowhead */
-  const e = pts[pts.length - 1], p = pts[pts.length - 2];
-  const a = Math.atan2(e.y - p.y, e.x - p.x);
+  const e = pts[pts.length-1], p = pts[pts.length-2];
+  const a = Math.atan2(e.y-p.y, e.x-p.x);
   ctx.beginPath();
   ctx.moveTo(e.x, e.y);
-  ctx.lineTo(e.x - 8 * Math.cos(a - 0.35), e.y - 8 * Math.sin(a - 0.35));
+  ctx.lineTo(e.x - 8*Math.cos(a-0.35), e.y - 8*Math.sin(a-0.35));
   ctx.moveTo(e.x, e.y);
-  ctx.lineTo(e.x - 8 * Math.cos(a + 0.35), e.y - 8 * Math.sin(a + 0.35));
+  ctx.lineTo(e.x - 8*Math.cos(a+0.35), e.y - 8*Math.sin(a+0.35));
   ctx.strokeStyle = '#7B68EE'; ctx.lineWidth = 2; ctx.stroke();
 }
 
@@ -399,15 +422,15 @@ function renderDeadline(dl) {
   document.getElementById('dl-name').textContent   = dl.title  || '';
   const b = document.getElementById('dl-badge');
   const d = dl.days_left;
-  if (d <= 1)      { b.textContent = 'Due Today!';        b.className = 'dl-badge urgent'; }
-  else if (d <= 3) { b.textContent = `Due in ${d} Days`;  b.className = 'dl-badge urgent'; }
-  else if (d <= 7) { b.textContent = `Due in ${d} Days`;  b.className = 'dl-badge warn'; }
-  else             { b.textContent = `Due in ${d} Days`;  b.className = 'dl-badge safe'; }
+  if (d <= 1)      { b.textContent = 'Due Today!';         b.className = 'dl-badge urgent'; }
+  else if (d <= 3) { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge urgent'; }
+  else if (d <= 7) { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge warn'; }
+  else             { b.textContent = `Due in ${d} Days`;   b.className = 'dl-badge safe'; }
 }
 
 /* ─────────────────────────────────────────────
    GENERATED STUDY PLAN TIMETABLE
-   difficulty → colour: easy=green, medium=yellow, hard=red, study=blue
+   difficulty → colour class: easy=green, medium=yellow, hard=red, study=blue
    ──────────────────────────────────────────── */
 const DIFF_COLOR = { easy:'green', medium:'yellow', hard:'red', study:'blue' };
 const DAYS  = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
@@ -417,7 +440,6 @@ function renderSchedule(schedule) {
   if (!schedule) return;
   const map = {};
   DAYS.forEach(d => { map[d] = {}; });
-
   Object.entries(schedule).forEach(([day, tasks]) => {
     if (!Array.isArray(tasks)) return;
     tasks.forEach(t => { if (map[day]) map[day][t.time] = t; });
@@ -432,10 +454,11 @@ function renderSchedule(schedule) {
       if (skip[k]) return;
       const task = map[day]?.[time];
       if (task) {
+        /* difficulty → colour: easy=green, medium=yellow, hard=red, study=blue */
         const startH = parseInt(time.split(':')[0]);
         const endH   = task.end ? parseInt(task.end.split(':')[0]) : startH + 1;
         const span   = Math.max(1, endH - startH);
-        for (let s = 1; s < span; s++) skip[day + (ti + s)] = true;
+        for (let s = 1; s < span; s++) skip[day + (ti+s)] = true;
         const col = DIFF_COLOR[task.difficulty] || 'blue';
         const rs  = span > 1 ? ` rowspan="${span}"` : '';
         html += `<td${rs} style="vertical-align:top;padding:2px">
@@ -443,9 +466,7 @@ function renderSchedule(schedule) {
             <div class="t-block ${col}" style="cursor:pointer;" title="${task.title} — click to view schedule">${task.title}</div>
           </a>
         </td>`;
-      } else {
-        html += '<td></td>';
-      }
+      } else { html += '<td></td>'; }
     });
     html += '</tr>';
   });
@@ -457,7 +478,8 @@ function renderSchedule(schedule) {
    CALENDAR
    ──────────────────────────────────────────── */
 let calDate = new Date();
-/* CONNECT: replace DOT_MAP with real deadline dates from API */
+/* Dots: date number → CSS dot class
+   CONNECT: replace with real deadline dates from API */
 const DOT_MAP = { 9:'dot-teal', 11:'dot-orange', 12:'dot-teal', 16:'dot-orange',
                   17:'dot-teal', 20:'dot-orange', 22:'dot-red',  25:'dot-red',
                   26:'dot-teal', 27:'dot-green',  31:'dot-red' };
@@ -473,26 +495,27 @@ function renderCalendar() {
   document.getElementById('cal-day').textContent   = isCur ? DN[today.getDay()] : '';
 
   const firstDow    = new Date(y, m, 1).getDay();
-  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
   let html = DN.map(d => `<div class="cal-dn">${d}</div>`).join('');
   for (let i = 0; i < firstDow; i++) html += `<div class="cal-d om"></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
-    const isT = isCur && d === td;
-    const dot = !isT && DOT_MAP[d] ? DOT_MAP[d] : '';
+    const isT  = isCur && d === td;
+    const dot  = !isT && DOT_MAP[d] ? DOT_MAP[d] : '';
     html += `<div class="cal-d ${isT ? 'today' : ''} ${dot}">${d}</div>`;
   }
   document.getElementById('cal-grid').innerHTML = html;
 }
-document.getElementById('cal-prev').onclick = () => { calDate.setMonth(calDate.getMonth() - 1); renderCalendar(); };
-document.getElementById('cal-next').onclick = () => { calDate.setMonth(calDate.getMonth() + 1); renderCalendar(); };
+document.getElementById('cal-prev').onclick = () => { calDate.setMonth(calDate.getMonth()-1); renderCalendar(); };
+document.getElementById('cal-next').onclick = () => { calDate.setMonth(calDate.getMonth()+1); renderCalendar(); };
 renderCalendar();
 
 /* ─────────────────────────────────────────────
    TODAY MUST-DO LIST
    ──────────────────────────────────────────── */
+/* difficulty → pill colour matching the timetable */
 const DIFF_TO_COLOR = { easy:'green', medium:'orange', hard:'purple', study:'blue' };
 const COLOR_ICONS   = { purple:'🗄️', orange:'⚙️', blue:'📱', green:'📗', red:'📕' };
-
+/* Resolve colour: use difficulty mapping if available, else fall back to task.color */
 function taskColor(t) {
   if (t.difficulty && DIFF_TO_COLOR[t.difficulty]) return DIFF_TO_COLOR[t.difficulty];
   return t.color || 'blue';
@@ -505,7 +528,7 @@ function renderTodo(tasks) {
     return;
   }
   el.innerHTML = tasks.map(t => {
-    const col  = taskColor(t);
+    const col = taskColor(t);
     const icon = COLOR_ICONS[col] || '📝';
     return `
     <div class="todo-item" id="td-${t.id}">
@@ -525,14 +548,15 @@ function renderTodo(tasks) {
 }
 
 window.markTask = async function(id, done) {
-  const el = document.getElementById('td-' + id);
-  if (el) el.classList.toggle('done', done);
-  /* CONNECT: PATCH /api/tasks/:id/ */
+  const el = document.getElementById('td-'+id);
+  if (el) {
+    el.classList.toggle('done', done);
+  }
   try { await CLAP.API.patch(`/tasks/${id}/`, { completed: done }); } catch {}
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };
 
-/* Search bar — dispatches event pages can listen to */
+/* Search bar */
 document.getElementById('db-search').addEventListener('input', e => {
   document.dispatchEvent(new CustomEvent('clap:search', { detail: e.target.value.toLowerCase() }));
 });
