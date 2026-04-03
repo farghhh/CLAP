@@ -4,654 +4,161 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CLAP — My Assignments</title>
+
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/app.css" />
-```html
-<style>
-  /* ===== assignments page scale fix ===== */
-  .main-content {
-    padding-top: 26px;
-  }
-
-  .assign-page-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-  }
-
-  .assign-page-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin: 0;
-    font-family: var(--font-heading);
-    font-size: 1.55rem;
-    font-weight: 800;
-    color: var(--clap-teal);
-    line-height: 1.1;
-  }
-
-  .assign-page-title svg {
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-  }
-
-  .assign-search {
-    flex: 1;
-    max-width: 320px;
-    position: relative;
-    display: flex;
-    align-items: center;
-  }
-
-  .assign-search .s-icon {
-    position: absolute;
-    left: 12px;
-    color: var(--placeholder);
-    display: flex;
-    align-items: center;
-  }
-
-  .assign-search input {
-    width: 100%;
-    height: 42px;
-    padding: 9px 14px 9px 36px;
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-pill);
-    font-size: 0.85rem;
-    color: var(--text-primary);
-    transition: border-color var(--transition), box-shadow var(--transition);
-  }
-
-  .assign-search input:focus {
-    outline: none;
-    border-color: var(--clap-teal);
-    box-shadow: 0 0 0 3px rgba(75,191,191,0.10);
-  }
-
-  .assign-search input::placeholder {
-    color: var(--placeholder);
-  }
-
-  .add-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 42px;
-    padding: 0 18px;
-    background: var(--clap-teal);
-    color: var(--white);
-    border: none;
-    border-radius: var(--radius-pill);
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(75,191,191,0.35);
-    transition: all var(--transition);
-    white-space: nowrap;
-  }
-
-  .add-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(75,191,191,0.45);
-  }
-
-  .ml-auto {
-    margin-left: auto;
-  }
-
-  /* ===== tabs ===== */
-  .tab-bar {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 4px;
-    background: var(--white);
-    border-radius: var(--radius-pill);
-    padding: 4px;
-    box-shadow: var(--shadow-card);
-    margin: 0 auto 18px;
-    width: fit-content;
-  }
-
-  .tab-btn {
-    min-width: 150px;
-    height: 38px;
-    padding: 0 18px;
-    border: none;
-    background: transparent;
-    border-radius: var(--radius-pill);
-    font-family: var(--font-heading);
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all var(--transition);
-  }
-
-  .tab-btn.active {
-    background: var(--clap-teal);
-    color: var(--white);
-    box-shadow: 0 3px 10px rgba(75,191,191,0.3);
-  }
-
-  .tab-btn:hover:not(.active) {
-    color: var(--clap-teal);
-  }
-
-  /* ===== progress view ===== */
-  .progress-card {
-    max-width: 560px;
-    margin: 0 auto;
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    padding: 18px 22px;
-    box-shadow: var(--shadow-card);
-  }
-
-  .progress-item {
-    padding: 11px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .progress-item:last-child {
-    border-bottom: none;
-  }
-
-  .progress-item-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 6px;
-  }
-
-  .progress-item-name {
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--text-primary);
-  }
-
-  .progress-pct-badge {
-    min-width: 32px !important;
-    height: 32px;
-    border-radius: 50% !important;
-    padding: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--white);
-    font-size: 0.62rem !important;
-    font-weight: 800;
-    flex-shrink: 0;
-  }
-
-  .progress-bar {
-    height: 6px;
-    background: var(--border);
-    border-radius: var(--radius-pill);
-    overflow: hidden;
-    margin-top: 4px;
-  }
-
-  .progress-fill {
-    height: 100%;
-    border-radius: var(--radius-pill);
-    background: var(--clap-teal);
-    transition: width 0.6s var(--ease);
-  }
-
-  .progress-fill.completed {
-    background: var(--success);
-  }
-
-  .progress-fill.not-started {
-    background: #222;
-  }
-
-  .progress-legend {
-    width: fit-content;
-    margin: 14px 0 0 auto !important;
-    padding: 12px 14px;
-    border-radius: 16px;
-    background: var(--white);
-    box-shadow: var(--shadow-card);
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    color: var(--text-muted);
-  }
-
-  .legend-item + .legend-item {
-    margin-top: 6px;
-  }
-
-  .legend-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  /* ===== table view ===== */
-  .assignments-table-wrap {
-    max-width: 860px;
-    margin: 0 auto;
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    padding: 14px 16px;
-    box-shadow: var(--shadow-card);
-    overflow-x: auto;
-  }
-
-  .assignments-table {
-    width: 100%;
-    min-width: 680px;
-    border-collapse: collapse;
-  }
-
-  .assignments-table th {
-    padding: 10px 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border);
-    font-family: var(--font-heading);
-    font-size: 0.76rem;
-    font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .assignments-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.86rem;
-    font-weight: 500;
-    color: var(--text-primary);
-    vertical-align: middle;
-  }
-
-  .assignments-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .assignments-table tbody tr:hover {
-    background: var(--bg-light);
-  }
-
-  .assignments-table tbody tr.overdue td {
-    color: var(--danger);
-  }
-
-  .diff-badge {
-    display: inline-flex;
-    padding: 3px 10px;
-    border-radius: var(--radius-pill);
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: capitalize;
-  }
-
-  .diff-badge.easy {
-    background: rgba(46,204,113,0.12);
-    color: #27AE60;
-  }
-
-  .diff-badge.medium {
-    background: rgba(243,156,18,0.12);
-    color: #E67E22;
-  }
-
-  .diff-badge.hard {
-    background: rgba(231,76,60,0.12);
-    color: var(--danger);
-  }
-
-  .tbl-action-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    font-size: 0.95rem;
-    padding: 4px 6px;
-    border-radius: var(--radius-sm);
-    transition: all var(--transition);
-  }
-
-  .tbl-action-btn:hover {
-    background: var(--bg-light);
-  }
-
-  .tbl-action-btn.edit:hover {
-    color: var(--clap-teal);
-  }
-
-  .tbl-action-btn.del:hover {
-    color: var(--danger);
-  }
-
-  /* ===== form ===== */
-  .back-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: var(--clap-teal);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    margin-bottom: 14px;
-    padding: 6px 4px;
-    transition: color var(--transition), transform var(--transition);
-  }
-
-  .back-btn:hover {
-    color: var(--clap-teal-dark);
-    transform: translateX(-2px);
-  }
-
-  .add-assign-title {
-    font-family: var(--font-heading);
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: var(--clap-teal);
-    margin-bottom: 18px;
-  }
-
-  .add-assign-wrap {
-    max-width: 520px;
-  }
-
-  .form-field {
-    margin-bottom: 14px;
-  }
-
-  .form-field label {
-    display: block;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-    margin-bottom: 5px;
-  }
-
-  .form-field label span {
-    color: var(--danger);
-  }
-
-  .form-field input,
-  .form-field select {
-    width: 100%;
-    height: 42px;
-    padding: 0 14px;
-    background: var(--white);
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-md);
-    font-size: 0.88rem;
-    color: var(--text-primary);
-    transition: border-color var(--transition), box-shadow var(--transition);
-  }
-
-  .form-field input:focus,
-  .form-field select:focus {
-    outline: none;
-    border-color: var(--clap-teal);
-    box-shadow: 0 0 0 3px rgba(75,191,191,0.12);
-  }
-
-  .save-btn {
-    padding: 10px 30px;
-    background: var(--clap-teal);
-    color: var(--white);
-    border: none;
-    border-radius: var(--radius-pill);
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 0.88rem;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(75,191,191,0.35);
-    transition: all var(--transition);
-  }
-
-  .save-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(75,191,191,0.45);
-  }
-
-  /* ===== delete modal ===== */
-  .delete-modal-icon {
-    font-size: 2.5rem;
-    margin-bottom: var(--space-md);
-  }
-
-  .delete-modal-title {
-    font-family: var(--font-heading);
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: var(--space-sm);
-  }
-
-  .delete-modal-sub {
-    color: var(--text-muted);
-    font-size: 0.86rem;
-    margin-bottom: var(--space-xl);
-    line-height: 1.5;
-  }
-
-  .delete-modal-actions {
-    display: flex;
-    gap: var(--space-md);
-    justify-content: flex-end;
-    flex-wrap: wrap;
-  }
-
-  @media (max-width: 900px) {
-    .assign-page-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .assign-search {
-      max-width: 100%;
-      width: 100%;
-    }
-
-    .ml-auto {
-      margin-left: 0;
-    }
-
-    .progress-card,
-    .assignments-table-wrap {
-      max-width: 100%;
-    }
-
-    .progress-legend {
-      margin-left: 0 !important;
-    }
-  }
-
-  @media (max-width: 600px) {
-    .assign-page-title {
-      font-size: 1.35rem;
-    }
-
-    .tab-btn {
-      min-width: 128px;
-      font-size: 0.74rem;
-      padding: 0 14px;
-    }
-
-    .delete-modal-actions {
-      flex-direction: column;
-    }
-  }
-</style>
 </head>
+
 <body>
-<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+
+<!-- Toast -->
+<div id="toast-container"></div>
+
+<!-- Sidebar toggle -->
+<button class="sidebar-toggle" id="sidebar-toggle">&#9776;</button>
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <div class="app-layout">
+
+  <!-- Sidebar injected by AppShell -->
   <aside id="sidebar" class="sidebar"></aside>
+
+  <!-- MAIN CONTENT -->
   <main class="main-content" id="main">
 
-    <!-- ── Page header: title, search bar, add button ── -->
-    <div class="assign-page-header">
+    <!-- Header -->
+    <div class="assign-page-header" id="page-header">
+
       <h1 class="assign-page-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
         </svg>
         My Assignments
       </h1>
 
-      <!-- Search bar filters both progress and table views -->
-      <div class="assign-search">
+      <div class="assign-search" id="header-search">
         <span class="s-icon">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
           </svg>
         </span>
-        <input type="search" id="search-input" placeholder="Find your past assignments."
-               autocomplete="off" aria-label="Search assignments" />
+        <input type="search" id="search-input" placeholder="Find your assignments..." />
       </div>
 
-      <!-- Opens the add-assignment form -->
-      <button class="add-btn ml-auto" id="add-btn" aria-label="Add new assignment">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
-        </svg>
-        Add Assignment
+      <button class="add-btn ml-auto" id="add-btn">
+        + Add Assignment
       </button>
+
     </div>
 
-    <!-- ── Tab bar ── -->
-    <div class="tab-bar" role="tablist">
-      <button class="tab-btn active" id="tab-progress" role="tab"
-              data-tab="progress" aria-selected="true">Assignment Progress</button>
-      <button class="tab-btn"        id="tab-all"      role="tab"
-              data-tab="all"         aria-selected="false">All Assignments</button>
+    <!-- Tabs -->
+    <div class="tab-bar" id="tab-bar">
+      <button class="tab-btn active" id="tab-progress">Assignment Progress</button>
+      <button class="tab-btn" id="tab-all">All Assignments</button>
     </div>
 
-    <!-- ── Progress view: visual progress bars ── -->
+    <!-- Progress -->
     <div id="view-progress">
       <div class="progress-card" id="progress-list">
-        <p style="color:var(--text-muted);text-align:center;padding:20px">Loading…</p>
-      </div>
-      <!-- Legend explaining the bar colour coding -->
-      <div class="progress-legend" style="margin-top:var(--space-md);">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div>Completed</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#222"></div>Not Started Yet</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--clap-teal)"></div>In Progress</div>
+        Loading...
       </div>
     </div>
 
-    <!-- ── All assignments table view ── -->
+    <!-- Table -->
     <div id="view-all" style="display:none">
       <div class="assignments-table-wrap">
-        <table class="assignments-table" id="assign-table" aria-label="All assignments">
+
+        <div class="tbl-search-wrap">
+          <input class="tbl-search-bar" id="tbl-search-input" placeholder="Search..." />
+        </div>
+
+        <table class="assignments-table">
           <thead>
             <tr>
-              <th>No.</th><th>Code</th><th>Assignment Title</th>
-              <th>Deadline</th><th>Hours</th><th>Difficulty</th><th>Actions</th>
+              <th>No</th>
+              <th>Code</th>
+              <th>Title</th>
+              <th>Deadline</th>
+              <th>Hours</th>
+              <th>Difficulty</th>
+              <th>Actions</th>
             </tr>
           </thead>
-          <!-- tbody rows injected by renderTable() -->
-          <tbody id="assign-tbody">
-            <tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
-          </tbody>
+          <tbody id="assign-tbody"></tbody>
         </table>
+
       </div>
     </div>
 
-    <!-- ── Add / Edit form (hidden by default) ── -->
+    <!-- FORM -->
     <div id="view-form" style="display:none">
-      <button class="back-btn" id="back-btn" aria-label="Go back">&#8249; Back</button>
+
+      <button class="back-btn" id="back-btn">← Back</button>
+
       <h2 class="add-assign-title" id="form-title">Add Assignment</h2>
+
       <div class="add-assign-wrap">
+
         <div class="form-field">
-          <label for="f-code">Course Code<span aria-hidden="true">*</span></label>
-          <input type="text" id="f-code" placeholder="Eg; CSC2343" maxlength="20"
-                 aria-required="true" />
+          <label>Course Code</label>
+          <input id="f-code">
         </div>
+
         <div class="form-field">
-          <label for="f-title">Assignment Title<span aria-hidden="true">*</span></label>
-          <input type="text" id="f-title" placeholder="Eg; Database Final Project" maxlength="100"
-                 aria-required="true" />
+          <label>Title</label>
+          <input id="f-title">
         </div>
+
         <div class="form-field">
-          <label for="f-deadline">Deadline<span aria-hidden="true">*</span></label>
-          <input type="date" id="f-deadline" aria-required="true" />
+          <label>Deadline</label>
+          <input type="date" id="f-deadline">
         </div>
+
         <div class="form-field">
-          <label for="f-hours">Estimated Hours<span aria-hidden="true">*</span></label>
-          <input type="number" id="f-hours" placeholder="Eg; 6" min="1" max="999"
-                 aria-required="true" />
+          <label>Hours</label>
+          <input type="number" id="f-hours">
         </div>
+
         <div class="form-field">
-          <label for="f-difficulty">Difficulty Level<span aria-hidden="true">*</span></label>
-          <select id="f-difficulty" aria-required="true">
+          <label>Difficulty</label>
+          <select id="f-difficulty">
             <option value="easy">Easy</option>
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
           </select>
         </div>
+
         <button class="save-btn" id="save-btn">Save</button>
+
       </div>
     </div>
 
   </main>
 </div>
 
-<!-- ── Delete confirmation modal ── -->
-<div id="del-modal" class="modal-overlay"
-     style="display:none;position:fixed;inset:0;z-index:9000;
-            background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);
-            align-items:center;justify-content:center;"
-     role="dialog" aria-modal="true" aria-labelledby="del-modal-title">
-  <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);
-              max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
-    <div class="delete-modal-icon" aria-hidden="true">🗑️</div>
-    <div class="delete-modal-title" id="del-modal-title">Delete Assignment?</div>
-    <div class="delete-modal-sub">This will permanently remove the assignment. This action cannot be undone.</div>
-    <div class="delete-modal-actions">
-      <button class="btn btn-ghost btn-sm"  id="del-cancel">Cancel</button>
-      <button class="btn btn-danger btn-sm" id="del-confirm">Delete</button>
-    </div>
-  </div>
-</div>
-
+<!-- Scripts -->
 <script src="js/core.js"></script>
 <script src="js/app-shell.js"></script>
+
 <script>
+  AppShell.init('assignments.html', { showSearch: false });
+  /**
+ * CLAP — My Assignments Page Script
+ * ============================================================
+ * Handles: data loading, progress view, table view, add/edit
+ * form, delete modal, tab switching, search, and sidebar.
+ *
+ * Depends on: css/global.css, css/app.css
+ * CONNECT: replace MOCK with real API calls via CLAP.API.*
+ * ============================================================
+ */
 'use strict';
 
-/*
- * Assignments page uses its own header (assign-page-header)
- * instead of the AppShell topbar, so showTopbar: false.
- */
-AppShell.init('assignments.html', { showTopbar: false });
-
-/*
- * FIX: The original file had two copies of the MOCK array —
- * one commented-out block immediately followed by an identical
- * live block. The commented block is removed here; only the
- * active definition below remains.
- *
- * CONNECT: replace MOCK with real data from GET /api/assignments/
- */
+/* ── MOCK DATA ─────────────────────────────────────────────────
+   Remove once GET /api/assignments/ is connected.
+   ─────────────────────────────────────────────────────────── */
 const MOCK = [
   { id:1, course_code:'CSC2383', title:'Database Final Project',         deadline:'2026-03-22', hours:6,  difficulty:'easy',   progress:80  },
   { id:2, course_code:'CSC2613', title:'Parallel Computing System',      deadline:'2026-03-25', hours:10, difficulty:'medium', progress:60  },
@@ -660,97 +167,119 @@ const MOCK = [
   { id:5, course_code:'CSC4832', title:'AI Research Thesis',             deadline:'2026-03-05', hours:7,  difficulty:'easy',   progress:0   },
 ];
 
-/* ── State ── */
-let assignments = []; // current working dataset (API or mock)
-let editingId   = null; // id of the assignment being edited (null = adding new)
-let deleteId    = null; // id queued for deletion
-let activeTab   = 'progress'; // which tab is currently visible
+/* ── STATE ── */
+let assignments = [];
+let editingId   = null;
+let deleteId    = null;
+let activeTab   = 'progress';
 
-/* ── LOAD ───────────────────────────────────────────────────
-   Fetch the assignment list from the API; fall back to MOCK.
-   CONNECT: GET /api/assignments/
+/* ── DOM REFS ── */
+const $ = id => document.getElementById(id);
+
+const searchInput    = $('search-input');
+const tblSearchInput = $('tbl-search-input');
+const progressList   = $('progress-list');
+const assignTbody    = $('assign-tbody');
+const legendEl       = $('progress-legend');
+const infoFab        = $('info-fab');
+const viewProgress   = $('view-progress');
+const viewAll        = $('view-all');
+const viewForm       = $('view-form');
+const pageHeader     = $('page-header');
+const tabBar         = $('tab-bar');
+const headerSearch   = $('header-search');
+const delModal       = $('del-modal');
+const logoutModal    = $('logout-modal');
+
+/* ── TOAST ─────────────────────────────────────────────────── */
+function showToast(msg, type = 'success') {
+  const container = $('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-msg">${escHtml(msg)}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('hiding');
+    toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    setTimeout(() => toast.remove(), 400);
+  }, 3500);
+}
+
+/* ── ESCAPE HTML ── */
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+/* ── LOAD ──────────────────────────────────────────────────────
+   Fetches from API; falls back to MOCK data.
+   CONNECT: replace with CLAP.API.get('/assignments/')
    ─────────────────────────────────────────────────────────── */
 async function loadAssignments() {
   try {
-    assignments = await CLAP.API.get('/assignments/');
+    const res = await fetch('/api/assignments/');
+    if (!res.ok) throw new Error('API unavailable');
+    assignments = await res.json();
   } catch {
-    /* Backend not yet connected — use static mock data. */
     assignments = MOCK;
   }
   renderProgress();
   renderTable();
 }
 
-/* ── PROGRESS VIEW ──────────────────────────────────────────
-   Renders visual progress bars for each assignment.
-   Respects the current search query.
-   ─────────────────────────────────────────────────────────── */
+/* ── RENDER PROGRESS VIEW ────────────────────────────────────── */
 function renderProgress() {
-  const q    = document.getElementById('search-input').value.toLowerCase();
-  const list = document.getElementById('progress-list');
-
-  /* Filter by search query across title and course code. */
+  const q = (searchInput.value || '').toLowerCase();
   const items = assignments.filter(a =>
-    !q ||
-    a.title.toLowerCase().includes(q) ||
-    a.course_code.toLowerCase().includes(q)
+    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
   );
 
   if (!items.length) {
-    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>';
+    progressList.innerHTML =
+      '<p style="color:var(--text-muted);text-align:center;padding:20px">No assignments found.</p>';
     return;
   }
 
-  list.innerHTML = items.map(a => {
+  progressList.innerHTML = items.map(a => {
     const pct        = a.progress ?? 0;
     const isComplete = pct === 100;
     const isNotStart = pct === 0;
 
-    /* Colour and label vary by completion status. */
     const fillClass = isComplete ? 'completed' : isNotStart ? 'not-started' : '';
     const badgeBg   = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
-    const labelTxt  = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}% In Progress`;
+    const labelTxt  = isComplete ? 'Completed' : isNotStart ? 'Not Started' : `${pct}%`;
 
     return `
       <div class="progress-item">
         <div class="progress-item-header">
-          <div class="progress-item-name">${esc(a.course_code)} — ${esc(a.title)}</div>
-          <div class="progress-pct-badge"
-               style="background:${badgeBg};min-width:56px;border-radius:var(--radius-pill);
-                      padding:4px 10px;font-size:0.7rem">${labelTxt}</div>
+          <div class="progress-item-name">${escHtml(a.course_code)} ${escHtml(a.title)}</div>
+          <div class="progress-pct-badge" style="background:${badgeBg}">${labelTxt}</div>
         </div>
-        <div class="progress-bar">
+        <div class="progress-bar-track">
           <div class="progress-fill ${fillClass}" style="width:${pct}%"></div>
         </div>
       </div>`;
   }).join('');
 }
 
-/* ── TABLE VIEW ─────────────────────────────────────────────
-   Renders the full assignments table with edit/delete actions.
-   Overdue rows are styled with the .overdue class.
-   ─────────────────────────────────────────────────────────── */
+/* ── RENDER TABLE VIEW ─────────────────────────────────────── */
 function renderTable() {
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q = ((tblSearchInput && tblSearchInput.value) || searchInput.value || '').toLowerCase();
   const items = assignments.filter(a =>
-    !q ||
-    a.title.toLowerCase().includes(q) ||
-    a.course_code.toLowerCase().includes(q)
+    !q || a.title.toLowerCase().includes(q) || a.course_code.toLowerCase().includes(q)
   );
 
-  const tbody = document.getElementById('assign-tbody');
-
   if (!items.length) {
-    tbody.innerHTML =
+    assignTbody.innerHTML =
       '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">No assignments found.</td></tr>';
     return;
   }
 
-  /* Strip time portion so today's date is never falsely flagged as overdue. */
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  tbody.innerHTML = items.map((a, i) => {
+  assignTbody.innerHTML = items.map((a, i) => {
     const dl    = new Date(a.deadline);
     const over  = dl < today;
     const dlStr = dl.toLocaleDateString('en-GB');
@@ -759,149 +288,144 @@ function renderTable() {
     return `
       <tr class="${over ? 'overdue' : ''}">
         <td>${i + 1}</td>
-        <td>${esc(a.course_code)}</td>
-        <td>${esc(a.title)}</td>
+        <td>${escHtml(a.course_code)}</td>
+        <td>${escHtml(a.title)}</td>
         <td>${dlStr}</td>
         <td>${a.hours}</td>
         <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span></td>
         <td style="display:flex;gap:4px;">
-          <button class="tbl-action-btn edit" onclick="startEdit(${a.id})"   title="Edit assignment"   aria-label="Edit ${esc(a.title)}">✏️</button>
-          <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete assignment" aria-label="Delete ${esc(a.title)}">🗑️</button>
+          <button class="tbl-action-btn edit" onclick="startEdit(${a.id})"   title="Edit assignment"   aria-label="Edit ${escHtml(a.title)}">✏️</button>
+          <button class="tbl-action-btn del"  onclick="startDelete(${a.id})" title="Delete assignment" aria-label="Delete ${escHtml(a.title)}">🗑️</button>
         </td>
       </tr>`;
   }).join('');
 }
 
-/* ── TABS ───────────────────────────────────────────────────
-   Toggle between progress and table views.
-   ─────────────────────────────────────────────────────────── */
+/* ── VIEW SWITCHER ──────────────────────────────────────────── */
+function showView(name) {
+  /* Hide/show header chrome based on view */
+  const isForm = name === 'form';
+  pageHeader.style.display = isForm ? 'none' : '';
+  tabBar.style.display     = isForm ? 'none' : '';
+  infoFab.style.display    = isForm ? 'none' : '';
+
+  /* The header search bar is only shown in progress view;
+     the table view has its own internal search bar */
+  if (headerSearch) {
+    headerSearch.style.display = (name === 'all' || isForm) ? 'none' : '';
+  }
+
+  /* Toggle views */
+  viewProgress.style.display = name === 'progress' ? '' : 'none';
+  viewAll.style.display      = name === 'all'      ? '' : 'none';
+  viewForm.style.display     = name === 'form'     ? '' : 'none';
+
+  /* Hide legend when not in progress view */
+  if (legendEl) {
+    legendEl.style.display = 'none';
+  }
+
+  /* Sync tab active states */
+  $('tab-progress').classList.toggle('active', name === 'progress');
+  $('tab-all').classList.toggle('active',      name === 'all');
+}
+
+/* ── TABS ── */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    /* Update active tab button. */
     document.querySelectorAll('.tab-btn').forEach(b => {
       b.classList.remove('active');
       b.setAttribute('aria-selected', 'false');
     });
     btn.classList.add('active');
     btn.setAttribute('aria-selected', 'true');
-
     activeTab = btn.dataset.tab;
-    document.getElementById('view-progress').style.display = activeTab === 'progress' ? '' : 'none';
-    document.getElementById('view-all').style.display      = activeTab === 'all'      ? '' : 'none';
-    document.getElementById('view-form').style.display     = 'none';
+    showView(activeTab);
   });
 });
 
-/* ── SEARCH ─────────────────────────────────────────────────
-   Re-render both views whenever the search query changes.
-   Also listens for the global clap:search custom event.
-   ─────────────────────────────────────────────────────────── */
-document.getElementById('search-input').addEventListener('input', () => {
-  renderProgress();
-  renderTable();
-});
-document.addEventListener('clap:search', e => {
-  document.getElementById('search-input').value = e.detail;
+/* ── SEARCH ── */
+searchInput.addEventListener('input', () => {
   renderProgress();
   renderTable();
 });
 
-/* ── ADD ────────────────────────────────────────────────────
-   Clear the form and switch to the add view.
-   ─────────────────────────────────────────────────────────── */
-document.getElementById('add-btn').addEventListener('click', () => {
+if (tblSearchInput) {
+  tblSearchInput.addEventListener('input', () => renderTable());
+}
+
+/* ── ADD ── */
+$('add-btn').addEventListener('click', () => {
   editingId = null;
-  document.getElementById('form-title').textContent = 'Add Assignment';
-  /* Clear all inputs. */
-  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('f-difficulty').value = 'easy';
+  $('form-title').textContent = 'Add Assignment';
+  ['f-code', 'f-title', 'f-deadline', 'f-hours'].forEach(id => $(id).value = '');
+  $('f-difficulty').value = 'easy';
   showView('form');
 });
 
-/* ── EDIT ───────────────────────────────────────────────────
-   Populate the form with the selected assignment's data.
-   CONNECT: data comes from the local `assignments` array
-   (already fetched from GET /api/assignments/ on load).
-   ─────────────────────────────────────────────────────────── */
+/* ── EDIT ── */
 window.startEdit = function(id) {
   const a = assignments.find(x => x.id === id);
   if (!a) return;
-
   editingId = id;
-  document.getElementById('form-title').textContent    = 'Edit Assignment';
-  document.getElementById('f-code').value              = a.course_code;
-  document.getElementById('f-title').value             = a.title;
-  document.getElementById('f-deadline').value          = a.deadline;
-  document.getElementById('f-hours').value             = a.hours;
-  document.getElementById('f-difficulty').value        = a.difficulty;
+  $('form-title').textContent   = 'Edit Assignment';
+  $('f-code').value             = a.course_code;
+  $('f-title').value            = a.title;
+  $('f-deadline').value         = a.deadline;
+  $('f-hours').value            = a.hours;
+  $('f-difficulty').value       = a.difficulty;
   showView('form');
 };
 
-/* ── DELETE ─────────────────────────────────────────────────
-   Show the confirmation modal; actual deletion in del-confirm.
-   CONNECT: DELETE /api/assignments/{id}/
-   ─────────────────────────────────────────────────────────── */
+/* ── DELETE ── */
 window.startDelete = function(id) {
   deleteId = id;
-  document.getElementById('del-modal').style.display = 'flex';
+  delModal.classList.add('open');
 };
 
-/* Close modal on Cancel click. */
-document.getElementById('del-cancel').addEventListener('click', () => {
-  document.getElementById('del-modal').style.display = 'none';
+$('del-cancel').addEventListener('click', () => delModal.classList.remove('open'));
+
+delModal.addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
 });
 
-/* Close modal on backdrop click. */
-document.getElementById('del-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
-});
-
-/* Confirm deletion: call API then update local state. */
-document.getElementById('del-confirm').addEventListener('click', async () => {
-  document.getElementById('del-modal').style.display = 'none';
+$('del-confirm').addEventListener('click', async () => {
+  delModal.classList.remove('open');
   try {
-    await CLAP.API.delete(`/assignments/${deleteId}/`);
-  } catch {
-    /* Remove locally even if API fails (optimistic UI). */
-  }
+    await fetch(`/api/assignments/${deleteId}/`, { method: 'DELETE' });
+  } catch { /* Remove locally even if API fails */ }
   assignments = assignments.filter(a => a.id !== deleteId);
   renderProgress();
   renderTable();
-  CLAP.Toast.success('Assignment deleted.');
+  showToast('Assignment deleted.');
 });
 
-/* ── SAVE ───────────────────────────────────────────────────
-   Validate form fields, then POST (new) or PUT (edit).
-   CONNECT: POST /api/assignments/  or  PUT /api/assignments/{id}/
-   ─────────────────────────────────────────────────────────── */
-document.getElementById('save-btn').addEventListener('click', async () => {
-  const codeEl  = document.getElementById('f-code');
-  const titleEl = document.getElementById('f-title');
-  const dlEl    = document.getElementById('f-deadline');
-  const hrsEl   = document.getElementById('f-hours');
+/* ── SAVE ── */
+$('save-btn').addEventListener('click', async () => {
+  const codeEl  = $('f-code');
+  const titleEl = $('f-title');
+  const dlEl    = $('f-deadline');
+  const hrsEl   = $('f-hours');
 
   const code  = codeEl.value.trim();
   const title = titleEl.value.trim();
   const dl    = dlEl.value;
-  const hrs   = parseInt(hrsEl.value); // NaN when empty → falsy
-  const diff  = document.getElementById('f-difficulty').value;
+  const hrs   = parseInt(hrsEl.value);
+  const diff  = $('f-difficulty').value;
 
-  /* Highlight empty/invalid fields with a red border. */
+  /* Highlight invalid fields */
   [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
     const invalid = !el.value.trim();
     el.style.borderColor = invalid ? 'var(--danger)' : '';
     el.style.background  = invalid ? 'var(--danger-light)' : '';
   });
 
-  /* Guard: all required fields must have a value. */
   if (!code || !title || !dl || !hrs) {
-    CLAP.Toast.error('Please fill all required fields.');
+    showToast('Please fill all required fields.', 'error');
     return;
   }
 
-  /* All valid — clear error styles. */
+  /* Clear error styles */
   [codeEl, titleEl, dlEl, hrsEl].forEach(el => {
     el.style.borderColor = '';
     el.style.background  = '';
@@ -911,26 +435,35 @@ document.getElementById('save-btn').addEventListener('click', async () => {
 
   try {
     if (editingId) {
-      /* Update an existing assignment. */
-      await CLAP.API.put(`/assignments/${editingId}/`, payload);
+      /* CONNECT: PUT /api/assignments/{id}/ */
+      await fetch(`/api/assignments/${editingId}/`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       const idx = assignments.findIndex(a => a.id === editingId);
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
-      CLAP.Toast.success('Assignment updated!');
+      showToast('Assignment updated!');
     } else {
-      /* Create a new assignment. */
-      const created = await CLAP.API.post('/assignments/', payload);
+      /* CONNECT: POST /api/assignments/ */
+      const res = await fetch('/api/assignments/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const created = await res.json().catch(() => null);
       assignments.push(created || { id: Date.now(), ...payload, progress: 0 });
-      CLAP.Toast.success('Assignment added!');
+      showToast('Assignment added!');
     }
   } catch {
-    /* Optimistic local update if API call fails. */
+    /* Optimistic local update if API unreachable */
     if (editingId) {
       const idx = assignments.findIndex(a => a.id === editingId);
       if (idx !== -1) assignments[idx] = { ...assignments[idx], ...payload };
     } else {
       assignments.push({ id: Date.now(), ...payload, progress: 0 });
     }
-    CLAP.Toast.success(editingId ? 'Assignment updated!' : 'Assignment added!');
+    showToast(editingId ? 'Assignment updated!' : 'Assignment added!');
   }
 
   renderProgress();
@@ -938,53 +471,51 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   showView(activeTab);
 });
 
-/* ── BACK BUTTON ────────────────────────────────────────────
-   Return from the form view to whichever tab was active.
-   ─────────────────────────────────────────────────────────── */
-document.getElementById('back-btn').addEventListener('click', () => showView(activeTab));
+/* ── BACK BUTTON ── */
+$('back-btn').addEventListener('click', () => showView(activeTab));
 
-/* ── VIEW SWITCHER ──────────────────────────────────────────
-   Controls which of the three sections is visible and keeps
-   the tab button states in sync.
-   @param {'progress'|'all'|'form'} name
-   ─────────────────────────────────────────────────────────── */
-function showView(name) {
-  const header = document.querySelector('.assign-page-header');
-  const tabs   = document.querySelector('.tab-bar');
+/* ── INFO FAB — toggle legend ── */
+if (legendEl) legendEl.style.display = 'none';
 
-  /* Hide the header and tab bar when showing the form. */
-  if (name === 'form') {
-    header.style.display = 'none';
-    tabs.style.display   = 'none';
-  } else {
-    header.style.display = '';
-    tabs.style.display   = '';
-  }
+infoFab.addEventListener('click', () => {
+  if (!legendEl) return;
+  const hidden = legendEl.style.display === 'none' || legendEl.style.display === '';
+  legendEl.style.display = hidden ? 'flex' : 'none';
+});
 
-  document.getElementById('view-progress').style.display = name === 'progress' ? '' : 'none';
-  document.getElementById('view-all').style.display      = name === 'all'      ? '' : 'none';
-  document.getElementById('view-form').style.display     = name === 'form'     ? '' : 'none';
+/* ── SIDEBAR MOBILE ── */
+const sidebarToggle   = $('sidebar-toggle');
+const sidebarEl       = $('sidebar');
+const sidebarBackdrop = $('sidebar-backdrop');
 
-  /* Keep tab active classes in sync with the current view. */
-  document.getElementById('tab-progress').classList.remove('active');
-  document.getElementById('tab-all').classList.remove('active');
-  if (name === 'progress') document.getElementById('tab-progress').classList.add('active');
-  if (name === 'all')      document.getElementById('tab-all').classList.add('active');
-}
+sidebarToggle.addEventListener('click', () => {
+  const isOpen = sidebarEl.classList.contains('open');
+  sidebarEl.classList.toggle('open', !isOpen);
+  sidebarBackdrop.classList.toggle('open', !isOpen);
+  sidebarToggle.setAttribute('aria-expanded', String(!isOpen));
+});
+sidebarBackdrop.addEventListener('click', () => {
+  sidebarEl.classList.remove('open');
+  sidebarBackdrop.classList.remove('open');
+});
 
-/**
- * HTML-escape a string to safely render user-supplied text in innerHTML.
- * @param {string} s  Raw string.
- * @returns {string}  Escaped HTML string.
- */
-function esc(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
+/* ── LOGOUT ── */
+$('logout-btn').addEventListener('click', () => logoutModal.classList.add('open'));
+$('logout-cancel-btn').addEventListener('click', () => logoutModal.classList.remove('open'));
+logoutModal.addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+$('logout-confirm-btn').addEventListener('click', () => {
+  logoutModal.classList.remove('open');
+  /* CONNECT: CLAP.Auth.clearTokens(); */
+  window.location.href = 'signin.html';
+});
 
-/* ── INIT ───────────────────────────────────────────────────── */
+/* ── INIT ── */
 loadAssignments();
+
+
 </script>
+
 </body>
 </html>
