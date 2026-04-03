@@ -325,9 +325,11 @@ function getMock() {
       ],
     },
     today_tasks: [
-      { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', color:'purple' },
-      { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', color:'orange' },
-      { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', color:'blue'   },
+      /* color maps to pill style: easy→green, medium→orange, hard→purple, study→blue
+         CONNECT: backend should send difficulty OR color field */
+      { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
+      { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
+      { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', difficulty:'hard',   color:'purple' },
     ],
   };
 }
@@ -424,7 +426,6 @@ const TIMES = ['09:00','10:00','11:00','12:00','13:00'];
 
 function renderSchedule(schedule) {
   if (!schedule) return;
-  /* Build a lookup: day → time → task */
   const map = {};
   DAYS.forEach(d => { map[d] = {}; });
   Object.entries(schedule).forEach(([day, tasks]) => {
@@ -441,7 +442,7 @@ function renderSchedule(schedule) {
       if (skip[k]) return;
       const task = map[day]?.[time];
       if (task) {
-        /* Compute rowspan from end time */
+        /* difficulty → colour: easy=green, medium=yellow, hard=red, study=blue */
         const startH = parseInt(time.split(':')[0]);
         const endH   = task.end ? parseInt(task.end.split(':')[0]) : startH + 1;
         const span   = Math.max(1, endH - startH);
@@ -449,13 +450,15 @@ function renderSchedule(schedule) {
         const col = DIFF_COLOR[task.difficulty] || 'blue';
         const rs  = span > 1 ? ` rowspan="${span}"` : '';
         html += `<td${rs} style="vertical-align:top;padding:2px">
-          <div class="t-block ${col}">${task.title}</div>
+          <a href="schedule.html" title="View full schedule" style="text-decoration:none;display:block;">
+            <div class="t-block ${col}" style="cursor:pointer;" title="${task.title} — click to view schedule">${task.title}</div>
+          </a>
         </td>`;
       } else { html += '<td></td>'; }
     });
     html += '</tr>';
   });
-  html += `<tr class="rec-row"><td>14:00</td><td colspan="5">R E C O V E R Y / R E S T</td></tr>`;
+  html += `<tr class="rec-row"><td>14:00</td><td colspan="5" style="cursor:pointer" onclick="location.href='schedule.html'">R E C O V E R Y / R E S T</td></tr>`;
   document.getElementById('plan-body').innerHTML = html;
 }
 
@@ -497,7 +500,14 @@ renderCalendar();
 /* ─────────────────────────────────────────────
    TODAY MUST-DO LIST
    ──────────────────────────────────────────── */
-const ICONS = { purple:'🗄️', orange:'⚙️', blue:'📱', green:'📗', red:'📕' };
+/* difficulty → pill colour matching the timetable */
+const DIFF_TO_COLOR = { easy:'green', medium:'orange', hard:'purple', study:'blue' };
+const COLOR_ICONS   = { purple:'🗄️', orange:'⚙️', blue:'📱', green:'📗', red:'📕' };
+/* Resolve colour: use difficulty mapping if available, else fall back to task.color */
+function taskColor(t) {
+  if (t.difficulty && DIFF_TO_COLOR[t.difficulty]) return DIFF_TO_COLOR[t.difficulty];
+  return t.color || 'blue';
+}
 
 function renderTodo(tasks) {
   const el = document.getElementById('todo-list');
@@ -505,12 +515,15 @@ function renderTodo(tasks) {
     el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 No tasks today!</p>';
     return;
   }
-  el.innerHTML = tasks.map(t => `
+  el.innerHTML = tasks.map(t => {
+    const col = taskColor(t);
+    const icon = COLOR_ICONS[col] || '📝';
+    return `
     <div class="todo-item" id="td-${t.id}">
-      <div class="todo-pill ${t.color||'blue'}">
-        <div class="todo-icon-wrap">${ICONS[t.color] || '📝'}</div>
+      <div class="todo-pill ${col}">
+        <div class="todo-icon-wrap">${icon}</div>
         <div>
-          <div class="todo-name ${t.color||'blue'}">${t.title}</div>
+          <div class="todo-name ${col}">${t.title}</div>
           <div class="todo-time">${t.start} – ${t.end}</div>
         </div>
       </div>
@@ -518,8 +531,8 @@ function renderTodo(tasks) {
         <button class="todo-btn chk" onclick="markTask(${t.id},true)"  title="Done">✓</button>
         <button class="todo-btn skp" onclick="markTask(${t.id},false)" title="Skip">✕</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 window.markTask = async function(id, done) {
