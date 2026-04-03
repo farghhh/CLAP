@@ -340,10 +340,8 @@ function getMock() {
 async function loadDashboard() {
   let data;
   try {
-    /* ── CONNECT: Uncomment when Django /api/dashboard/ is ready
-       data = await CLAP.API.get('/dashboard/');
-    ── */
-    data = getMock(); // ← remove this line when backend connected
+      data = await CLAP.API.get('/dashboard/');
+    // data = getMock(); // ← remove this line when backend connected
   } catch (err) {
     CLAP.Toast.error('Could not load dashboard data.');
     data = getMock();

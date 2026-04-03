@@ -26,18 +26,6 @@
 
       <h1 class="auth-form-title">Sign in to CLAP</h1>
 
-      <!-- Social sign-in
-      <div class="social-btns" role="group" aria-label="Sign in with social accounts">
-        <button class="social-btn" aria-label="Sign in with Facebook" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">f</button>
-        <button class="social-btn" aria-label="Sign in with Google" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">G+</button>
-        <button class="social-btn" aria-label="Sign in with LinkedIn" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">in</button>
-      </div>
-
-      <div class="social-divider" role="separator">or use your email account:</div> -->
-
       <!-- Sign In Form -->
       <form id="signin-form" novalidate autocomplete="on">
         <div class="auth-fields">
@@ -130,7 +118,7 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
+  CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
 
   const form      = document.getElementById('signin-form');
   const emailInp  = document.getElementById('signin-email');
