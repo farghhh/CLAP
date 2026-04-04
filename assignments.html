@@ -76,7 +76,7 @@
       justify-content: center;
       gap: 4px;
       width: fit-content;
-      margin: 0 0 22px;
+      margin: 0 auto 22px;
       background: var(--white);
       border-radius: var(--radius-pill);
       padding: 5px;
@@ -767,7 +767,26 @@ let editingId = null;
 let deleteId = null;
 let activeTab = 'progress';
 
-/* ---- Normalize backend payload ---- */
+function isNumericId(value) {
+  return value !== null && value !== '' && !isNaN(Number(value));
+}
+
+function sortAssignmentsForDisplay(list) {
+  const items = [...list];
+
+  if (items.every(a => a.created_at)) {
+    items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    return items;
+  }
+
+  if (items.every(a => isNumericId(a.id))) {
+    items.sort((a, b) => Number(a.id) - Number(b.id));
+    return items;
+  }
+
+  return items;
+}
+
 function normalizeAssignment(a) {
   if (!a) return null;
 
@@ -779,17 +798,20 @@ function normalizeAssignment(a) {
     hours: Number(a.hours ?? a.estimated_hours ?? 0),
     difficulty: (a.difficulty ?? 'easy').toLowerCase(),
     progress: Number(a.progress ?? a.progress_percentage ?? 0),
+    created_at: a.created_at ?? a.createdAt ?? null
   };
 }
 
-/* ---- Load ---- */
 async function loadAssignments() {
   try {
     const data = await CLAP.API.get('/assignments/');
-    assignments = Array.isArray(data) ? data.map(normalizeAssignment) : MOCK.map(normalizeAssignment);
+    assignments = Array.isArray(data)
+      ? sortAssignmentsForDisplay(data.map(normalizeAssignment))
+      : sortAssignmentsForDisplay(MOCK.map(normalizeAssignment));
   } catch {
-    assignments = MOCK.map(normalizeAssignment);
+    assignments = sortAssignmentsForDisplay(MOCK.map(normalizeAssignment));
   }
+
   renderProgress();
   renderTable();
 }
@@ -803,7 +825,6 @@ function getTableSearchValue() {
   return el ? el.value.toLowerCase() : '';
 }
 
-/* ---- Search ---- */
 const tableSearchInput = document.getElementById('table-search-input');
 if (tableSearchInput) {
   tableSearchInput.addEventListener('input', () => {
@@ -811,7 +832,6 @@ if (tableSearchInput) {
   });
 }
 
-/* ---- Progress View ---- */
 function renderProgress() {
   const q = getHeaderSearchValue();
   const list = document.getElementById('progress-list');
@@ -854,7 +874,6 @@ function renderProgress() {
   }).join('');
 }
 
-/* ---- Table View ---- */
 function renderTable() {
   const q = getTableSearchValue();
   const items = assignments.filter(a =>
@@ -932,7 +951,6 @@ function renderTable() {
   }).join('');
 }
 
-/* ---- Tabs ---- */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => {
@@ -950,7 +968,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-/* ---- Add ---- */
 document.getElementById('add-btn').addEventListener('click', () => {
   editingId = null;
   document.getElementById('form-title').textContent = 'Add Assignment';
@@ -963,7 +980,6 @@ document.getElementById('add-btn').addEventListener('click', () => {
   showView('form');
 });
 
-/* ---- Edit ---- */
 window.startEdit = function(id) {
   const a = assignments.find(x => String(x.id) === String(id));
   if (!a) return;
@@ -978,7 +994,6 @@ window.startEdit = function(id) {
   showView('form');
 };
 
-/* ---- Delete ---- */
 window.startDelete = function(id) {
   deleteId = id;
   const modal = document.getElementById('del-modal');
@@ -998,7 +1013,10 @@ document.getElementById('del-confirm').addEventListener('click', async () => {
   const modal = document.getElementById('del-modal');
   if (modal) modal.style.display = 'none';
 
-  if (deleteId == null) return;
+  if (deleteId == null) {
+    console.warn('No assignment selected for delete');
+    return;
+  }
 
   try {
     await CLAP.API.delete(`/assignments/${deleteId}/`);
@@ -1007,14 +1025,21 @@ document.getElementById('del-confirm').addEventListener('click', async () => {
   }
 
   assignments = assignments.filter(a => String(a.id) !== String(deleteId));
+  assignments = sortAssignmentsForDisplay(assignments);
   deleteId = null;
 
   renderProgress();
   renderTable();
+
+  if (activeTab === 'all') {
+    showView('all');
+  } else {
+    showView('progress');
+  }
+
   CLAP.Toast.success('Assignment deleted.');
 });
 
-/* ---- Save ---- */
 document.getElementById('save-btn').addEventListener('click', async () => {
   const codeEl = document.getElementById('f-code');
   const titleEl = document.getElementById('f-title');
@@ -1072,12 +1097,12 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     CLAP.Toast.success(editingId ? 'Assignment updated!' : 'Assignment added!');
   }
 
+  assignments = sortAssignmentsForDisplay(assignments);
   renderProgress();
   renderTable();
   showView(activeTab);
 });
 
-/* ---- Back ---- */
 document.getElementById('back-btn').addEventListener('click', () => showView(activeTab));
 
 function showView(name) {
