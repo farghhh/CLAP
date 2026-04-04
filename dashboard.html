@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CLAP — Dashboard</title>
+  <link rel="stylesheet" href="css/global.css"/>
+  <link rel="stylesheet" href="css/app.css"/>
+  <style>
+    /* ── Two-column layout: left content + right sidebar ── */
+    .db-wrapper   { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
+    .db-left      { display:flex; flex-direction:column; gap:20px; min-width:0; }
+    .db-right     { display:flex; flex-direction:column; gap:20px; }
+
+    /* ── Greeting topbar (self-contained on dashboard) ── */
+    .db-topbar    { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+    .db-greet-row { display:flex; align-items:center; gap:14px; }
+    .db-avatar    {
+      width:52px; height:52px; border-radius:50%;
+      background:var(--grad-primary);
+      display:flex; align-items:center; justify-content:center;
+      font-family:var(--font-heading); font-weight:800; font-size:1.3rem;
+      color:#fff; flex-shrink:0;
+      box-shadow:0 4px 14px rgba(75,191,191,0.4);
+    }
+    .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
+    .db-sub       { font-size:0.82rem; color:var(--text-muted); }
+
+    /* ── Stats grid ── */
+    .stats-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr minmax(180px, 240px);
+      grid-template-rows:auto auto;
+      gap:16px;
+    }
+    .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
+    .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
+    .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
+
+    /* Cognitive-load sparkline card */
+    .cog-row      { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
+    .cog-pct      { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; }
+    .cog-badge    { display:inline-block; padding:4px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; margin-top:6px; }
+    .cog-badge.moderate{ background:#F5A623; color:#fff; }
+    .cog-badge.low     { background:#27AE60; color:#fff; }
+    .cog-badge.high    { background:#E74C3C; color:#fff; }
+    .cog-badge.critical{ background:#E74C3C; color:#fff; animation:pulseBadge 1s ease-in-out infinite; }
+    .cog-spark    { width:90px; height:48px; }
+
+    /* Next deadline — spans 2 cols, row 2 */
+    .dl-box       {
+      grid-column:1/3;
+      background:var(--white);
+      border-radius:18px;
+      padding:18px 24px;
+      box-shadow:var(--shadow-card);
+      display:flex; align-items:center; gap:14px;
+    }
+    .dl-lbl       { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
+    .dl-icon-wrap { width:42px; height:42px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .dl-icon-wrap svg{ color:#fff; }
+    .dl-course    { font-family:var(--font-heading); font-size:1rem; font-weight:800; color:var(--text-primary); }
+    .dl-name      { font-size:0.78rem; color:var(--text-muted); }
+    .dl-badge     { margin-left:auto; padding:7px 18px; border-radius:999px; font-size:0.78rem; font-weight:800; white-space:nowrap; flex-shrink:0; }
+    .dl-badge.urgent { background:#E74C3C; color:#fff; }
+    .dl-badge.warn   { background:#FFF3CD; color:#856404; }
+    .dl-badge.safe   { background:var(--bg-light); color:var(--clap-teal); }
+
+    /* Focus card — spans 2 rows, col 3 */
+    .focus-box    {
+      grid-column:3; grid-row:1/3;
+      background:linear-gradient(160deg,#4BBFBF 0%,#3DA8C8 60%,#5BB8D4 100%);
+      border-radius:20px;
+      padding:24px 16px;
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+      box-shadow:0 8px 24px rgba(75,191,191,0.4);
+      color:#fff;
+    }
+    .focus-title  { font-size:0.9rem; font-weight:700; text-align:center; line-height:1.3; }
+    .focus-clock  { width:90px; height:90px; border-radius:50%; border:3px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; }
+    .focus-clock svg{ width:52px; height:52px; stroke:#fff; }
+    .focus-hrs    { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; }
+
+    /* ── Generated study plan ── */
+    .plan-card    { background:var(--white); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow-card); }
+    .plan-hdr     { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .plan-ttl     { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); }
+    .plan-link    { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
+    .plan-link:hover{ color:var(--clap-teal); }
+
+    /* Mini timetable */
+    .timetable {
+      width:100%;
+      border-collapse:separate;
+      border-spacing:3px;
+    }
+    .timetable th { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; }
+    .timetable th:first-child{ text-align:right; background:transparent; color:var(--text-muted); font-size:0.68rem; }
+    .timetable td { vertical-align:top; padding:2px; min-width:70px; }
+    .timetable td:first-child{ font-size:0.68rem; font-weight:700; color:var(--text-muted); text-align:right; padding-right:8px; vertical-align:middle; min-width:38px; white-space:nowrap; }
+    .t-block      { border-radius:8px; padding:6px 8px; font-size:0.68rem; font-weight:700; color:#fff; min-height:34px; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.2; white-space:pre-line; }
+    .t-block.green  { background:#c8f0d4; color:#1a5c30; }
+    .t-block.yellow { background:#fde9c0; color:#7a4300; }
+    .t-block.red    { background:#fac8c8; color:#7a1a1a; }
+    .t-block.blue   { background:#b8d4f8; color:#1a3a7a; }
+    .t-block.orange { background:#F5A623; color:#fff; }
+    .t-block.purple { background:#9B59B6; color:#fff; }
+
+    /* ── Calendar card ── */
+    .cal-card{
+      background:var(--white);
+      border-radius:20px;
+      padding:20px 18px 16px;
+      box-shadow:var(--shadow-card);
+      border:1px solid rgba(75,191,191,0.08);
+    }
+    .cal-hdr{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .cal-title-wrap{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+    }
+    .cal-date-big{
+      font-family:var(--font-heading);
+      font-size:1.18rem;
+      font-weight:800;
+      color:var(--clap-teal);
+      line-height:1.1;
+    }
+    .cal-day-name{
+      font-size:0.82rem;
+      font-weight:700;
+      color:var(--text-muted);
+      margin-left:0;
+    }
+    .cal-navs{
+      display:flex;
+      gap:6px;
+    }
+    .cal-btn{
+      width:34px;
+      height:34px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--bg-light);
+      border:1px solid var(--border);
+      cursor:pointer;
+      color:var(--text-secondary);
+      font-size:1rem;
+      border-radius:10px;
+      transition:all var(--transition);
+    }
+    .cal-btn:hover{
+      color:var(--clap-teal);
+      border-color:var(--clap-teal-light);
+      background:#F5FEFE;
+    }
+    .cal-grid{
+      display:grid;
+      grid-template-columns:repeat(7,1fr);
+      gap:6px;
+      text-align:center;
+    }
+    .cal-dn{
+      font-size:0.68rem;
+      font-weight:800;
+      color:var(--text-muted);
+      text-transform:uppercase;
+      padding:6px 0 4px;
+      letter-spacing:.3px;
+    }
+    .cal-d{
+      min-height:40px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:12px;
+      font-size:0.82rem;
+      font-weight:700;
+      color:var(--text-secondary);
+      cursor:pointer;
+      position:relative;
+      background:transparent;
+      transition:all var(--transition);
+    }
+    .cal-d:hover{
+      background:var(--bg-light);
+    }
+    .cal-d.om{
+      color:#C9D2DA;
+      cursor:default;
+    }
+    .cal-d.today{
+      background:var(--clap-teal);
+      color:#fff;
+      font-weight:800;
+      box-shadow:0 6px 16px rgba(75,191,191,0.28);
+    }
+    .cal-d.has-task::after{
+      content:'';
+      position:absolute;
+      bottom:5px;
+      left:50%;
+      transform:translateX(-50%);
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#F5A623;
+    }
+    .cal-d.today.has-task::after{
+      background:#fff;
+    }
+
+    /* ── Today must-do list ── */
+    .todo-hdr{
+      font-family:var(--font-heading);
+      font-size:1rem;
+      font-weight:700;
+      color:var(--clap-teal);
+      margin-bottom:14px;
+    }
+    .todo-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:12px;
+    }
+    .todo-pill{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-radius:14px;
+      padding:12px 14px;
+      min-width:0;
+      border:1px solid transparent;
+    }
+    .todo-pill.easy{
+      background:#E8F5E9;
+      border-color:#C8E6C9;
+    }
+    .todo-pill.medium{
+      background:#FFF3E0;
+      border-color:#FFE0B2;
+    }
+    .todo-pill.hard{
+      background:#FFEBEE;
+      border-color:#FFCDD2;
+    }
+    .todo-main{
+      min-width:0;
+      flex:1;
+    }
+    .todo-name{
+      font-size:0.84rem;
+      font-weight:800;
+      color:var(--text-primary);
+      line-height:1.2;
+      word-break:break-word;
+    }
+    .todo-time{
+      font-size:0.72rem;
+      color:var(--text-muted);
+      margin-top:4px;
+    }
+    .todo-diff{
+      font-size:0.68rem;
+      font-weight:800;
+      border-radius:999px;
+      padding:5px 10px;
+      white-space:nowrap;
+    }
+    .todo-pill.easy .todo-diff{
+      background:#C8E6C9;
+      color:#256029;
+    }
+    .todo-pill.medium .todo-diff{
+      background:#FFE0B2;
+      color:#8A5300;
+    }
+    .todo-pill.hard .todo-diff{
+      background:#FFCDD2;
+      color:#B3261E;
+    }
+    .todo-btns{
+      display:flex;
+      gap:6px;
+      flex-shrink:0;
+    }
+    .todo-btn{
+      width:32px;
+      height:32px;
+      border-radius:50%;
+      border:2px solid #D5DDE5;
+      background:#fff;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:0.9rem;
+      font-weight:800;
+      color:#8A96A3;
+      transition:all var(--transition);
+    }
+    .todo-btn.chk:hover{
+      border-color:var(--success);
+      background:var(--success);
+      color:#fff;
+    }
+    .todo-btn.skp:hover{
+      border-color:var(--danger);
+      background:var(--danger);
+      color:#fff;
+    }
+    .todo-item.done .todo-name{
+      text-decoration:line-through;
+      opacity:0.6;
+    }
+    .todo-item.done{
+      opacity:0.75;
+    }
+
+    /* ── Responsive ── */
+    @media(max-width:1100px){
+      .db-wrapper{ grid-template-columns:1fr; }
+      .db-right  { display:grid; grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:720px){
+      .stats-grid{ grid-template-columns:1fr 1fr; }
+      .focus-box { grid-column:1/3; grid-row:auto; }
+      .dl-box    { grid-column:1/3; }
+      .db-right  { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">&#9776;</button>
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+<div class="app-layout">
+  <aside id="sidebar" class="sidebar"></aside>
+  <main class="main-content" id="main">
+    <header id="topbar" class="topbar" style="display:none;"></header>
+
+    <!-- Dashboard greeting -->
+    <div class="db-topbar">
+      <div class="db-greet-row">
+        <div class="db-avatar" id="db-av">S</div>
+        <div>
+          <div class="db-name" id="db-greet">Welcome Back hello!</div>
+          <div class="db-sub">Nice to have you back.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="db-wrapper">
+      <!-- LEFT -->
+      <div class="db-left">
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-lbl">Total Tasks</div>
+            <div class="stat-num" id="s-tasks">—</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-lbl">Cognitive Load</div>
+            <div class="cog-row">
+              <canvas class="cog-spark" id="cog-spark"></canvas>
+              <div style="text-align:right">
+                <div class="cog-pct" id="s-cog-pct">—%</div>
+                <span class="cog-badge moderate" id="s-cog-badge">Moderate</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="focus-box">
+            <div class="focus-title">Focus Hours<br>Today</div>
+            <div class="focus-clock" aria-hidden="true">
+              <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
+                <circle cx="26" cy="26" r="24" stroke="rgba(255,255,255,0.5)"/>
+                <circle cx="26" cy="26" r="19" stroke="rgba(255,255,255,0.3)"/>
+                <line x1="26" y1="26" x2="26" y2="12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="26" y1="26" x2="36" y2="26" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="26" cy="26" r="2" fill="white"/>
+              </svg>
+            </div>
+            <div class="focus-hrs" id="s-focus">— / — Hrs</div>
+          </div>
+
+          <div class="dl-box">
+            <div class="dl-lbl">Next Deadline</div>
+            <div class="dl-icon-wrap" aria-hidden="true">
+              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div>
+              <div class="dl-course" id="dl-course">—</div>
+              <div class="dl-name" id="dl-name">—</div>
+            </div>
+            <span class="dl-badge urgent" id="dl-badge">—</span>
+          </div>
+        </div>
+
+        <div class="plan-card">
+          <div class="plan-hdr">
+            <span class="plan-ttl">Generated Study Plan</span>
+            <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
+          </div>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table class="timetable" aria-label="Weekly study plan">
+              <thead>
+                <tr>
+                  <th>Time / Day</th>
+                  <th>Monday</th>
+                  <th>Tuesday</th>
+                  <th>Wednesday</th>
+                  <th>Thursday</th>
+                  <th>Friday</th>
+                </tr>
+              </thead>
+              <tbody id="plan-body">
+                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="db-right">
+        <div class="cal-card">
+          <div class="cal-hdr">
+            <div class="cal-title-wrap">
+              <span class="cal-date-big" id="cal-title">—</span>
+              <span class="cal-day-name" id="cal-day">—</span>
+            </div>
+            <div class="cal-navs">
+              <button class="cal-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
+              <button class="cal-btn" id="cal-next" aria-label="Next month">&#8250;</button>
+            </div>
+          </div>
+          <div class="cal-grid" id="cal-grid" aria-label="Calendar"></div>
+        </div>
+
+        <div>
+          <div class="todo-hdr">Today Must-Do List</div>
+          <div id="todo-list"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/core.js"></script>
+<script src="js/app-shell.js"></script>
+<script>
+'use strict';
+
+/* Safe AppShell init */
+if (window.AppShell && typeof AppShell.init === 'function') {
+  AppShell.init('dashboard.html', { showTopbar: false });
+}
+
+/* Greeting */
+const _u  = (window.CLAP && CLAP.Auth && typeof CLAP.Auth.getUser === 'function')
+  ? (CLAP.Auth.getUser() || {})
+  : {};
+const _fn = (_u.name || 'Student').split(' ')[0];
+document.getElementById('db-av').textContent = (_u.name || 'S').charAt(0).toUpperCase();
+document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
+
+/* Mock data */
+function getMock() {
+  return {
+    total_tasks: 5,
+    cognitive_load: { value: 72, level: 'moderate', trend: [40, 45, 55, 50, 72] },
+    focus: { used: 3, max: 6 },
+    next_deadline: {
+      course: 'CSC2383',
+      title: 'Database Project',
+      days_left: 2,
+      due_date: new Date().toISOString()
+    },
+    schedule: {
+      Monday: [
+        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy' },
+        { time:'11:00', end:'12:00', title:'Parallel Comp.', difficulty:'medium' }
+      ],
+      Tuesday: [
+        { time:'09:00', end:'11:00', title:'Mobile App', difficulty:'hard' }
+      ],
+      Wednesday: [
+        { time:'09:00', end:'10:00', title:'Parallel Comp.', difficulty:'medium' },
+        { time:'11:00', end:'12:00', title:'Mobile App', difficulty:'hard' }
+      ],
+      Thursday: [
+        { time:'09:00', end:'10:00', title:'Mobile App', difficulty:'hard' }
+      ],
+      Friday: [
+        { time:'09:00', end:'10:00', title:'Parallel Comp.', difficulty:'medium' },
+        { time:'11:00', end:'12:00', title:'Mobile App', difficulty:'hard' }
+      ]
+    },
+    today_tasks: [
+      {
+        id:1,
+        title:'Database Project',
+        start:'09:00 AM',
+        end:'10:00 AM',
+        difficulty:'easy',
+        date:new Date().toISOString()
+      },
+      {
+        id:2,
+        title:'Parallel Computing',
+        start:'11:00 AM',
+        end:'12:30 PM',
+        difficulty:'medium',
+        date:new Date().toISOString()
+      },
+      {
+        id:3,
+        title:'Mobile Application',
+        start:'03:00 PM',
+        end:'04:00 PM',
+        difficulty:'hard',
+        date:new Date().toISOString()
+      }
+    ]
+  };
+}
+
+/* Shared mappings */
+const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
+const DAYS  = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const TIMES = ['09:00', '10:00', '11:00', '12:00', '13:00'];
+
+/* Calendar state */
+let calDate = new Date();
+let taskDateSet = new Set();
+
+const DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function formatLocalDateKey(dateObj) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function collectTaskDates(data) {
+  const out = new Set();
+
+  const tryAdd = (value) => {
+    if (!value) return;
+    const dt = new Date(value);
+    if (isNaN(dt.getTime())) return;
+    out.add(formatLocalDateKey(dt));
+  };
+
+  if (Array.isArray(data.calendar_tasks)) {
+    data.calendar_tasks.forEach(t => {
+      tryAdd(t.date);
+      tryAdd(t.task_date);
+      tryAdd(t.start_date);
+      tryAdd(t.due_date);
+      tryAdd(t.datetime);
+    });
+  }
+
+  if (Array.isArray(data.today_tasks)) {
+    data.today_tasks.forEach(t => {
+      tryAdd(t.date);
+      tryAdd(t.task_date);
+      tryAdd(t.start_date);
+      tryAdd(t.due_date);
+      tryAdd(t.datetime);
+    });
+  }
+
+  if (data.next_deadline) {
+    tryAdd(data.next_deadline.date);
+    tryAdd(data.next_deadline.task_date);
+    tryAdd(data.next_deadline.start_date);
+    tryAdd(data.next_deadline.due_date);
+    tryAdd(data.next_deadline.deadline);
+  }
+
+  return out;
+}
+
+/* Load dashboard */
+async function loadDashboard() {
+  let data;
+  try {
+    data = await CLAP.API.get('/dashboard/');
+  } catch (err) {
+    if (window.CLAP && CLAP.Toast && CLAP.Toast.error) {
+      CLAP.Toast.error('Could not load dashboard data.');
+    }
+    data = getMock();
+  }
+
+  if (data.stress_history) {
+    const trendValues = Object.values(data.stress_history);
+    const cogVal = data.cognitive_load?.value ?? (trendValues.at(-1) ?? 0);
+    const cogLevel = data.cognitive_load?.level ??
+      (cogVal >= 80 ? 'high' : cogVal >= 50 ? 'moderate' : 'low');
+
+    data.cognitive_load = {
+      value: cogVal,
+      level: cogLevel,
+      trend: trendValues.length ? trendValues : [0, 0, 0, 0, cogVal]
+    };
+  }
+
+  if (data.today_tasks) {
+    data.today_tasks = data.today_tasks.map(t => ({
+      id: t.id,
+      title: t.title,
+      start: t.time || t.start || '09:00 AM',
+      end: t.end || t.end_time || '',
+      difficulty: t.difficulty || 'medium',
+      done: !!t.done,
+      date: t.date || t.task_date || t.start_date || t.due_date || t.datetime || null
+    }));
+  }
+
+  taskDateSet = collectTaskDates(data);
+
+  renderStats(data);
+  renderDeadline(data.next_deadline);
+  renderSchedule(data.schedule);
+  renderSparkline(data.cognitive_load?.trend || [40, 45, 55, 50, 72]);
+  renderTodo(data.today_tasks);
+  renderCalendar();
+}
+
+/* Stats */
+function renderStats(d) {
+  document.getElementById('s-tasks').textContent = d.total_tasks ?? '—';
+
+  const cog = d.cognitive_load || {};
+  document.getElementById('s-cog-pct').textContent = cog.value != null ? cog.value + '%' : '—%';
+
+  const badge = document.getElementById('s-cog-badge');
+  const lv = (cog.level || 'moderate').toLowerCase();
+  badge.className = 'cog-badge ' + lv;
+  badge.textContent = lv.charAt(0).toUpperCase() + lv.slice(1);
+
+  const f = d.focus || {};
+  document.getElementById('s-focus').textContent = `${f.used ?? '—'} / ${f.max ?? '—'} Hrs`;
+}
+
+/* Sparkline */
+function renderSparkline(trend) {
+  const c = document.getElementById('cog-spark');
+  if (!c || !trend || trend.length < 2) return;
+
+  const ctx = c.getContext('2d');
+  c.width = 90;
+  c.height = 48;
+
+  const max = Math.max(...trend);
+  const min = Math.min(...trend);
+  const rng = max - min || 1;
+
+  const pts = trend.map((v, i) => ({
+    x: (i / (trend.length - 1)) * 78 + 6,
+    y: 42 - ((v - min) / rng) * 36
+  }));
+
+  ctx.clearRect(0, 0, 90, 48);
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  const e = pts[pts.length - 1];
+  const p = pts[pts.length - 2];
+  const a = Math.atan2(e.y - p.y, e.x - p.x);
+
+  ctx.beginPath();
+  ctx.moveTo(e.x, e.y);
+  ctx.lineTo(e.x - 8 * Math.cos(a - 0.35), e.y - 8 * Math.sin(a - 0.35));
+  ctx.moveTo(e.x, e.y);
+  ctx.lineTo(e.x - 8 * Math.cos(a + 0.35), e.y - 8 * Math.sin(a + 0.35));
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+/* Deadline */
+function renderDeadline(dl) {
+  if (!dl) return;
+
+  document.getElementById('dl-course').textContent = dl.course || '';
+  document.getElementById('dl-name').textContent   = dl.title || '';
+
+  const b = document.getElementById('dl-badge');
+  const d = dl.days_left;
+
+  if (d < 0) {
+    b.textContent = 'Overdue!';
+    b.className = 'dl-badge urgent';
+  } else if (d <= 1) {
+    b.textContent = 'Due Today!';
+    b.className = 'dl-badge urgent';
+  } else if (d <= 3) {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge urgent';
+  } else if (d <= 7) {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge warn';
+  } else {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge safe';
+  }
+}
+
+/* Schedule */
+function renderSchedule(schedule) {
+  const body = document.getElementById('plan-body');
+  if (!schedule) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">No schedule available.</td></tr>`;
+    return;
+  }
+
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+
+  Object.entries(schedule).forEach(([day, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach(t => {
+      if (map[day]) map[day][t.time] = t;
+    });
+  });
+
+  const skip = {};
+  let html = '';
+
+  TIMES.forEach((time, ti) => {
+    html += `<tr><td>${time}</td>`;
+
+    DAYS.forEach(day => {
+      const k = day + ti;
+      if (skip[k]) return;
+
+      const task = map[day]?.[time];
+      if (task) {
+        const startH = parseInt(time.split(':')[0], 10);
+        const endH   = task.end ? parseInt(task.end.split(':')[0], 10) : startH + 1;
+        const span   = Math.max(1, endH - startH);
+
+        for (let s = 1; s < span; s++) skip[day + (ti + s)] = true;
+
+        const col = (task.difficulty && DIFF_COLOR[task.difficulty])
+          ? DIFF_COLOR[task.difficulty]
+          : 'blue';
+
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+
+        html += `<td${rs} style="vertical-align:top;padding:2px">
+          <a href="schedule.html" title="View full schedule" style="text-decoration:none;display:block;">
+            <div class="t-block ${col}" style="cursor:pointer;" title="${task.title} — click to view schedule">${task.title}</div>
+          </a>
+        </td>`;
+      } else {
+        html += '<td></td>';
+      }
+    });
+
+    html += '</tr>';
+  });
+
+  body.innerHTML = html;
+}
+
+/* Calendar */
+function renderCalendar() {
+  const y = calDate.getFullYear();
+  const m = calDate.getMonth();
+
+  const today = new Date();
+  const todayKey = formatLocalDateKey(today);
+  const isCurrentMonth = y === today.getFullYear() && m === today.getMonth();
+
+  const headerDate = isCurrentMonth ? today : new Date(y, m, 1);
+
+  document.getElementById('cal-title').textContent = `${MN[m]} ${y}`;
+  document.getElementById('cal-day').textContent = `${DN[headerDate.getDay()]}, ${headerDate.getDate()}`;
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  let html = DN.map(d => `<div class="cal-dn">${d.slice(0,3)}</div>`).join('');
+
+  for (let i = 0; i < firstDow; i++) {
+    html += `<div class="cal-d om"></div>`;
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const currentDate = new Date(y, m, d);
+    const dateKey = formatLocalDateKey(currentDate);
+    const isToday = dateKey === todayKey;
+    const hasTask = taskDateSet.has(dateKey);
+
+    html += `<div class="cal-d ${isToday ? 'today' : ''} ${hasTask ? 'has-task' : ''}">${d}</div>`;
+  }
+
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+/* Todo list */
+function taskDifficultyClass(t) {
+  const diff = (t.difficulty || 'medium').toLowerCase();
+  if (diff === 'easy' || diff === 'medium' || diff === 'hard') return diff;
+  return 'medium';
+}
+
+function renderTodo(tasks) {
+  const el = document.getElementById('todo-list');
+
+  if (!tasks?.length) {
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 No tasks today!</p>';
+    return;
+  }
+
+  el.innerHTML = tasks.map(t => {
+    const diffClass = taskDifficultyClass(t);
+    const diffLabel = diffClass.charAt(0).toUpperCase() + diffClass.slice(1);
+
+    return `
+      <div class="todo-item ${t.done ? 'done' : ''}" id="td-${t.id}">
+        <div class="todo-pill ${diffClass}">
+          <div class="todo-main">
+            <div class="todo-name">${t.title}</div>
+            <div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>
+          </div>
+          <span class="todo-diff">${diffLabel}</span>
+        </div>
+
+        <div class="todo-btns">
+          <button class="todo-btn chk" onclick="markTask(${t.id}, true)" title="Mark done" aria-label="Mark ${t.title} as done">✓</button>
+          <button class="todo-btn skp" onclick="markTask(${t.id}, false)" title="Skip task" aria-label="Skip ${t.title}">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* Task action */
+window.markTask = async function(id, done) {
+  const el = document.getElementById('td-' + id);
+  if (el) el.classList.toggle('done', done);
+
+  try {
+    await CLAP.API.patch(`/schedule/sessions/${id}/complete/`, { completed: done });
+  } catch (err) {
+    /* best effort */
+  }
+
+  if (window.CLAP && CLAP.Toast && CLAP.Toast.success) {
+    CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
+  }
+};
+
+/* Calendar nav */
+document.getElementById('cal-prev').onclick = () => {
+  calDate.setMonth(calDate.getMonth() - 1);
+  renderCalendar();
+};
+document.getElementById('cal-next').onclick = () => {
+  calDate.setMonth(calDate.getMonth() + 1);
+  renderCalendar();
+};
+
+/* Init */
+renderCalendar();
+loadDashboard();
+</script>
+</body>
+</html>

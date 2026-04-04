@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLAP — Set Your Daily Routine</title>
+  <link rel="stylesheet" href="css/global.css" />
+  <link rel="stylesheet" href="css/auth.css" />
+  <style>
+    /* Ensure selects show a visible chevron in all browsers */
+    .form-input.no-icon {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239BBCC2' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="page-loader" role="status" aria-label="Loading">
+  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
+</div>
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<main class="onboarding-page">
+
+  <div class="geo-tri-1" aria-hidden="true" style="bottom:20%;right:10%;"></div>
+  <div class="geo-tri-2" aria-hidden="true" style="top:8%;left:8%;"></div>
+  <div class="geo-rect"  aria-hidden="true" style="top:60%;right:5%;"></div>
+
+  <!-- Step 1: Welcome -->
+  <div class="onboarding-card" id="step-welcome" role="main">
+    <div class="onboarding-logo" aria-label="CLAP Logo">
+      <img src="assets/logo.png" alt="CLAP" onerror="this.style.display='none'"/>
+    </div>
+    <h1 class="onboarding-title">Set Your Daily Routine</h1>
+    <p class="onboarding-sub">Help us create a balanced schedule</p>
+    <button type="button" class="btn btn-primary btn-full" id="get-started-btn"
+            aria-label="Get started setting your daily routine">
+      GET STARTED
+    </button>
+  </div>
+
+  <!-- Step 2: Preferences form -->
+  <div class="onboarding-card" id="step-prefs" role="main" style="display:none;">
+    <form id="prefs-form" novalidate>
+      <div class="routine-fields">
+
+        <!-- 1. Sleep Time -->
+        <div>
+          <div class="routine-field-label">1. Sleep Time</div>
+          <div class="time-range" role="group" aria-labelledby="sleep-label">
+            <span class="sr-only" id="sleep-label">Sleep time from and to</span>
+            <select
+              id="sleep-start"
+              class="form-input no-icon"
+              aria-label="Sleep start time"
+              aria-required="true"
+              aria-describedby="sleep-error">
+            </select>
+            <span class="time-range-to" aria-hidden="true">to</span>
+            <select
+              id="sleep-end"
+              class="form-input no-icon"
+              aria-label="Sleep end time"
+              aria-required="true"
+              aria-describedby="sleep-error">
+            </select>
+          </div>
+          <span class="field-error" id="sleep-error" role="alert"></span>
+        </div>
+
+        <!-- 2. Active Study Hours -->
+        <div>
+          <div class="routine-field-label">2. Active Study Hours</div>
+          <div class="time-range" role="group" aria-labelledby="study-label">
+            <span class="sr-only" id="study-label">Study hours from and to</span>
+            <select
+              id="study-start"
+              class="form-input no-icon"
+              aria-label="Study start time"
+              aria-required="true"
+              aria-describedby="study-error">
+            </select>
+            <span class="time-range-to" aria-hidden="true">to</span>
+            <select
+              id="study-end"
+              class="form-input no-icon"
+              aria-label="Study end time"
+              aria-required="true"
+              aria-describedby="study-error">
+            </select>
+          </div>
+          <span class="field-error" id="study-error" role="alert"></span>
+        </div>
+
+        <!-- 3. Max Focus Hours -->
+        <div>
+          <div class="routine-field-label">3. Maximum focus hours per day</div>
+          <select
+            id="max-focus"
+            class="form-input no-icon"
+            aria-label="Maximum focus hours per day"
+            aria-required="true"
+            aria-describedby="focus-error">
+            <option value="">Select hours</option>
+            <option value="2">2 Hours</option>
+            <option value="3">3 Hours</option>
+            <option value="4">4 Hours</option>
+            <option value="5">5 Hours</option>
+            <option value="6" selected>6 Hours</option>
+            <option value="7">7 Hours</option>
+            <option value="8">8 Hours</option>
+            <option value="9">9 Hours</option>
+            <option value="10">10 Hours</option>
+          </select>
+          <span class="field-error" id="focus-error" role="alert"></span>
+        </div>
+
+      </div><!-- /.routine-fields -->
+
+      <button type="submit" class="btn btn-primary btn-full" id="save-prefs-btn">
+        SAVE PREFERENCES
+      </button>
+      <span class="sr-only" id="prefs-status" aria-live="polite"></span>
+    </form>
+  </div>
+
+</main>
+
+<script src="js/core.js"></script>
+<script>
+(function() {
+  CLAP.Auth.requireAuth(); // Redirect to sign-in if no valid session
+
+  const stepWelcome = document.getElementById('step-welcome');
+  const stepPrefs   = document.getElementById('step-prefs');
+  const getStarted  = document.getElementById('get-started-btn');
+  const form        = document.getElementById('prefs-form');
+  const saveBtn     = document.getElementById('save-prefs-btn');
+  const statusEl    = document.getElementById('prefs-status');
+
+  /* ---- Build time options ---- */
+  function buildTimeOptions(selectEl, defaultVal) {
+    const hours   = Array.from({length:24}, (_,i) => i);
+    const minutes = ['00'];
+    selectEl.innerHTML = '';
+    hours.forEach(h => {
+      minutes.forEach(m => {
+        const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        const ampm = h < 12 ? 'AM' : 'PM';
+        const label = `${String(h12).padStart(2,'0')}.${m} ${ampm}`;
+        const val   = `${String(h).padStart(2,'0')}:${m}`;
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = label;
+        if (val === defaultVal) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    });
+  }
+
+  buildTimeOptions(document.getElementById('sleep-start'), '23:00');
+  buildTimeOptions(document.getElementById('sleep-end'),   '07:00');
+  buildTimeOptions(document.getElementById('study-start'), '09:00');
+  buildTimeOptions(document.getElementById('study-end'),   '18:00');
+
+  /* ---- Welcome → Prefs ---- */
+  getStarted.addEventListener('click', () => {
+    stepWelcome.style.display = 'none';
+    stepPrefs.style.display   = 'flex';
+    stepPrefs.querySelector('select, input')?.focus();
+  });
+
+  /* ---- Validation helpers ---- */
+  function validateTimeRange(startSel, endSel, errId, label) {
+    const errEl = document.getElementById(errId);
+    if (!startSel.value || !endSel.value) {
+      errEl.textContent = `${label} is required.`;
+      return false;
+    }
+    /* Study hours: start must be before end */
+    if (startSel.id.startsWith('study') && startSel.value >= endSel.value) {
+      errEl.textContent = 'Study end time must be after start time.';
+      return false;
+    }
+    errEl.textContent = '';
+    return true;
+  }
+
+  /* ---- Submit ---- */
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const sleepStart = document.getElementById('sleep-start');
+    const sleepEnd   = document.getElementById('sleep-end');
+    const studyStart = document.getElementById('study-start');
+    const studyEnd   = document.getElementById('study-end');
+    const maxFocus   = document.getElementById('max-focus');
+    const focusErr   = document.getElementById('focus-error');
+
+    let valid = true;
+    if (!validateTimeRange(sleepStart, sleepEnd,   'sleep-error', 'Sleep time'))  valid = false;
+    if (!validateTimeRange(studyStart, studyEnd,   'study-error', 'Study hours')) valid = false;
+
+    if (!maxFocus.value) {
+      focusErr.textContent = 'Please select maximum focus hours.';
+      valid = false;
+    } else {
+      focusErr.textContent = '';
+    }
+
+    if (!valid) { CLAP.Toast.error('Please complete all fields.'); return; }
+
+    /* FIX (Bug 8): parseInt("07:30") returns 7, silently ignoring the 30-minute part.
+       The original overlap check and window-duration calculation were wrong for any time
+       value with non-zero minutes (e.g. "07:30", "09:30"). Now uses total minutes. */
+    function toMinutes(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + (m || 0);
+    }
+
+    const studyStartMin    = toMinutes(studyStart.value);
+    const sleepEndMin      = toMinutes(sleepEnd.value);
+    const studyEndMin      = toMinutes(studyEnd.value);
+
+    /* Extra check: study hours should not overlap sleep */
+    if (studyStartMin < sleepEndMin) {
+      const errEl = document.getElementById('study-error');
+      errEl.textContent = 'Study hours overlap with sleep time.';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      CLAP.Toast.warning('Study hours overlap with your sleep time. Please adjust.');
+      return;
+    }
+
+    /* Max focus should not exceed study window (in hours) */
+    const studyDurationMins  = (studyEndMin - studyStartMin + 1440) % 1440;
+    const studyDurationHours = studyDurationMins / 60;
+    if (parseInt(maxFocus.value) > studyDurationHours) {
+      const errEl = document.getElementById('focus-error');
+      errEl.textContent = 'Exceeds your study window duration.';
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      CLAP.Toast.warning(`Max focus hours (${maxFocus.value}h) exceeds your study window (${studyDurationHours.toFixed(1)}h).`);
+      return;
+    }
+
+    saveBtn.classList.add('loading');
+    saveBtn.disabled = true;
+    statusEl.textContent = 'Saving preferences…';
+
+    const payload = {
+      sleep_start:     sleepStart.value,
+      sleep_end:       sleepEnd.value,
+      study_start:     studyStart.value,
+      study_end:       studyEnd.value,
+      max_focus_hours: parseInt(maxFocus.value),
+    };
+
+    try {
+      await CLAP.API.post('/users/preferences/', payload);
+      CLAP.Toast.success('Preferences saved! Redirecting to dashboard…');
+      statusEl.textContent = 'Preferences saved.';
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1200);
+    } catch (err) {
+      CLAP.Toast.error(err.message || 'Failed to save preferences.');
+      statusEl.textContent = 'Save failed.';
+      saveBtn.classList.remove('loading');
+      saveBtn.disabled = false;
+    }
+  });
+
+  CLAP.hideLoader();
+})();
+</script>
+</body>
+</html>
