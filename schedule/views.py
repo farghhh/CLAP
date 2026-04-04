@@ -6,6 +6,7 @@ from .models import StudySession
 from tasks.models import Task
 from sleep.models import SleepStudyPreference
 from datetime import date, timedelta
+from core.schedule_engine import generate_study_sessions, calculate_progress
 
 # Day name helpers
 DAY_MAP = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
