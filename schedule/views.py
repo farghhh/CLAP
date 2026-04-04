@@ -282,3 +282,98 @@ def regenerate_schedule(request):
     return Response({
         'message': 'Schedule regenerated successfully!',
     }, status=status.HTTP_200_OK)
+
+#accept recommendatison function
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_recommendation(request, session_id):
+    user = request.user
+
+    try:
+        session = StudySession.objects.get(session_id=session_id, user=user)
+    except StudySession.DoesNotExist:
+        return Response(
+            {'error': 'Session not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    suggested_date = request.data.get('suggested_date')
+    if not suggested_date:
+        return Response(
+            {'error': 'suggested_date is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        from datetime import date
+        new_date = date.fromisoformat(suggested_date)
+    except ValueError:
+        return Response(
+            {'error': 'Invalid date format'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Apply the recommendation
+    from core.schedule_engine import apply_recommendation, check_and_redistribute
+    apply_recommendation(session, new_date)
+
+    # Check if there's still overload after moving
+    try:
+        preference = SleepStudyPreference.objects.get(user=user)
+        new_recommendation = check_and_redistribute(user, preference)
+    except SleepStudyPreference.DoesNotExist:
+        new_recommendation = None
+
+    response_data = {
+        'message': 'Session rescheduled successfully!',
+        'session_id': session_id,
+        'new_date': str(new_date),
+    }
+
+    if new_recommendation:
+        response_data['recommendation'] = {
+            'alert': new_recommendation['alert'],
+            'suggestion': new_recommendation['suggestion'],
+            'reduction': new_recommendation['reduction'],
+            'session_id': new_recommendation['session'].session_id,
+            'suggested_date': str(new_recommendation['suggested_date']),
+        }
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+# PROCRASTINATION CHECK ENDPOINT
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def check_missed(request):
+    user = request.user
+
+    try:
+        preference = SleepStudyPreference.objects.get(user=user)
+    except SleepStudyPreference.DoesNotExist:
+        return Response(
+            {'error': 'Preferences not set'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    from core.schedule_engine import handle_missed_sessions, check_and_redistribute
+    rescheduled = handle_missed_sessions(user, preference)
+
+    recommendation = check_and_redistribute(user, preference)
+
+    response_data = {
+        'message': f'{rescheduled} missed session(s) rescheduled.',
+        'rescheduled_count': rescheduled,
+    }
+
+    if recommendation:
+        response_data['recommendation'] = {
+            'alert': recommendation['alert'],
+            'suggestion': recommendation['suggestion'],
+            'reduction': recommendation['reduction'],
+            'session_id': recommendation['session'].session_id,
+            'suggested_date': str(recommendation['suggested_date']),
+        }
+
+    return Response(response_data, status=status.HTTP_200_OK)

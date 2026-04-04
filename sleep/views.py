@@ -94,11 +94,46 @@ def update_preferences(request):
     preference.max_focus_hours = max_focus_hours
     preference.save()
 
-    return Response({
+    # Regenerate entire schedule with new preferences
+    from tasks.models import Task
+    from schedule.models import StudySession
+    from core.schedule_engine import generate_study_sessions, check_and_redistribute
+
+    # Delete all incomplete sessions
+    StudySession.objects.filter(user=user, is_completed=False).delete()
+
+    # Regenerate sessions for all incomplete tasks
+    tasks = Task.objects.filter(user=user, is_completed=False).order_by('deadline')
+    for task in tasks:
+        sessions = generate_study_sessions(task, preference)
+        for session in sessions:
+            StudySession.objects.create(
+                task=task,
+                user=user,
+                scheduled_date=session['scheduled_date'],
+                scheduled_hours=session['scheduled_hours'],
+                cls_contribution=session['cls_contribution'],
+            )
+
+    # Check for overload
+    recommendation = check_and_redistribute(user, preference)
+
+    response_data = {
         'message': 'Preferences updated successfully!',
         'sleep_start': str(preference.sleep_start),
         'sleep_end': str(preference.sleep_end),
         'study_start': str(preference.active_study_start),
         'study_end': str(preference.active_study_end),
         'max_focus_hours': preference.max_focus_hours,
-    }, status=status.HTTP_200_OK)
+    }
+
+    if recommendation:
+        response_data['recommendation'] = {
+            'alert': recommendation['alert'],
+            'suggestion': recommendation['suggestion'],
+            'reduction': recommendation['reduction'],
+            'session_id': recommendation['session'].session_id,
+            'suggested_date': str(recommendation['suggested_date']),
+        }
+
+    return Response(response_data, status=status.HTTP_200_OK)
