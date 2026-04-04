@@ -17,11 +17,13 @@ def get_week_dates():
     monday = today - timedelta(days=today.weekday())
     return [monday + timedelta(days=i) for i in range(5)]  # Mon to Fri
 
+# for schedule generation in both schedule.html and dashboard.html
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def schedule_view(request):
     user = request.user
-    week_dates = get_week_dates()
+    week_offset = int(request.GET.get('week_offset', 0))
+    week_dates = get_week_dates(week_offset)
 
     # Get all sessions for this week
     sessions = StudySession.objects.filter(
@@ -89,7 +91,7 @@ def schedule_view(request):
         'recommendation': recommendation,
     }, status=status.HTTP_200_OK)
 
-
+# schedule display in dashboard.html
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
@@ -243,3 +245,36 @@ def complete_session(request, session_id):
         'message': 'Session updated successfully!',
         'is_completed': session.is_completed,
     }, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def regenerate_schedule(request):
+    user = request.user
+
+    # Delete all incomplete sessions
+    StudySession.objects.filter(user=user, is_completed=False).delete()
+
+    # Regenerate for all incomplete tasks
+    tasks = Task.objects.filter(user=user, is_completed=False).order_by('deadline')
+
+    try:
+        preference = SleepStudyPreference.objects.get(user=user)
+    except SleepStudyPreference.DoesNotExist:
+        return Response(
+            {'error': 'Please set your sleep preferences first'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    for task in tasks:
+        sessions = generate_study_sessions(task, preference)
+        for session in sessions:
+            StudySession.objects.create(
+                task=task,
+                user=user,
+                scheduled_date=session['scheduled_date'],
+                scheduled_hours=session['scheduled_hours'],
+                cls_contribution=session['cls_contribution'],
+            )
+
+    # Return fresh schedule
+    return schedule_view(request)
