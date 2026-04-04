@@ -17,10 +17,10 @@
       margin: 0;
     }
 
-    /* ---- Header row ---- */
     .assign-page-header {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 16px;
       margin-bottom: 20px;
       flex-wrap: wrap;
@@ -42,47 +42,6 @@
       width: 22px;
       height: 22px;
       flex-shrink: 0;
-    }
-
-    .assign-search {
-      flex: 1;
-      min-width: 250px;
-      max-width: 360px;
-      position: relative;
-      display: flex;
-      align-items: center;
-    }
-
-    .assign-search .s-icon {
-      position: absolute;
-      left: 14px;
-      color: var(--placeholder);
-      display: flex;
-      align-items: center;
-      pointer-events: none;
-    }
-
-    .assign-search input {
-      width: 100%;
-      height: 44px;
-      padding: 10px 14px 10px 40px;
-      background: var(--white);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-pill);
-      font-size: 0.88rem;
-      color: var(--text-primary);
-      box-shadow: var(--shadow-sm);
-      transition: border-color var(--transition), box-shadow var(--transition);
-    }
-
-    .assign-search input:focus {
-      outline: none;
-      border-color: var(--clap-teal);
-      box-shadow: 0 0 0 4px rgba(75, 191, 191, 0.10);
-    }
-
-    .assign-search input::placeholder {
-      color: var(--placeholder);
     }
 
     .add-btn {
@@ -148,12 +107,10 @@
       color: var(--clap-teal);
     }
 
-    /* ---- Shared view widths ---- */
     #view-progress,
     #view-all,
     #view-form {
       width: 100%;
-      display: block;
     }
 
     /* ---- Progress view ---- */
@@ -209,7 +166,6 @@
       flex-shrink: 0;
     }
 
-    /* KEEP THIS prettier bar style */
     .progress-bar {
       height: 10px;
       width: 100%;
@@ -232,17 +188,15 @@
       transition: width 0.45s ease;
       min-width: 0;
     }
-    
+
     .progress-fill.has-label {
       padding-right: 10px;
     }
+
     .progress-fill.completed {
       background: linear-gradient(90deg, #2ECC71 0%, #22b562 100%);
     }
-    .progress-fill.not-started {
-      background: linear-gradient(90deg, #2f3e46 0%, #1f2a30 100%);
-    }
-    
+
     .progress-label {
       font-size: 0.54rem;
       font-weight: 800;
@@ -281,7 +235,7 @@
       flex-shrink: 0;
     }
 
-    /* ---- Table view: closer to design ---- */
+    /* ---- Table view ---- */
     .assignments-table-wrap {
       max-width: none;
       margin: 0;
@@ -435,7 +389,7 @@
     .assign-form-stage {
       width: min(100%, 620px);
       max-width: 620px;
-      margin: 0 auto;
+      margin: 0;
     }
 
     .back-btn {
@@ -450,7 +404,7 @@
       cursor: pointer;
       margin-bottom: 14px;
       transition: color var(--transition);
-      margin-left: 0;
+      padding: 0;
     }
 
     .back-btn:hover {
@@ -544,7 +498,6 @@
 
     /* ---- Delete modal ---- */
     .delete-modal-icon {
-      font-size: 2.4rem;
       margin-bottom: 12px;
       display: flex;
       align-items: center;
@@ -574,15 +527,9 @@
       flex-wrap: wrap;
     }
 
-    /* ---- Responsive ---- */
     @media (max-width: 820px) {
       .assign-page-header {
         align-items: stretch;
-      }
-
-      .assign-search {
-        max-width: none;
-        width: 100%;
       }
 
       .add-btn {
@@ -642,7 +589,6 @@
 
   <main class="main-content" id="main">
     <div class="assign-page-wrap">
-      <!-- Header row -->
       <div class="assign-page-header">
         <h1 class="assign-page-title">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
@@ -662,7 +608,6 @@
         </button>
       </div>
 
-      <!-- Tabs -->
       <div class="tab-bar" role="tablist" aria-label="Assignment views">
         <button class="tab-btn active" id="tab-progress" role="tab" data-tab="progress" aria-selected="true" type="button">
           Assignment Progress
@@ -672,7 +617,6 @@
         </button>
       </div>
 
-      <!-- Progress View -->
       <div id="view-progress">
         <div class="progress-view-wrap">
           <div class="progress-card" id="progress-list">
@@ -696,7 +640,6 @@
         </div>
       </div>
 
-      <!-- All Assignments View -->
       <div id="view-all" style="display:none">
         <div class="assignments-table-wrap">
           <div class="table-search-wrap">
@@ -736,7 +679,6 @@
         </div>
       </div>
 
-      <!-- Add / Edit Form -->
       <div id="view-form" style="display:none">
         <div class="assign-form-stage">
           <button class="back-btn" id="back-btn" type="button">&#8249; Back</button>
@@ -780,7 +722,6 @@
   </main>
 </div>
 
-<!-- Delete Modal -->
 <div
   id="del-modal"
   class="modal-overlay"
@@ -854,8 +795,7 @@ async function loadAssignments() {
 }
 
 function getHeaderSearchValue() {
-  const el = document.getElementById('search-input');
-  return el ? el.value.toLowerCase() : '';
+  return '';
 }
 
 function getTableSearchValue() {
@@ -864,13 +804,6 @@ function getTableSearchValue() {
 }
 
 /* ---- Search ---- */
-const headerSearchInput = document.getElementById('search-input');
-if (headerSearchInput) {
-  headerSearchInput.addEventListener('input', () => {
-    renderProgress();
-  });
-}
-
 const tableSearchInput = document.getElementById('table-search-input');
 if (tableSearchInput) {
   tableSearchInput.addEventListener('input', () => {
@@ -898,7 +831,6 @@ function renderProgress() {
     const pct = Math.max(0, Math.min(100, Number(a.progress ?? 0)));
     const isComplete = pct === 100;
     const isNotStart = pct === 0;
-    const fillClass = isComplete ? 'completed' : '';
     const badgeBg = isComplete ? 'var(--success)' : isNotStart ? '#222' : 'var(--clap-teal)';
     const labelTxt = isComplete ? 'C O M P L E T E D' : '';
 
@@ -911,7 +843,7 @@ function renderProgress() {
         <div class="progress-bar">
           ${
             pct > 0
-              ? `<div class="progress-fill ${fillClass} ${labelTxt ? 'has-label' : ''}" style="width:${pct}%">
+              ? `<div class="progress-fill ${isComplete ? 'completed' : ''} ${labelTxt ? 'has-label' : ''}" style="width:${pct}%">
                   ${labelTxt ? `<span class="progress-label">${labelTxt}</span>` : ''}
                 </div>`
               : ''
@@ -1095,9 +1027,9 @@ document.getElementById('save-btn').addEventListener('click', async () => {
   [codeEl, titleEl, dlEl, hrsEl, diffEl].forEach(el => el.classList.remove('error'));
 
   let hasError = false;
-  if (!code)  { codeEl.classList.add('error'); hasError = true; }
+  if (!code) { codeEl.classList.add('error'); hasError = true; }
   if (!title) { titleEl.classList.add('error'); hasError = true; }
-  if (!dl)    { dlEl.classList.add('error'); hasError = true; }
+  if (!dl) { dlEl.classList.add('error'); hasError = true; }
   if (!hrs || hrs < 1) { hrsEl.classList.add('error'); hasError = true; }
 
   if (hasError) {
