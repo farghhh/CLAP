@@ -239,7 +239,7 @@ body        { background: #E8F6F8; }
 .tab-btn:hover:not(.active) { color:var(--clap-teal); }
 
 /* Progress view */
-.progress-card { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); }
+.progress-card { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); width: min(100%, 1120px); margin: 0; }
 .progress-item { padding:12px 0; border-bottom:1px solid var(--border); }
 .progress-item:last-child { border-bottom:none; }
 .progress-item-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
@@ -261,7 +261,7 @@ body        { background: #E8F6F8; }
 .legend-dot { width:10px; height:10px; border-radius:50%; }
 
 /* All Assignments table */
-.assignments-table-wrap { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); overflow-x:auto; }
+.assignments-table-wrap { background:var(--white); border-radius:var(--radius-lg); padding:var(--space-lg); box-shadow:var(--shadow-card); overflow-x:auto; width: 100%; max-width: none; margin: 0; }
 .assignments-table { width:100%; border-collapse:collapse; min-width:600px; }
 .assignments-table th {
   font-family:var(--font-heading); font-size:0.78rem; font-weight:700; color:var(--text-muted);

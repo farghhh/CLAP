@@ -6,6 +6,7 @@
   <title>CLAP — Stress Analytics</title>
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/app.css" />
+  <!-- Chart.js for the cognitive load trend graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -16,72 +17,98 @@
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
-    <header id="topbar" class="topbar"></header>
 
-    <!-- Title + period selector -->
+    <!-- ── Page title + period selector ── -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-lg);flex-wrap:wrap;gap:12px;">
       <h1 class="page-title">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
         Stress Analytics
       </h1>
-      <select id="period-select" style="padding:8px 14px;border-radius:var(--radius-pill);border:1.5px solid var(--border);font-size:0.85rem;background:var(--white);color:var(--text-primary);cursor:pointer;">
+      <!--
+        Period selector controls how many days of data are shown.
+        CONNECT: passes 'days' query param to GET /api/stress-analytics/
+      -->
+      <select id="period-select"
+              style="padding:8px 14px;border-radius:var(--radius-pill);border:1.5px solid var(--border);
+                     font-size:0.85rem;background:var(--white);color:var(--text-primary);cursor:pointer;"
+              aria-label="Select time period">
         <option value="7">Last 7 Days</option>
         <option value="14">Last 14 Days</option>
         <option value="30" selected>Last 30 Days</option>
       </select>
     </div>
 
-    <!-- Overview stats -->
+    <!-- ── Overview stat cards ── -->
     <div class="stress-stats">
-      <div class="stress-stat-card"><div class="stress-stat-icon">📊</div><div class="stress-stat-value" id="s-avg">—</div><div class="stress-stat-label">Avg Cognitive Load</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">🔥</div><div class="stress-stat-value" id="s-peak" style="color:var(--danger)">—</div><div class="stress-stat-label">Peak Load</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">⚠️</div><div class="stress-stat-value" id="s-over" style="color:var(--warning)">—</div><div class="stress-stat-label">Overload Days</div></div>
-      <div class="stress-stat-card"><div class="stress-stat-icon">✅</div><div class="stress-stat-value" id="s-safe" style="color:var(--success)">—</div><div class="stress-stat-label">Safe Days</div></div>
-    </div>
-
-    <!-- Trend Graph -->
-    <div class="card-white" style="margin-bottom:var(--space-lg)">
-      <h2 class="section-title" style="margin-bottom:4px">Cognitive Load Trend Graph</h2>
-      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:var(--space-md)">Red dashed line = 80% burnout threshold</p>
-      <div class="graph-canvas-wrap" style="height:280px">
-        <canvas id="trend-chart"></canvas>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon" aria-hidden="true">📊</div>
+        <div class="stress-stat-value" id="s-avg">—</div>
+        <div class="stress-stat-label">Avg Cognitive Load</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon" aria-hidden="true">🔥</div>
+        <div class="stress-stat-value" id="s-peak" style="color:var(--danger)">—</div>
+        <div class="stress-stat-label">Peak Load</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon" aria-hidden="true">⚠️</div>
+        <div class="stress-stat-value" id="s-over" style="color:var(--warning)">—</div>
+        <div class="stress-stat-label">Overload Days</div>
+      </div>
+      <div class="stress-stat-card">
+        <div class="stress-stat-icon" aria-hidden="true">✅</div>
+        <div class="stress-stat-value" id="s-safe" style="color:var(--success)">—</div>
+        <div class="stress-stat-label">Safe Days</div>
       </div>
     </div>
 
-    <!-- BURNOUT CARD -->
-    <div id="burnout-summary" class="burnout-summary hidden">
+    <!-- ── Trend graph card ── -->
+    <div class="card-white" style="margin-bottom:var(--space-lg)">
+      <h2 class="section-title" style="margin-bottom:4px">Cognitive Load Trend Graph</h2>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:var(--space-md)">
+        Red dashed line = 80% burnout threshold
+      </p>
+      <div class="graph-canvas-wrap" style="height:280px">
+        <!-- Canvas managed by renderTrendChart() via Chart.js -->
+        <canvas id="trend-chart" aria-label="Cognitive load trend over time"></canvas>
+      </div>
+    </div>
+
+    <!-- ── Burnout warning banner (hidden when no risk) ── -->
+    <div id="burnout-summary" class="burnout-summary hidden" role="alert">
       <div class="burnout-title">⚠️ Burnout Risk Detected</div>
       <div class="burnout-text" id="burnout-detail">
         Your cognitive load is critically high.
       </div>
     </div>
 
-    <!-- CLAP RECOMMENDATION -->
+    <!-- ── CLAP recommendation card (hidden when no recommendation) ── -->
     <div id="clap-rec" class="clap-rec hidden">
       <div class="clap-rec-header">✨ CLAP Recommendation</div>
-
       <div class="clap-rec-body">
-        <p id="clap-rec-text">
-          Regenerate schedule to reduce overload.
-        </p>
+        <p id="clap-rec-text">Regenerate schedule to reduce overload.</p>
       </div>
-
+      <!-- Triggers the regenerate confirmation modal -->
       <button class="clap-rec-btn" onclick="regenerateSchedule()">
         🚀 Regenerate Schedule
       </button>
     </div>
 
-    <div id="confirm-modal" class="modal hidden">
+    <!-- ── Regenerate confirmation modal ── -->
+    <div id="confirm-modal" class="modal hidden"
+         role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
       <div class="modal-box">
-        <h3>⚠️ Regenerate Schedule?</h3>
+        <h3 id="confirm-modal-title">⚠️ Regenerate Schedule?</h3>
         <p>This will overwrite your current schedule and generate a new optimized plan.</p>
-
         <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-cancel"  onclick="closeModal()">Cancel</button>
           <button class="btn-confirm" onclick="confirmRegenerate()">Yes, Regenerate</button>
         </div>
       </div>
     </div>
+
   </main>
 </div>
 
@@ -89,157 +116,230 @@
 <script src="js/app-shell.js"></script>
 <script>
 'use strict';
-AppShell.init('stress-analytics.html', { showSearch: false });
 
+/*
+ * This page has its own title header, so we pass showTopbar: false
+ * to prevent AppShell from inserting a duplicate greeting topbar.
+ *
+ * FIX: The original code called AppShell.init with showTopbar: false
+ * and then also tried document.getElementById('topbar')?.remove().
+ * Since the topbar element was never actually created (it was the bug
+ * in AppShell._injectTopbar), the remove() call was a no-op.
+ * Now that AppShell respects showTopbar: false, neither an element is
+ * created nor needs removing — the extra remove() call is gone.
+ */
+AppShell.init('stress-analytics.html', { showTopbar: false });
+
+/* Active Chart.js instance; stored so it can be destroyed before re-render. */
 let trendChart = null;
 
-/* ================= MOCK ================= */
+/* ── MOCK DATA ──────────────────────────────────────────────
+   Generates plausible cognitive load data for a given number
+   of days. Called when the API is not yet available.
+   CONNECT: GET /api/stress-analytics/?days={n}
+   Expected response shape:
+   {
+     labels:          ["Mon Apr 01", …],   ← one entry per day
+     values:          [72, 65, …],          ← cognitive load % per day
+     stats: {
+       avg_load:      65,
+       peak_load:     92,
+       overload_days: 4,
+       safe_days:     18,
+     },
+     burnout_risk:    true,
+     recommendation: {
+       alert:      "High Stress Detected",
+       suggestion: "Reduce workload & take breaks",
+       reduction:  20,
+     }
+   }
+   ─────────────────────────────────────────────────────────── */
 function buildMock(days) {
   const labels = [];
   const values = [];
-  const today = new Date();
+  const today  = new Date();
 
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-
     labels.push(d.toDateString().slice(0, 10));
 
+    /* Combine sine wave, random noise, and periodic spikes. */
     const value = Math.round(
       40 + Math.sin(i) * 20 + Math.random() * 20 + (i % 7 === 0 ? 25 : 0)
     );
-
     values.push(Math.min(100, Math.max(10, value)));
   }
 
-  const avg = Math.round(values.reduce((a,b)=>a+b)/values.length);
-  const peak = Math.max(...values);
-  const over = values.filter(v=>v>=80).length;
-  const safe = values.filter(v=>v<60).length;
-
+  const avg     = Math.round(values.reduce((a, b) => a + b) / values.length);
+  const peak    = Math.max(...values);
+  const over    = values.filter(v => v >= 80).length;
+  const safe    = values.filter(v => v < 60).length;
   const highRisk = over >= 3;
 
   return {
     labels,
     values,
-    stats: {
-      avg_load: avg,
-      peak_load: peak,
-      overload_days: over,
-      safe_days: safe
-    },
+    stats: { avg_load: avg, peak_load: peak, overload_days: over, safe_days: safe },
     burnout_risk: highRisk,
     recommendation: {
-      alert: highRisk ? "High Stress Detected" : "Stress Stable",
-      suggestion: highRisk
-        ? "Reduce workload & take breaks"
-        : "Maintain balance",
-      reduction: highRisk ? 20 : 10
-    }
+      alert:      highRisk ? 'High Stress Detected' : 'Stress Stable',
+      suggestion: highRisk ? 'Reduce workload & take breaks' : 'Maintain balance',
+      reduction:  highRisk ? 20 : 10,
+    },
   };
 }
 
+/* ── LOAD ANALYTICS ─────────────────────────────────────────
+   Fetches data for the selected period and updates the UI.
+   Falls back to mock data when the API is not available.
+   @param {number} days  Number of days to query.
+   ─────────────────────────────────────────────────────────── */
 async function loadAnalytics(days) {
   let data;
-  try { data = await CLAP.API.get(`/stress-analytics/?days=${days}`); }
-  catch { data = buildMock(days); }
+  try {
+    data = await CLAP.API.get(`/stress-analytics/?days=${days}`);
+  } catch {
+    /* Use generated mock so the page is never blank. */
+    data = buildMock(days);
+  }
 
+  /* ── Populate stat cards ── */
   const s = data.stats || {};
-  document.getElementById('s-avg').textContent  = s.avg_load   != null ? s.avg_load+'%'   : '—';
-  document.getElementById('s-peak').textContent = s.peak_load  != null ? s.peak_load+'%'  : '—';
+  document.getElementById('s-avg').textContent  = s.avg_load      != null ? s.avg_load  + '%' : '—';
+  document.getElementById('s-peak').textContent = s.peak_load     != null ? s.peak_load + '%' : '—';
   document.getElementById('s-over').textContent = s.overload_days ?? '—';
-  document.getElementById('s-safe').textContent = s.safe_days  ?? '—';
+  document.getElementById('s-safe').textContent = s.safe_days     ?? '—';
 
-  /* BURNOUT */
+  /* ── Burnout alert ── */
   const burnoutBox = document.getElementById('burnout-summary');
-  if (data.burnout_risk) burnoutBox.classList.remove('hidden');
-  else burnoutBox.classList.add('hidden');
+  burnoutBox.classList.toggle('hidden', !data.burnout_risk);
 
-  renderTrendChart(data.labels, data.values || data.series?.map(d=>d.load));
+  /* ── Trend chart ── */
+  renderTrendChart(data.labels, data.values || data.series?.map(d => d.load));
 
-  /* RECOMMENDATION */
+  /* ── Recommendation ── */
   const recBox = document.getElementById('clap-rec');
-
   if (data.recommendation) {
     recBox.classList.remove('hidden');
-    document.getElementById('clap-rec-text').textContent =
-      data.recommendation.suggestion;
+    document.getElementById('clap-rec-text').textContent = data.recommendation.suggestion;
   } else {
     recBox.classList.add('hidden');
   }
-
-  renderChart(data.labels, data.values);
 }
 
-/* ================= CHART ================= */
+/* ── CHART ──────────────────────────────────────────────────
+   Destroys any existing Chart.js instance, then renders a new
+   line chart with a custom burnout-threshold annotation plugin.
+   ─────────────────────────────────────────────────────────── */
 function renderTrendChart(labels, values) {
-  if (trendChart) { trendChart.destroy(); trendChart=null; }
+  /* Destroy previous instance to avoid canvas reuse errors. */
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
   if (!labels || !values) return;
+
   const ctx = document.getElementById('trend-chart').getContext('2d');
+
   trendChart = new Chart(ctx, {
-    type:'line',
-    data:{
+    type: 'line',
+    data: {
       labels,
-      datasets:[{
-        label:'Cognitive Load (%)',
-        data:values,
-        borderColor:'#4BBFBF',
-        backgroundColor:'rgba(75,191,191,0.08)',
-        pointBackgroundColor:values.map(v=>v>=80?'#E74C3C':'#4BBFBF'),
-        pointBorderColor:'#fff', pointRadius:5, borderWidth:2.5, tension:0.35, fill:true
-      }]
+      datasets: [{
+        label:              'Cognitive Load (%)',
+        data:               values,
+        borderColor:        '#4BBFBF',
+        backgroundColor:    'rgba(75,191,191,0.08)',
+        /* Points above 80% are highlighted red. */
+        pointBackgroundColor: values.map(v => v >= 80 ? '#E74C3C' : '#4BBFBF'),
+        pointBorderColor:   '#fff',
+        pointRadius:        5,
+        borderWidth:        2.5,
+        tension:            0.35,
+        fill:               true,
+      }],
     },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{labels:{font:{family:'Nunito,sans-serif',size:12,weight:'700'},color:'#4A7A90'}} },
-      scales:{
-        x:{ grid:{color:'rgba(215,235,242,0.6)'}, ticks:{color:'#4A7A90',font:{family:'Nunito,sans-serif',size:11},maxRotation:45} },
-        y:{ min:0, max:105, grid:{color:'rgba(215,235,242,0.6)'}, ticks:{color:'#4A7A90',callback:v=>`${v}%`,stepSize:20} }
-      }
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            font:  { family: 'Nunito, sans-serif', size: 12, weight: '700' },
+            color: '#4A7A90',
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid:  { color: 'rgba(215,235,242,0.6)' },
+          ticks: { color: '#4A7A90', font: { family: 'Nunito, sans-serif', size: 11 }, maxRotation: 45 },
+        },
+        y: {
+          min:   0,
+          max:   105,
+          grid:  { color: 'rgba(215,235,242,0.6)' },
+          ticks: { color: '#4A7A90', callback: v => `${v}%`, stepSize: 20 },
+        },
+      },
     },
-    plugins:[{
-      id:'burnoutLine',
+    /* Inline plugin: draws the red dashed 80% burnout threshold line. */
+    plugins: [{
+      id: 'burnoutLine',
       afterDraw(chart) {
         const { ctx, chartArea, scales } = chart;
         const y = scales.y.getPixelForValue(80);
-        ctx.save(); ctx.setLineDash([8,4]); ctx.strokeStyle='rgba(231,76,60,0.6)'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(chartArea.left,y); ctx.lineTo(chartArea.right,y); ctx.stroke(); ctx.restore();
-      }
-    }]
+        ctx.save();
+        ctx.setLineDash([8, 4]);
+        ctx.strokeStyle = 'rgba(231,76,60,0.6)';
+        ctx.lineWidth   = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(chartArea.left, y);
+        ctx.lineTo(chartArea.right, y);
+        ctx.stroke();
+        ctx.restore();
+      },
+    }],
   });
 }
 
-/* ================= ACTION ================= */
+/* ── REGENERATE MODAL ───────────────────────────────────────
+   CONNECT: POST /api/schedule/regenerate/
+   ─────────────────────────────────────────────────────────── */
+
+/** Open the confirmation modal. */
 function regenerateSchedule() {
-  alert("Regenerating optimized schedule...");
+  document.getElementById('confirm-modal').classList.remove('hidden');
 }
 
-// open modal when user clicks regenerate
-function regenerateSchedule() {
-  document.getElementById("confirm-modal").classList.remove("hidden");
-}
-
-// cancel button
+/** Close the confirmation modal without taking action. */
 function closeModal() {
-  document.getElementById("confirm-modal").classList.add("hidden");
+  document.getElementById('confirm-modal').classList.add('hidden');
 }
 
-// confirm action
+/**
+ * Confirmed — call the regenerate endpoint.
+ * CONNECT: swap the toast stub for a real API call.
+ */
 function confirmRegenerate() {
   closeModal();
-
-  // 👉 PUT YOUR REAL REGENERATE LOGIC HERE
-  console.log("Schedule regenerated!");
-
-  // optional feedback
-  alert("New schedule generated successfully!");
+  /* ── CONNECT: await CLAP.API.post('/schedule/regenerate/', {}) ── */
+  CLAP.Toast.success('New schedule generated successfully!');
 }
 
-/* ================= INIT ================= */
-document.getElementById('period-select')
-  .addEventListener('change', e => loadAnalytics(+e.target.value));
+/* ── EVENTS ─────────────────────────────────────────────────── */
 
-loadAnalytics(30);
+/* Re-load analytics when the period dropdown changes. */
+document.getElementById('period-select').addEventListener('change', e => {
+  loadAnalytics(+e.target.value);
+});
+
+/* Close the modal when clicking the backdrop. */
+document.getElementById('confirm-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+/* ── INIT ───────────────────────────────────────────────────── */
+loadAnalytics(30); // load with the default "Last 30 Days" selection
 </script>
 </body>
 </html>

@@ -7,42 +7,50 @@
   <meta name="description" content="Sign in to CLAP — Cognitive Load-Based Academic Adaptive Performance" />
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/auth.css" />
+  <style>
+    /* Mobile adjustments for the teal side panel */
+    @media (max-width: 768px) {
+      .auth-side-panel { min-height: 190px; }
+      .btn-outline {
+        background: rgba(255,255,255,0.92);
+        color: var(--clap-teal);
+        border-color: rgba(255,255,255,0.92);
+      }
+      .btn-outline:hover { background: var(--white); }
+    }
+  </style>
 </head>
 <body>
 
+<!-- Full-screen loading overlay (hidden by CLAP.hideLoader()) -->
 <div id="page-loader" role="status" aria-label="Loading">
-  <div class="loader-logo"><img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" /><div class="loader-spinner"></div></div>
+  <div class="loader-logo">
+    <img src="assets/clap-loader.png" alt="CLAP" class="loader-brand-img" />
+    <div class="loader-spinner"></div>
+  </div>
 </div>
+
+<!-- Toast notifications injected here by Toast.show() -->
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+<!-- ══════════════ SIGN IN PAGE ══════════════ -->
 <main class="auth-page" id="signin-page">
   <div class="auth-split">
 
-    <!-- LEFT: Sign In Form -->
+    <!-- ── LEFT: Sign-in form panel ── -->
     <section class="auth-form-panel" aria-label="Sign in form">
+
+      <!-- Brand logo -->
       <div class="auth-logo" aria-label="CLAP Logo">
-        <img src="assets/logo.png" alt="CLAP Logo"/>
+        <img src="assets/logo.png" alt="CLAP Logo" />
       </div>
 
       <h1 class="auth-form-title">Sign in to CLAP</h1>
 
-      <!-- Social sign-in
-      <div class="social-btns" role="group" aria-label="Sign in with social accounts">
-        <button class="social-btn" aria-label="Sign in with Facebook" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">f</button>
-        <button class="social-btn" aria-label="Sign in with Google" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">G+</button>
-        <button class="social-btn" aria-label="Sign in with LinkedIn" type="button"
-                onclick="CLAP.Toast.info('Social sign-in coming soon!')">in</button>
-      </div>
-
-      <div class="social-divider" role="separator">or use your email account:</div> -->
-
-      <!-- Sign In Form -->
       <form id="signin-form" novalidate autocomplete="on">
         <div class="auth-fields">
 
-          <!-- Email -->
+          <!-- Email field -->
           <div class="form-group">
             <label class="form-label sr-only" for="signin-email">Email</label>
             <div class="form-input-wrap">
@@ -66,7 +74,7 @@
             <span class="field-error" id="signin-email-error" role="alert"></span>
           </div>
 
-          <!-- Password -->
+          <!-- Password field + visibility toggle -->
           <div class="form-group">
             <label class="form-label sr-only" for="signin-password">Password</label>
             <div class="form-input-wrap">
@@ -86,12 +94,13 @@
                 aria-describedby="signin-password-error"
                 maxlength="128"
               />
+              <!-- Toggle button wired up by CLAP.initPwToggle() -->
               <button type="button" class="pw-toggle" id="signin-pw-toggle" aria-label="Show password">👁</button>
             </div>
             <span class="field-error" id="signin-password-error" role="alert"></span>
           </div>
 
-          <!-- Forgot password -->
+          <!-- Forgot password link -->
           <button type="button" class="forgot-link"
                   onclick="window.location.href='forgot-password.html'"
                   aria-label="Go to forgot password page">
@@ -103,12 +112,14 @@
         <button type="submit" class="btn btn-primary btn-full" id="signin-btn">
           SIGN IN
         </button>
+        <!-- Screen-reader status announcements -->
         <span class="sr-only" id="signin-status" aria-live="polite"></span>
       </form>
     </section>
 
-    <!-- RIGHT: Teal Panel -->
+    <!-- ── RIGHT: Teal side panel with sign-up prompt ── -->
     <aside class="auth-side-panel teal-bg" aria-label="Create account prompt">
+      <!-- Geometric decorative shapes -->
       <div class="geo-tri-1" aria-hidden="true"></div>
       <div class="geo-tri-2" aria-hidden="true"></div>
       <div class="geo-rect"  aria-hidden="true"></div>
@@ -130,8 +141,14 @@
 <script src="js/core.js"></script>
 <script>
 (function() {
-  // CLAP.Auth.requireGuest(); // ← uncomment when backend is ready
+  /*
+   * Redirect authenticated users straight to the dashboard so they
+   * don't see a sign-in form they don't need.
+   * CONNECT: this check reads from localStorage — no backend call needed.
+   */
+  CLAP.Auth.requireGuest();
 
+  /* ── DOM references ── */
   const form      = document.getElementById('signin-form');
   const emailInp  = document.getElementById('signin-email');
   const pwInp     = document.getElementById('signin-password');
@@ -139,47 +156,71 @@
   const submitBtn = document.getElementById('signin-btn');
   const statusEl  = document.getElementById('signin-status');
 
+  /*
+   * Briefly disable the submit button on the first animation frame
+   * to prevent a race condition where the user submits before the
+   * requireGuest() redirect has a chance to fire.
+   */
+  submitBtn.disabled = true;
+  requestAnimationFrame(() => { submitBtn.disabled = false; });
+
+  /* Wire up password show/hide toggle. */
   CLAP.initPwToggle(pwToggle, pwInp);
 
+  /* Attach live (blur + re-validate on error) validation. */
   const { Validate } = CLAP;
   Validate.attachLive(emailInp, [Validate.rules.required, Validate.rules.email]);
   Validate.attachLive(pwInp,    [Validate.rules.required]);
 
-  /* Track failed attempts for rate-limit feedback */
+  /*
+   * Track consecutive failed sign-in attempts.
+   * After 5 failures the form shows a soft rate-limit warning.
+   * The server enforces hard rate-limiting independently.
+   */
   let failedAttempts = 0;
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
+    /* Client-side validation — must all pass before calling the API. */
     const valid = Validate.form([
       { input: emailInp, rules: [Validate.rules.required, Validate.rules.email] },
       { input: pwInp,    rules: [Validate.rules.required] },
     ]);
     if (!valid) return;
 
-    /* Soft rate limiting: warn after 5 fails */
+    /* Soft rate-limit: warn after 5 consecutive failures. */
     if (failedAttempts >= 5) {
       CLAP.Toast.warning('Too many failed attempts. Please wait a moment before trying again.');
       return;
     }
 
+    /* Show loading state. */
     submitBtn.classList.add('loading');
     submitBtn.disabled = true;
     statusEl.textContent = 'Signing in…';
 
     try {
+      /*
+       * CONNECT: POST /api/auth/login/
+       * Expected response: { access, refresh, user: { … } }
+       */
       const data = await CLAP.API.post('/auth/login/', {
         email:    emailInp.value.trim().toLowerCase(),
         password: pwInp.value,
       }, { auth: false });
 
+      /* Persist tokens and user profile. */
       CLAP.Auth.setTokens(data.access, data.refresh);
       CLAP.Auth.setUser(data.user || { email: emailInp.value.trim() });
 
       statusEl.textContent = 'Signed in. Redirecting…';
       CLAP.Toast.success('Welcome back!');
 
-      /* If new user hasn't completed onboarding */
+      /*
+       * Send new users who haven't completed onboarding to the
+       * daily-routine setup page; everyone else goes to the dashboard.
+       */
       const dest = (data.user && data.user.onboarding_complete === false)
         ? 'onboarding.html'
         : 'dashboard.html';
@@ -192,6 +233,7 @@
       submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
 
+      /* Map HTTP status codes to user-friendly messages. */
       if (err.status === 401) {
         CLAP.Toast.error('Incorrect email or password.');
         Validate.setError(pwInp, 'Incorrect email or password.');
@@ -203,6 +245,7 @@
     }
   });
 
+  /* Hide the loading overlay once the form is ready. */
   CLAP.hideLoader();
 })();
 </script>
