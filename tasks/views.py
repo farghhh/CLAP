@@ -6,7 +6,7 @@ from .models import Task
 from schedule.models import StudySession
 from sleep.models import SleepStudyPreference
 from core.cls_engine import calculate_cls, get_risk_level
-from core.schedule_engine import generate_study_sessions, calculate_progress
+from core.schedule_engine import generate_study_sessions, calculate_progress, check_and_redistribute
 from datetime import date
 
 
@@ -112,12 +112,31 @@ def assignments(request):
         except SleepStudyPreference.DoesNotExist:
             pass  # No preferences set yet
 
-        return Response({
+        # Check for overload after adding sessions
+        recommendation = None
+        try:
+            preference = SleepStudyPreference.objects.get(user=request.user)
+            recommendation = check_and_redistribute(request.user, preference)
+        except SleepStudyPreference.DoesNotExist:
+            pass
+
+        response_data = {
             'message': 'Assignment added successfully!',
             'id': task.task_id,
             'cls_score': cls_score,
             'risk_level': risk_level,
-        }, status=status.HTTP_201_CREATED)
+        }
+
+        if recommendation:
+            response_data['recommendation'] = {
+                'alert': recommendation['alert'],
+                'suggestion': recommendation['suggestion'],
+                'reduction': recommendation['reduction'],
+                'session_id': recommendation['session'].session_id,
+                'suggested_date': str(recommendation['suggested_date']),
+            }
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['PUT', 'DELETE'])
@@ -199,8 +218,27 @@ def assignment_detail(request, task_id):
         except SleepStudyPreference.DoesNotExist:
             pass
 
-        return Response({
+        # Check for overload after updating sessions
+        recommendation = None
+        try:
+            preference = SleepStudyPreference.objects.get(user=request.user)
+            recommendation = check_and_redistribute(request.user, preference)
+        except SleepStudyPreference.DoesNotExist:
+            pass
+
+        response_data = {
             'message': 'Assignment updated successfully!',
             'cls_score': cls_score,
             'risk_level': risk_level,
-        }, status=status.HTTP_200_OK)
+        }
+
+        if recommendation:
+            response_data['recommendation'] = {
+                'alert': recommendation['alert'],
+                'suggestion': recommendation['suggestion'],
+                'reduction': recommendation['reduction'],
+                'session_id': recommendation['session'].session_id,
+                'suggested_date': str(recommendation['suggested_date']),
+            }
+
+        return Response(response_data, status=status.HTTP_200_OK)
