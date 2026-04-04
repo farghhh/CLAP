@@ -125,7 +125,7 @@
       border-radius: 24px;
       padding: 22px 24px;
       box-shadow: var(--shadow-card);
-      width: min(100%, 1120px);
+      width: 100%;
       margin: 0;
     }
 
@@ -982,7 +982,11 @@ window.startEdit = function(id) {
 window.startDelete = function(id) {
   deleteId = id;
   const modal = document.getElementById('del-modal');
-  if (modal) modal.style.display = 'flex';
+  if (!modal) {
+    console.error('Delete modal not found');
+    return;
+  }
+  modal.style.display = 'flex';
 };
 
 document.getElementById('del-cancel').addEventListener('click', () => {
