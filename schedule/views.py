@@ -12,10 +12,11 @@ DAY_MAP = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
 DAY_FULL = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday'}
 COLORS = ['orange', 'blue', 'red', 'purple', 'green']
 
-def get_week_dates():
+def get_week_dates(week_offset=0):
     today = date.today()
     monday = today - timedelta(days=today.weekday())
-    return [monday + timedelta(days=i) for i in range(5)]  # Mon to Fri
+    monday = monday + timedelta(weeks=week_offset)
+    return [monday + timedelta(days=i) for i in range(5)]
 
 # for schedule generation in both schedule.html and dashboard.html
 @api_view(['GET'])
