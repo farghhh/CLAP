@@ -278,5 +278,7 @@ def regenerate_schedule(request):
                 cls_contribution=session['cls_contribution'],
             )
 
-    # Return fresh schedule
-    return schedule_view(request)
+    # Return success message
+    return Response({
+        'message': 'Schedule regenerated successfully!',
+    }, status=status.HTTP_200_OK)
