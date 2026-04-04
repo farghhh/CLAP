@@ -58,10 +58,14 @@ def generate_study_sessions(task, preference):
         # Schedule as many hours as possible for this day
         hours_today = min(available_hours, remaining_hours)
 
+        # Convert difficulty integer to string for cls_engine
+        diff_map = {1: 'easy', 2: 'medium', 3: 'hard'}
+        difficulty_str = diff_map.get(task.difficulty, 'medium')
+
         # Calculate CLS contribution for this session
         cls_contribution = round(
             (hours_today / total_hours) * calculate_cls(
-                task.difficulty,
+                difficulty_str,
                 task.hours,
                 task.deadline
             ), 2
