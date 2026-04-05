@@ -3,22 +3,11 @@
  * ============================================================
  * Provides: API layer (Django REST), auth helpers, form validation,
  * toast notifications, password tools, sidebar, and mini-calendar.
- *
- * FIX LOG:
- *  1. initSidebar — removed dead selector `.nav-item[data-page]`
- *  2. Validate.rules.positiveInt — added explicit parentheses.
- *  3. Validate.rules.futureDate — strips time component from today.
- *  4. API.delete — verified it is correctly exposed and callable.
- *  5. API.request — improved error normalisation for empty/204 bodies.
- *  6. API._extractErrorMsg — handles null/empty body from 204 responses.
  * ============================================================
  */
 
 'use strict';
 
-/* ============================================================
-   CONFIG — Update BASE_URL to match your Django backend
-   ============================================================ */
 const CONFIG = {
   BASE_URL:        'https://clap-production.up.railway.app/api',
   TOKEN_KEY:       'clap_access_token',
@@ -27,9 +16,6 @@ const CONFIG = {
   REQUEST_TIMEOUT: 10000,
 };
 
-/* ============================================================
-   TOKEN / SESSION HELPERS
-   ============================================================ */
 const Auth = {
   setTokens(access, refresh) {
     localStorage.setItem(CONFIG.TOKEN_KEY, access);
@@ -64,9 +50,6 @@ const Auth = {
   },
 };
 
-/* ============================================================
-   API ERROR CLASS
-   ============================================================ */
 class APIError extends Error {
   constructor(message, status, data = null) {
     super(message);
@@ -76,10 +59,6 @@ class APIError extends Error {
   }
 }
 
-/* ============================================================
-   API — Fetch wrapper with auth, token-refresh, timeout,
-         and Django REST error normalisation
-   ============================================================ */
 const API = {
   async request(endpoint, { method = 'GET', body = null, auth = true, retry = true } = {}) {
     const url     = CONFIG.BASE_URL + endpoint;
@@ -102,18 +81,6 @@ const API = {
       });
       clearTimeout(timeoutId);
 
-      /* ── Token expired: attempt silent refresh, then retry once ── */
-      /* FIX (signin wrong-password bug): The original code intercepted ALL 401 responses,
-         including those from unauthenticated endpoints (auth:false) like /auth/login/.
-         When a user entered a wrong password, the backend correctly returned HTTP 401.
-         But API.request caught it here, called refreshToken() (which either succeeded
-         and retried the login silently, or failed and called clearTokens() + showed
-         "Session expired. Please sign in again." toast + redirected back to signin.html),
-         and returned null — so the signin catch block NEVER fired. The user saw the wrong
-         toast and the password field was never highlighted red.
-         Fix: only attempt token refresh when auth:true — if we didn't send a token,
-         a 401 cannot mean "your token expired"; it is always a business-logic rejection
-         that must be passed through to the caller. */
       if (res.status === 401 && retry && auth) {
         const refreshed = await API.refreshToken();
         if (refreshed) return API.request(endpoint, { method, body, auth, retry: false });
@@ -124,21 +91,17 @@ const API = {
         return null;
       }
 
-      /* FIX: Handle 204 No Content (Django returns this for successful DELETE).
-         res.json() would throw on an empty body, so we check first. */
       if (res.status === 204 || res.headers.get('Content-Length') === '0') {
         if (!res.ok) throw new APIError('Request failed.', res.status, null);
-        return null; // success, no body
+        return null;
       }
 
-      /* ── Parse response body ── */
       let data;
       const contentType = res.headers.get('Content-Type') || '';
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
         const text = await res.text();
-        /* FIX: only wrap in {detail} if there is actual text to wrap */
         data = text ? { detail: text } : null;
       }
 
@@ -159,17 +122,11 @@ const API = {
     }
   },
 
-  /* FIX: Guard against null data (e.g. empty 204 body) */
   _extractErrorMsg(data) {
     if (!data)                    return 'Something went wrong.';
     if (typeof data === 'string') return data;
     if (data.detail)              return data.detail;
     if (data.non_field_errors)    return data.non_field_errors[0];
-    /* FIX (Bug 3): Backend returns { error: '...' } for all validation failures
-       (duplicate email, wrong password, invalid token, etc.). Without this branch,
-       _extractErrorMsg fell through to the generic `firstKey: msg` formatter and
-       produced "error: Email already registered" — the "error: " prefix appeared
-       in every toast across signin, signup, reset-password, and settings pages. */
     if (data.error)               return data.error;
 
     const keys = Object.keys(data);
@@ -182,13 +139,6 @@ const API = {
   },
 
   async refreshToken() {
-    /* FIX (Bug 5): Without this guard, multiple concurrent API calls that all receive
-       401 would each independently call refreshToken(). The first call refreshes and
-       stores a new access token. If the backend rotates refresh tokens (invalidates the
-       old one on use), the 2nd and 3rd calls use the now-dead refresh token, fail, and
-       CLAP.Auth.clearTokens() is called — booting the user to sign-in even though they
-       were legitimately authenticated. The fix: if a refresh is already in-flight, all
-       callers wait on the same Promise instead of issuing duplicate requests. */
     if (API._refreshPromise) return API._refreshPromise;
 
     const refresh = Auth.getRefreshToken();
@@ -207,7 +157,6 @@ const API = {
       } catch {
         return false;
       } finally {
-        /* Always clear so the next genuine token expiry can trigger a fresh refresh. */
         API._refreshPromise = null;
       }
     })();
@@ -215,23 +164,15 @@ const API = {
     return API._refreshPromise;
   },
 
-  /* Shared refresh-in-flight promise (null when idle). */
   _refreshPromise: null,
 
-  /* Convenience shortcut methods */
   get(endpoint, opts = {})         { return API.request(endpoint, { ...opts, method: 'GET' }); },
   post(endpoint, body, opts = {})  { return API.request(endpoint, { ...opts, method: 'POST',   body }); },
   put(endpoint, body, opts = {})   { return API.request(endpoint, { ...opts, method: 'PUT',    body }); },
   patch(endpoint, body, opts = {}) { return API.request(endpoint, { ...opts, method: 'PATCH',  body }); },
-
-  /* FIX: delete is a reserved word in older JS engines; wrapping in
-     quotes ensures it is safely callable as CLAP.API.delete(...) */
   'delete'(endpoint, opts = {})   { return API.request(endpoint, { ...opts, method: 'DELETE' }); },
 };
 
-/* ============================================================
-   MOCK DATA
-   ============================================================ */
 const MockData = {
   user: { id: 1, name: 'Farisha', email: 'farisha@example.com', avatar: null },
 
@@ -252,13 +193,9 @@ const MockData = {
   },
 
   cognitiveLoad: { value: 72, level: 'moderate', trend: [40, 55, 45, 72, 60] },
-  /* stress_history keys use full day names to match the backend contract */
   stressHistory: { Monday: 40, Tuesday: 55, Wednesday: 48, Thursday: 82, Friday: 60 },
 };
 
-/* ============================================================
-   TOAST NOTIFICATION SYSTEM
-   ============================================================ */
 const Toast = {
   _container: null,
   _icons: { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' },
@@ -312,9 +249,6 @@ const Toast = {
   },
 };
 
-/* ============================================================
-   FORM VALIDATION
-   ============================================================ */
 const Validate = {
   rules: {
     required:    (v) => v.trim() !== '' || 'This field is required.',
@@ -322,8 +256,11 @@ const Validate = {
     minLen:      (n) => (v) => v.length >= n || `Must be at least ${n} characters.`,
     maxLen:      (n) => (v) => v.length <= n || `Must be at most ${n} characters.`,
     pwMatch:     (ref) => (v) => v === ref.value || 'Passwords do not match.',
-    pwStrength:  (v) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(v) ||
-                        'Password must be 8+ chars with uppercase, lowercase and number.',
+    /* FIX [m1]: Updated regex to include symbol requirement, matching the 4 UI pills
+       (8+ chars, uppercase, number, symbol). Previously `Abcde123` passed but showed
+       the Symbol pill as red, confusing users during the live demo. */
+    pwStrength:  (v) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(v) ||
+                        'Password must be 8+ chars with uppercase, lowercase, number and symbol.',
     noSpaces:    (v) => !/\s/.test(v) || 'Must not contain spaces.',
     positiveInt: (v) => (/^\d+$/.test(v) && parseInt(v) > 0) || 'Must be a positive number.',
     futureDate:  (v) => {
@@ -374,9 +311,6 @@ const Validate = {
   },
 };
 
-/* ============================================================
-   PASSWORD STRENGTH METER
-   ============================================================ */
 function initPasswordStrength(input, barEl, labelEl) {
   if (!input || !barEl || !labelEl) return;
 
@@ -398,9 +332,6 @@ function initPasswordStrength(input, barEl, labelEl) {
   });
 }
 
-/* ============================================================
-   PASSWORD VISIBILITY TOGGLE
-   ============================================================ */
 function initPwToggle(toggleBtn, inputEl) {
   if (!toggleBtn || !inputEl) return;
 
@@ -416,22 +347,16 @@ function initPwToggle(toggleBtn, inputEl) {
   });
 }
 
-/* ============================================================
-   PAGE LOADER
-   ============================================================ */
 function hideLoader() {
   const loader = document.getElementById('page-loader');
   if (loader) {
     setTimeout(() => {
       loader.classList.add('fade-out');
       setTimeout(() => loader.remove(), 600);
-    }, 300); // was 1500ms — page is already ready at this point
+    }, 300);
   }
 }
 
-/* ============================================================
-   SIDEBAR (mobile toggle)
-   ============================================================ */
 function initSidebar() {
   const toggleBtn = document.getElementById('sidebar-toggle');
   const sidebar   = document.getElementById('sidebar');
@@ -463,9 +388,6 @@ function initSidebar() {
   });
 }
 
-/* ============================================================
-   MINI CALENDAR
-   ============================================================ */
 function renderMiniCalendar(containerId, markedDates = {}) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -517,15 +439,9 @@ function renderMiniCalendar(containerId, markedDates = {}) {
   render();
 }
 
-/* ============================================================
-   NETWORK STATUS BANNERS
-   ============================================================ */
 window.addEventListener('offline', () => Toast.warning('You are offline. Some features may not work.'));
 window.addEventListener('online',  () => Toast.success('Connection restored.'));
 
-/* ============================================================
-   GLOBAL UNHANDLED PROMISE REJECTION HANDLER
-   ============================================================ */
 window.addEventListener('unhandledrejection', (event) => {
   const err = event.reason;
   if (err instanceof APIError) {
@@ -535,9 +451,6 @@ window.addEventListener('unhandledrejection', (event) => {
   }
 });
 
-/* ============================================================
-   EXPOSE PUBLIC API ON window.CLAP
-   ============================================================ */
 window.CLAP = {
   CONFIG,
   Auth,

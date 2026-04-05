@@ -367,7 +367,7 @@ document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 let userPrefs = { study_start:'09:00', study_end:'18:00', max_focus_hours:6 };
 async function loadPrefs() {
   try {
-    const p = await CLAP.API.get('/users/preferences/');
+    const p = await CLAP.API.get('/users/preferences/get/');
     if (p && p.study_start) userPrefs = { ...userPrefs, ...p };
   } catch { /* keep defaults */ }
 }
@@ -826,8 +826,24 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
 (async function init(){
   await loadPrefs();
   let data;
-  try{ data=await CLAP.API.get('/dashboard/'); }
-  catch{ data=getMock(); }
+  try {
+    data = await CLAP.API.get('/dashboard/');
+  } catch (err) {
+    console.error('[CLAP] Dashboard load error:', err);
+    CLAP.Toast.error(err?.message || 'Could not load dashboard data.');
+    data = {
+      total_tasks: 0,
+      cognitive_load: { value: 0, level: 'low', trend: [0,0,0,0,0] },
+      focus: { used: 0, max: userPrefs.max_focus_hours || 6 },
+      next_deadline: null,
+      schedule: {},
+      stress_history: {},
+      recommendation: null,
+      today_tasks: [],
+      assignment_due_dates: [],
+      upcoming_tasks: [],
+    };
+  }
 
   /* Normalise cognitive_load from stress_history if backend sends that format */
   if(data.stress_history){
