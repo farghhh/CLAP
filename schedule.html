@@ -493,15 +493,18 @@ function normalizeScheduleData(apiData) {
       ? String(rawDiff).trim().toLowerCase()
       : mapDifficulty(slot.duration || 1);
 
+    const sessionDuration = slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1;
     return {
       slot_id:       slot.session_id ?? slot.id       ?? slot.slot_id ?? null,
       assignment_id: slot.task_id    ?? slot.assignment_id ?? null,
       day:           dayMap[(slot.day || '').toLowerCase()] || slot.day,
       time:          formatTime(slot.time),
-      end:           slot.end ? formatTime(slot.end) : addHoursToTime(slot.time, slot.duration || 1),
+      end:           slot.end ? formatTime(slot.end) : addHoursToTime(slot.time, sessionDuration),
       title:         [slot.code, slot.subject].filter(Boolean).join(' '),
       difficulty,
       is_completed:  slot.is_completed || false,
+      session_hours: sessionDuration,
+      total_hours:   slot.total_hours ?? slot.task_hours ?? null,
     };
   });
 
