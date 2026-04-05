@@ -24,7 +24,7 @@
   align-items: center;
   justify-content: flex-start;
   padding: var(--space-xl);
-  padding-top: 80px;
+  padding-top: 60px;
   background: var(--white);
   position: relative;
   z-index: 1;
