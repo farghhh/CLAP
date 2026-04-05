@@ -310,14 +310,13 @@ def regenerate_schedule(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Sort tasks: most urgent first, then by most hours
+    # Regenerate sorted by deadline then hours
     tasks = Task.objects.filter(
         user=user,
         is_completed=False
     ).order_by('deadline', '-hours')
 
-    total_scheduled = {}  # track hours scheduled per task
-
+    total_scheduled = {}
     for task in tasks:
         sessions = generate_study_sessions(task, preference)
         hours_saved = 0
@@ -332,21 +331,41 @@ def regenerate_schedule(request):
             hours_saved += session['scheduled_hours']
         total_scheduled[task.task_id] = round(hours_saved, 2)
 
-    # Build summary to check if all hours were scheduled
-    summary = []
-    for task in tasks:
-        scheduled = total_scheduled.get(task.task_id, 0)
-        summary.append({
-            'task': task.title,
-            'expected_hours': task.hours,
-            'scheduled_hours': scheduled,
-            'complete': abs(scheduled - float(task.hours)) < 0.6
-        })
+    # Auto apply redistribution if overload detected
+    from core.schedule_engine import check_and_redistribute, apply_recommendation
 
-    return Response({
-        'message': 'Schedule regenerated successfully!',
-        'summary': summary,
-    }, status=status.HTTP_200_OK)
+    max_attempts = 5  # prevent infinite loop
+    attempts = 0
+    recommendation = check_and_redistribute(user, preference)
+
+    while recommendation and attempts < max_attempts:
+        # Auto apply the recommendation
+        apply_recommendation(
+            recommendation['session'],
+            recommendation['suggested_date']
+        )
+        attempts += 1
+        # Check again after applying
+        recommendation = check_and_redistribute(user, preference)
+
+    # Final check — any remaining recommendation?
+    final_recommendation = check_and_redistribute(user, preference)
+
+    response_data = {
+        'message': 'Schedule regenerated and optimized successfully!',
+        'redistributions_applied': attempts,
+    }
+
+    if final_recommendation:
+        response_data['recommendation'] = {
+            'alert': final_recommendation['alert'],
+            'suggestion': final_recommendation['suggestion'],
+            'reduction': final_recommendation['reduction'],
+            'session_id': final_recommendation['session'].session_id,
+            'suggested_date': str(final_recommendation['suggested_date']),
+        }
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
