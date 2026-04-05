@@ -96,7 +96,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-md);
 }
 .auth-logo img {
   width: 200px; height: 200px;
@@ -117,7 +117,7 @@
   font-size: 2rem;
   font-weight: 800;
   color: var(--clap-teal);
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-md);
   line-height: 1.2;
 }
 
