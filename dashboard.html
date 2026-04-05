@@ -131,22 +131,25 @@
     /* ── Today Must-Do / Upcoming ── */
     .todo-section-hdr { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); margin-bottom:14px; }
     .todo-upcoming-sublbl { font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
-    .todo-item    { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+    .todo-item    { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
     .todo-pill    { flex:1; display:flex; align-items:center; gap:10px; border-radius:14px; padding:11px 14px; min-width:0; }
-    .todo-pill.purple { background:#EDE7F6; }
-    .todo-pill.orange { background:#FFF3E0; }
-    .todo-pill.blue   { background:#E8EAF6; }
-    .todo-pill.green  { background:#E8F5E9; }
-    .todo-pill.red    { background:#FFEBEE; }
-    .todo-icon-wrap   { width:36px; height:36px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1rem; }
+    /* Difficulty-based pill colors */
+    .todo-pill.easy   { background:#E8F5E9; }
+    .todo-pill.medium { background:#FFF3E0; }
+    .todo-pill.hard   { background:#FFEBEE; }
+    .todo-pill.upcoming { background:#EDE7F6; }
+    .todo-icon-wrap   { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .todo-icon-wrap.easy   { background:#2E7D32; }
+    .todo-icon-wrap.medium { background:#E67E22; }
+    .todo-icon-wrap.hard   { background:#C62828; }
+    .todo-icon-wrap.upcoming { background:#5B21B6; }
     .todo-name    { font-size:0.83rem; font-weight:800; line-height:1.2; }
-    .todo-name.purple { color:#7C3AED; } .todo-name.orange { color:#E67E22; }
-    .todo-name.blue   { color:#3949AB; } .todo-name.green  { color:#2E7D32; }
-    .todo-name.red    { color:#C62828; }
+    .todo-name.easy   { color:#2E7D32; } .todo-name.medium { color:#E67E22; }
+    .todo-name.hard   { color:#C62828; } .todo-name.upcoming { color:#5B21B6; }
     .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
     .todo-date-tag { font-size:0.68rem; font-weight:700; color:var(--clap-teal); background:rgba(75,191,191,0.1); border-radius:6px; padding:2px 7px; margin-top:3px; display:inline-block; }
     .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
-    .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:#aaa; transition:all var(--transition); }
+    .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all var(--transition); color:#aaa; }
     .todo-btn.chk:hover { border-color:var(--success); background:var(--success); color:#fff; }
     .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
     .todo-item.done .todo-name { text-decoration:line-through; opacity:0.5; }
@@ -211,7 +214,14 @@
     .db-timetable { width:100%; min-width:460px; border-collapse:separate; border-spacing:4px; }
     .db-th-time   { width:62px; text-align:left; font-size:0.68rem; font-weight:700; color:var(--text-muted); padding:8px 4px; background:transparent; }
     .db-th        { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:8px 4px; background:var(--bg-light); border-radius:6px; }
-    .db-time-cell { font-size:0.65rem; font-weight:700; color:var(--text-muted); white-space:nowrap; padding-left:2px; padding-top:8px; vertical-align:top; min-width:58px; }
+    .db-time-cell {
+      font-size:0.63rem; font-weight:700; color:#fff;
+      white-space:nowrap; padding:3px 6px; vertical-align:middle;
+      min-width:58px; text-align:center;
+      background:var(--clap-teal); border-radius:8px;
+      box-shadow:0 2px 6px rgba(75,191,191,0.25);
+      line-height:1.4;
+    }
     .db-empty-cell{ height:48px; }
     .db-task-block{ display:flex; flex-direction:column; justify-content:center; border-radius:8px; padding:7px 9px; font-size:0.68rem; font-weight:700; min-height:48px; cursor:pointer; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
     .db-task-block:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
@@ -394,6 +404,14 @@ function _renderAvatar(user) {
     img.onerror = () => {
       avEl.innerHTML = '';
       avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
+      /* Also clear the broken URL from storage so we don't retry it */
+      try {
+        const stored = CLAP.Auth.getUser() || {};
+        if (stored.profile_picture === pic) {
+          stored.profile_picture = '';
+          CLAP.Auth.setUser(stored);
+        }
+      } catch {}
     };
     avEl.appendChild(img);
   } else {
@@ -484,6 +502,7 @@ function getMock() {
 
 /* ── Helpers ── */
 const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
+const COL_CYCLE  = ['easy','medium','hard','medium','easy'];
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const DN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -726,68 +745,78 @@ document.getElementById('cal-prev').onclick=()=>{calDate.setMonth(calDate.getMon
 document.getElementById('cal-next').onclick=()=>{calDate.setMonth(calDate.getMonth()+1);_drawCal();};
 _drawCal();
 
-/* ── Todo / Upcoming ── */
-const COL_ICONS={purple:'🗄️',orange:'⚙️',blue:'📱',green:'📗',red:'📕'};
-const COL_CYCLE = ['green','orange','blue','purple','red'];
+/* ── SVG icon helpers ── */
+const DIFF_ICONS = {
+  easy:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+  medium: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  hard:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  upcoming:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+};
+
+function _diffClass(t) {
+  const d = (t.difficulty || '').toLowerCase();
+  if (d === 'easy')   return 'easy';
+  if (d === 'hard')   return 'hard';
+  if (d === 'medium') return 'medium';
+  return 'medium';
+}
 
 function renderTodo(tasks, upcoming) {
   const el  = document.getElementById('todo-list');
   const hdr = document.getElementById('todo-section-hdr');
 
-  /* Filter today's tasks to only those that actually have a valid time/title */
+  /* Filter today's tasks to only those that actually have a valid title */
   const todayValid = (tasks || []).filter(t => t && t.title);
 
   if (todayValid.length > 0) {
-    hdr.textContent = 'Today Must-Do List';
+    hdr.textContent = "Today's Must-Do List";
     el.innerHTML = todayValid.map(t => {
-      const col = taskColor(t) || 'blue';
-      const icon = COL_ICONS[col] || '📝';
+      const cls  = _diffClass(t);
+      const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
       return `
       <div class="todo-item" id="td-${t.id}">
-        <div class="todo-pill ${col}">
-          <div class="todo-icon-wrap">${icon}</div>
-          <div>
-            <div class="todo-name ${col}">${t.title}</div>
+        <div class="todo-pill ${cls}">
+          <div class="todo-icon-wrap ${cls}">${icon}</div>
+          <div style="min-width:0">
+            <div class="todo-name ${cls}">${t.title}</div>
             <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
           </div>
         </div>
         <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask(${t.id},true)"  aria-label="Done">✓</button>
-          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip">✕</button>
+          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          </button>
+          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip" title="Skip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
       </div>`;
     }).join('');
   } else {
-    /* No today tasks → show upcoming assignments with due dates */
+    /* No today tasks → show upcoming */
     hdr.textContent = 'Upcoming Tasks';
 
-    /* Priority: passed-in upcoming list > schedule-derived > assignment_due_dates cache */
     let up = (upcoming && upcoming.length > 0)
       ? upcoming
       : _deriveUpcoming(window._scheduleCache || {});
 
-    /* Ensure every item has a color */
-    up = up.map((t, i) => ({
-      ...t,
-      color: t.color || COL_CYCLE[i % COL_CYCLE.length],
-    }));
-
     if (!up || up.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 Nothing scheduled — enjoy your break!</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">Nothing scheduled — enjoy your break!</p>';
       return;
     }
+
     el.innerHTML = `<div class="todo-upcoming-sublbl">Coming up</div>` +
       up.slice(0, 4).map(t => {
-        const col  = t.color || 'blue';
-        const icon = COL_ICONS[col] || '📝';
+        const cls  = _diffClass(t);
+        const icon = DIFF_ICONS[cls] || DIFF_ICONS.upcoming;
         return `
         <div class="todo-item">
-          <div class="todo-pill ${col}">
-            <div class="todo-icon-wrap">${icon}</div>
-            <div>
-              <div class="todo-name ${col}">${t.title}</div>
+          <div class="todo-pill ${cls || 'upcoming'}">
+            <div class="todo-icon-wrap ${cls || 'upcoming'}">${icon}</div>
+            <div style="min-width:0">
+              <div class="todo-name ${cls || 'upcoming'}">${t.title}</div>
               ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
-              ${t.date  ? `<div class="todo-date-tag">📅 ${t.date}</div>` : ''}
+              ${t.date  ? `<div class="todo-date-tag">${t.date}</div>` : ''}
             </div>
           </div>
         </div>`;
@@ -991,10 +1020,10 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
       .filter(item => { const d = new Date(item.date); d.setHours(0,0,0,0); return d >= todayMidnight; })
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 4)
-      .map((item, i) => ({
-        title: item.title,
-        color: COL_CYCLE[i % COL_CYCLE.length],
-        date:  new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
+      .map((item) => ({
+        title:      item.title,
+        difficulty: item.difficulty || 'medium',
+        date:       new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
       }));
   }
 

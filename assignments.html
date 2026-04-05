@@ -845,17 +845,24 @@
         return;
       }
 
-      list.innerHTML = assignments.map(a => {
+    list.innerHTML = assignments.map(a => {
         const pct          = Math.max(0, Math.min(100, Number(a.progress ?? 0)));
         const isComplete   = pct === 100;
         const isNotStarted = pct === 0;
         const badgeBg      = isComplete ? 'var(--success)' : isNotStarted ? '#222' : 'var(--clap-teal)';
         const labelTxt     = isComplete ? 'C O M P L E T E D' : '';
+        /* Hours done based on progress percentage × total hours */
+        const totalHrs     = a.hours || 0;
+        const doneHrs      = pct > 0 ? (pct / 100 * totalHrs).toFixed(1) : 0;
+        const hrsSub       = totalHrs > 0 ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${doneHrs} / ${totalHrs} hrs completed</div>` : '';
 
         return `
           <div class="progress-item">
             <div class="progress-item-header">
-              <div class="progress-item-name">${esc(a.course_code)} ${esc(a.title)}</div>
+              <div>
+                <div class="progress-item-name">${esc(a.course_code)} ${esc(a.title)}</div>
+                ${hrsSub}
+              </div>
               <div class="progress-pct-badge" style="background:${badgeBg}">${pct}%</div>
             </div>
             <div class="progress-bar">

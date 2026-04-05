@@ -707,6 +707,7 @@ function renderSchedule(data) {
       ].filter(Boolean).join(' ');
 
       return `<div class="px-block ${slot.difficulty} ${doneClass}" ${dataAttrs}
+                   data-duration="${slot.duration || 1}"
                    style="top:${top}px;height:${height}px;">
         <div class="px-block-inner">
           <div class="tb-title">${slot.title}</div>
@@ -749,7 +750,7 @@ async function loadSchedule(offset = 0) {
     const apiData      = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
     let normalizedData = normalizeScheduleData(apiData);
 
-    /* Auto-advance on initial load if current week is empty */
+    /* Auto-advance on initial load ONLY if current week is empty AND next week has tasks */
     if (normalizedData.slots.length === 0 && offset === 0 && weekOffset === 0) {
       try {
         const nextApiData = await CLAP.API.get(`/schedule/?week_offset=1`);
@@ -759,7 +760,7 @@ async function loadSchedule(offset = 0) {
           updateWeekNavLabel();
           document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${getWeekLabelFromOffset(1)}`;
 
-          /* Show a dismissable info banner */
+          /* Show a dismissable info banner that auto-hides after 5 seconds */
           const existing = document.getElementById('next-week-banner');
           if (!existing) {
             const banner = document.createElement('div');
@@ -771,17 +772,19 @@ async function loadSchedule(offset = 0) {
               display:flex;align-items:center;justify-content:space-between;gap:8px;
             `;
             banner.innerHTML = `
-              <span>📅 This week has no sessions — automatically showing <strong>next week</strong>. Use ‹ to go back.</span>
-              <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted);padding:0 4px;" aria-label="Dismiss">✕</button>
+              <span>&#128197; This week has no sessions — automatically showing <strong>next week</strong>. Use &#8249; to go back.</span>
+              <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted);padding:0 4px;" aria-label="Dismiss">&#10005;</button>
             `;
             const timetableCard = document.querySelector('.timetable-card');
             timetableCard?.parentElement?.insertBefore(banner, timetableCard);
+            /* Auto-dismiss after 5 seconds */
+            setTimeout(() => { if (banner.parentElement) banner.remove(); }, 5000);
           }
 
           renderSchedule(nextData);
           return;
         }
-      } catch { /* fall through to empty state */ }
+      } catch { /* fall through to current week empty state */ }
     }
 
     renderSchedule(normalizedData);
@@ -836,26 +839,32 @@ window.toggleDone = async function(btn) {
     return;
   }
 
-  /* Steps 3 + 5 — recalculate client-side progress and broadcast to assignments.html.
-     FIX (Bug 1): Step 5 BroadcastChannel is now INSIDE the if(assignmentId) block.
-     FIX (Bug 3): PUT to /assignments/{id}/ was removed. It sent only { progress } which
-       the backend ignores AND triggers session deletion + regeneration, wiping all
-       is_completed flags. Progress is already tracked server-side via complete_session. */
+  /* Steps 3 + 5 — recalculate client-side progress and broadcast to assignments.html */
   if (assignmentId) {
-    const selector    = `.task-block[data-assignment-id="${assignmentId}"]`;
-    const allBlocks   = document.querySelectorAll(selector);
-    const doneBlocks  = document.querySelectorAll(`${selector}.done`);
-    const total       = allBlocks.length;
-    const newProgress = total > 0 ? Math.round((doneBlocks.length / total) * 100) : 0;
+    /* Progress based on total hours done vs total hours for this assignment */
+    const allBlocksSel  = `[data-assignment-id="${assignmentId}"]`;
+    const allBlocks     = document.querySelectorAll(`.task-block${allBlocksSel}, .px-block${allBlocksSel}`);
+    const doneBlocks    = document.querySelectorAll(`.task-block${allBlocksSel}.done, .px-block${allBlocksSel}.done`);
+
+    /* Use data-duration (hours) if available, else count sessions */
+    let totalHours = 0, doneHours = 0;
+    allBlocks.forEach(b => {
+      const dur = parseFloat(b.dataset.duration || '1');
+      totalHours += dur;
+      if (b.classList.contains('done')) doneHours += dur;
+    });
+    const newProgress = totalHours > 0 ? Math.round((doneHours / totalHours) * 100) : (doneBlocks.length > 0 ? Math.round((doneBlocks.length / allBlocks.length) * 100) : 0);
 
     CLAP.Toast.success(`Progress updated: ${newProgress}%`);
 
-    /* Step 5 — notify assignments.html if open in another tab (now correctly inside if block) */
+    /* Step 5 — notify assignments.html if open in another tab */
     try {
       const ch = new BroadcastChannel('clap_progress');
       ch.postMessage({ type: 'progress_update', assignmentId, progress: newProgress });
       ch.close();
     } catch { /* BroadcastChannel not supported — silent fail */ }
+  } else {
+    CLAP.Toast.success(isDone ? 'Session marked complete!' : 'Session unmarked.');
   }
 };
 
