@@ -288,6 +288,26 @@
         align-self: flex-start;
       }
     }
+
+    /* ── Pixel-height proportional calendar (schedule page) ── */
+    .px-calendar   { overflow-x:auto; }
+    .px-hdr-row    { display:grid; grid-template-columns:64px repeat(5,1fr); gap:4px; margin-bottom:4px; }
+    .px-hdr-time   { background:transparent; }
+    .px-hdr-day    { font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:12px 6px; background:var(--bg-light); border-radius:var(--radius-sm); }
+    .px-body       { display:grid; grid-template-columns:64px repeat(5,1fr); gap:4px; min-width:640px; position:relative; }
+    .px-time-col   { position:relative; }
+    .px-time-lbl   { position:absolute; right:6px; font-size:0.65rem; font-weight:700; color:var(--text-muted); transform:translateY(-50%); white-space:nowrap; }
+    .px-hline      { position:absolute; left:0; right:0; height:1px; background:var(--border); opacity:0.4; pointer-events:none; }
+    .px-day-col    { position:relative; }
+    .px-block      { position:absolute; left:2px; right:2px; border-radius:var(--radius-md); padding:8px 10px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; box-sizing:border-box; transition:transform 0.15s,box-shadow 0.15s; overflow:hidden; }
+    .px-block:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+    .px-block.easy  { background:#c8f0d4; color:#1a5c30; }
+    .px-block.medium{ background:#fde9c0; color:#7a4300; }
+    .px-block.hard  { background:#fac8c8; color:#7a1a1a; }
+    .px-block.done  { opacity:0.5; filter:grayscale(0.4); }
+    .px-block-inner { flex:1; overflow:hidden; }
+    /* tb-check, tb-title, tb-time reused from existing CSS */
+    .px-block .tb-check { position:absolute; bottom:6px; right:6px; }
   </style>
 </head>
 <body>
@@ -609,7 +629,7 @@ function updateWeekNavLabel() {
   document.getElementById('week-nav-label').textContent = label;
 }
 
-/* ── RENDER TIMETABLE ────────────────────────────────────── */
+/* ── RENDER TIMETABLE — proportional pixel-height calendar ── */
 function renderSchedule(data) {
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
 
@@ -626,68 +646,93 @@ function renderSchedule(data) {
     return;
   }
 
-  /*
-   * FIX: The old rowspan approach caused sessions to disappear when two sessions
-   * on the same day were assigned consecutive time slots by the backend.
-   * The rowspan of session A would "consume" the row where session B lived,
-   * making B invisible. Fix: group sessions by day and stack them vertically
-   * in each day's column — every session is always rendered, nothing is hidden.
-   */
+  const PX_PER_MIN = 1.3;  // 1 minute = 1.3px → 1 hour = 78px
 
-  /* Group slots by day, sorted by start time */
+  /* Convert formatted time (H.MM AM/PM) to total minutes */
+  function toMins(t) {
+    if (!t) return 0;
+    t = t.trim();
+    const [hm, ap] = t.split(/\s+/);
+    let [h, m] = hm.split('.').map(Number);
+    if (/PM/i.test(ap) && h !== 12) h += 12;
+    if (/AM/i.test(ap) && h === 12) h = 0;
+    return h * 60 + (m || 0);
+  }
+  function minsToLabel(mins) {
+    let h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    const ap = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12; else if (h > 12) h -= 12;
+    return `${h}.${String(m).padStart(2,'0')} ${ap}`;
+  }
+
+  /* Group by day, sorted by start time */
   const daySlots = {};
   DAYS.forEach(d => { daySlots[d] = []; });
   slots.forEach(s => { if (daySlots[s.day]) daySlots[s.day].push(s); });
-  DAYS.forEach(d => {
-    daySlots[d].sort((a, b) => buildEndMinutes(a.time) - buildEndMinutes(b.time));
-  });
+  DAYS.forEach(d => { daySlots[d].sort((a,b) => toMins(a.time) - toMins(b.time)); });
 
-  /*
-   * Find the day with the most sessions — use it to drive the time column labels
-   * so every session block has a matching start-time label beside it.
-   */
-  const maxSessions = Math.max(...DAYS.map(d => daySlots[d].length));
-  const anchorDay   = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
-  const anchorSessions = daySlots[anchorDay];
+  /* Time window */
+  const allSlots = slots;
+  const minMins  = Math.floor(Math.min(...allSlots.map(s => toMins(s.time))) / 60) * 60;
+  const maxMins  = Math.ceil( Math.max(...allSlots.map(s => toMins(s.end)))  / 60) * 60;
+  const bodyH    = (maxMins - minMins) * PX_PER_MIN;
 
-  /* Build one table row per session (driven by anchorDay session count) */
-  let html = '';
+  /* Replace <table> with a CSS-grid based pixel calendar */
+  const card = document.querySelector('.timetable-card');
+  const genLabel = document.getElementById('gen-label');
 
-  anchorSessions.forEach((anchorSlot, rowIdx) => {
-    html += '<tr>';
+  /* Build the pixel-calendar container (replaces table) */
+  const DIFF_COLOR = { easy:'easy', medium:'medium', hard:'hard' };
 
-    /* Time cell — show this session's start time */
-    html += `<td class="time-cell">${anchorSlot.time}</td>`;
+  /* Time axis + hour lines */
+  let timeAxisHTML = '';
+  let hlinesHTML   = '';
+  for (let m = minMins; m <= maxMins; m += 60) {
+    const top = (m - minMins) * PX_PER_MIN;
+    timeAxisHTML += `<div class="px-time-lbl" style="top:${top}px">${minsToLabel(m)}</div>`;
+    hlinesHTML   += `<div class="px-hline"    style="top:${top}px"></div>`;
+  }
 
-    DAYS.forEach(day => {
-      const slot = daySlots[day][rowIdx];
-      if (!slot) {
-        html += `<td><div class="empty-cell"></div></td>`;
-        return;
-      }
-
-      const doneClass      = slot.is_completed ? 'done' : '';
+  /* Day columns */
+  const dayCols = DAYS.map(day => {
+    const blocks = daySlots[day].map(slot => {
+      const top    = (toMins(slot.time) - minMins) * PX_PER_MIN;
+      const height = Math.max((toMins(slot.end) - toMins(slot.time)) * PX_PER_MIN - 3, 40);
+      const doneClass = slot.is_completed ? 'done' : '';
       const checkDoneClass = slot.is_completed ? 'done' : '';
       const dataAttrs = [
         slot.slot_id       != null ? `data-slot-id="${slot.slot_id}"`             : '',
         slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
       ].filter(Boolean).join(' ');
 
-      html += `<td style="vertical-align:top;padding:2px;">
-        <div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs}>
-          <div>
-            <div class="tb-title">${slot.title}</div>
-            <div class="tb-time">${slot.time} – ${slot.end}</div>
-          </div>
-          <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
+      return `<div class="px-block ${slot.difficulty} ${doneClass}" ${dataAttrs}
+                   style="top:${top}px;height:${height}px;">
+        <div class="px-block-inner">
+          <div class="tb-title">${slot.title}</div>
+          <div class="tb-time">${slot.time} – ${slot.end}</div>
         </div>
-      </td>`;
-    });
+        <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
+      </div>`;
+    }).join('');
+    return `<div class="px-day-col" style="height:${bodyH}px">${blocks}</div>`;
+  }).join('');
 
-    html += '</tr>';
-  });
+  /* Day headers row */
+  const hdrs = `<div class="px-hdr-row">
+    <div class="px-hdr-time"></div>
+    ${DAYS.map(d => `<div class="px-hdr-day">${d}</div>`).join('')}
+  </div>`;
 
-  document.getElementById('sch-body').innerHTML = html;
+  /* Body — hlines go in an absolute overlay so they span all day columns */
+  const body = `<div class="px-body" style="height:${bodyH}px;">
+    <div class="px-time-col" style="height:${bodyH}px">${timeAxisHTML}</div>
+    <div style="position:absolute;left:68px;right:0;top:0;height:${bodyH}px;pointer-events:none;">${hlinesHTML}</div>
+    ${dayCols}
+  </div>`;
+
+  card.innerHTML = `<div class="px-calendar">${hdrs}${body}</div>`;
+  if (genLabel) card.appendChild(genLabel);
 }
 
 /* ── LOAD SCHEDULE ───────────────────────────────────────── */
@@ -759,7 +804,7 @@ async function loadSchedule(offset = 0) {
  *  5. Broadcast via BroadcastChannel so assignments.html updates live
  */
 window.toggleDone = async function(btn) {
-  const taskBlock    = btn.closest('.task-block');
+  const taskBlock    = btn.closest('.task-block') || btn.closest('.px-block');
   const isDone       = !taskBlock.classList.contains('done'); // toggling TO this state
   const slotId       = taskBlock.dataset.slotId       || null;
   const assignmentId = taskBlock.dataset.assignmentId || null;
