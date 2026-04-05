@@ -555,16 +555,42 @@ function renderDeadline(dl) {
 }
 
 /* ── Schedule ── */
-function renderSchedule(schedule) {
-  if (!schedule) { emptySchedule(); return; }
+function hasAnySchedule(schedule) {
+  return !!schedule && Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
+}
 
-  const hasAny = Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
+function normalizeScheduleApiToDashboard(apiData) {
+  const dayMap = { mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday' };
+  const out = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[] };
+  (apiData?.slots || []).forEach(slot => {
+    const day = dayMap[String(slot.day || '').toLowerCase()] || slot.day;
+    if (!out[day]) return;
+    const durationHours = Number(slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1) || 1;
+    const start = String(slot.time || '09:00');
+    let end = slot.end;
+    if (!end && start.includes(':')) {
+      const [sh, sm] = start.split(':').map(Number);
+      const endMins = (sh * 60 + (sm || 0)) + Math.round(durationHours * 60);
+      end = `${String(Math.floor(endMins / 60) % 24).padStart(2,'0')}:${String(endMins % 60).padStart(2,'0')}`;
+    }
+    out[day].push({
+      ...slot,
+      title: slot.title || [slot.code, slot.subject].filter(Boolean).join(' '),
+      time: start,
+      end: end || start,
+      difficulty: (slot.difficulty || slot.task_difficulty || slot.assignment_difficulty || 'medium').toLowerCase(),
+      duration: durationHours,
+    });
+  });
+  return out;
+}
 
+function renderSchedule(schedule, badgeLabel = 'This Week') {
   const badge = document.getElementById('plan-week-badge');
-  if (badge) badge.textContent = 'This Week';
+  if (badge) badge.textContent = badgeLabel;
 
-  if (!hasAny) {
-    emptySchedule();
+  if (!hasAnySchedule(schedule)) {
+    emptySchedule(badgeLabel);
     return;
   }
 
@@ -610,7 +636,7 @@ function _renderScheduleTable(schedule) {
   });
 
   const maxSessions = Math.max(...DAYS.map(d => daySlots[d].length));
-  if (maxSessions === 0) { emptySchedule(false); return; }
+  if (maxSessions === 0) { emptySchedule(); return; }
 
   const anchorDay      = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
   const anchorSessions = daySlots[anchorDay];
@@ -639,9 +665,9 @@ function _renderScheduleTable(schedule) {
   document.getElementById('plan-body').innerHTML = html;
 }
 
-function emptySchedule() {
+function emptySchedule(badgeLabel = 'This Week') {
   const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = 'This Week';
+  if(badge) badge.textContent = badgeLabel;
   document.getElementById('plan-body').innerHTML=
     `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">No study sessions scheduled yet. Add assignments to generate a schedule.</td></tr>`;
 }
@@ -963,6 +989,19 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   }
   window._scheduleCache=data.schedule||{};
 
+  let dashboardPlanLabel = 'This Week';
+  if (!hasAnySchedule(data.schedule)) {
+    try {
+      const nextWeekApi = await CLAP.API.get('/schedule/?week_offset=1');
+      const nextWeekSchedule = normalizeScheduleApiToDashboard(nextWeekApi);
+      if (hasAnySchedule(nextWeekSchedule)) {
+        data.schedule = nextWeekSchedule;
+        window._scheduleCache = nextWeekSchedule;
+        dashboardPlanLabel = 'Next Week';
+      }
+    } catch { /* keep current-week empty state */ }
+  }
+
   /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
   let upcomingTasks = data.upcoming_tasks && data.upcoming_tasks.length > 0
     ? data.upcoming_tasks
@@ -989,7 +1028,7 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   renderStats(data);
   renderDeadline(data.next_deadline);
   renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
-  renderSchedule(data.schedule);
+  renderSchedule(data.schedule, dashboardPlanLabel);
   /* Calendar: always use assignment_due_dates (the canonical field) */
   renderCalendar(data.assignment_due_dates || null);
   renderTodo(data.today_tasks, upcomingTasks);
