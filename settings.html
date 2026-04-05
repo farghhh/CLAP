@@ -134,6 +134,23 @@
     }
     .form-input-wrap .pw-toggle:hover { color: var(--clap-teal); }
     .form-input-wrap .form-input { padding-right: 44px; }
+
+    /* Password strength bar (same as auth pages) */
+    .pw-strength { margin-top:6px; }
+    .pw-strength-bar { height:4px; background:#e0ecec; border-radius:999px; overflow:hidden; margin-bottom:5px; }
+    .pw-strength-fill { height:100%; border-radius:999px; transition:width 0.4s, background 0.4s; width:0%; }
+    .pw-strength-fill.weak   { background:#E74C3C; width:25%; }
+    .pw-strength-fill.fair   { background:#F5A623; width:50%; }
+    .pw-strength-fill.good   { background:#3498DB; width:75%; }
+    .pw-strength-fill.strong { background:#27AE60; width:100%; }
+    .pw-strength-label { font-size:0.75rem; font-weight:700; color:#7a9ab5; }
+    .pw-strength-label.weak   { color:#E74C3C; }
+    .pw-strength-label.fair   { color:#F5A623; }
+    .pw-strength-label.good   { color:#3498DB; }
+    .pw-strength-label.strong { color:#27AE60; }
+    /* Requirements checklist */
+    .pw-req { display:flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:600; }
+    .req-icon { font-size:0.85rem; font-weight:800; }
   </style>
 </head>
 <body>
@@ -829,6 +846,7 @@ window.updatePwStrength = function(val) {
   const label = document.getElementById('pw-strength-label');
   const reqs  = document.getElementById('pw-reqs');
   if (!wrap || !fill || !label) return;
+
   if (!val) {
     wrap.style.display = 'none';
     if (reqs) reqs.style.display = 'none';
@@ -843,19 +861,21 @@ window.updatePwStrength = function(val) {
     num:   /[0-9]/.test(val),
     sym:   /[^A-Za-z0-9]/.test(val),
   };
-  let score = Object.values(checks).filter(Boolean).length;
+  const score = Object.values(checks).filter(Boolean).length;
 
-  /* Update checklist items */
+  /* Update checklist items with hardcoded colours (CSS vars may not resolve in injected HTML) */
+  const GREEN = '#27AE60', RED = '#E74C3C';
   Object.entries(checks).forEach(([key, ok]) => {
     const el = document.getElementById(`req-${key}`);
     if (!el) return;
-    el.style.color = ok ? 'var(--success)' : 'var(--danger)';
-    el.querySelector('.req-icon').textContent = ok ? '✓' : '✗';
+    el.style.color = ok ? GREEN : RED;
+    const icon = el.querySelector('.req-icon');
+    if (icon) icon.textContent = ok ? '✓' : '✗';
   });
 
   const levels = ['', 'weak', 'fair', 'good', 'strong'];
   const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  const cls = levels[score] || 'weak';
+  const cls    = levels[score] || 'weak';
   fill.className  = `pw-strength-fill ${cls}`;
   label.className = `pw-strength-label ${cls}`;
   label.textContent = labels[score] || 'Weak';
@@ -956,15 +976,64 @@ window.toggleSpEdit = function(field, btn) {
 
 /**
  * Save updated study preferences to the API.
+ * Validates inputs the same way the onboarding page does before saving.
  * CONNECT: PATCH /api/users/preferences/
  */
 window.saveStudyPrefs = async function() {
-  const sleepStart = document.getElementById('sp-sleep-start')?.value || prefs.sleep_start || '23:00';
-  const sleepEnd   = document.getElementById('sp-sleep-end')?.value   || prefs.sleep_end   || '07:00';
-  const studyStart = document.getElementById('sp-study-start')?.value || prefs.study_start || '09:00';
-  const studyEnd   = document.getElementById('sp-study-end')?.value   || prefs.study_end   || '18:00';
-  const maxHours   = parseInt(document.getElementById('sp-limit-val')?.value) || prefs.max_focus_hours || 6;
+  const sleepStartEl = document.getElementById('sp-sleep-start');
+  const sleepEndEl   = document.getElementById('sp-sleep-end');
+  const studyStartEl = document.getElementById('sp-study-start');
+  const studyEndEl   = document.getElementById('sp-study-end');
+  const limitEl      = document.getElementById('sp-limit-val');
 
+  /* Read current values — fall back to saved prefs if an edit row is collapsed */
+  const sleepStart = sleepStartEl?.value || prefs.sleep_start || '23:00';
+  const sleepEnd   = sleepEndEl?.value   || prefs.sleep_end   || '07:00';
+  const studyStart = studyStartEl?.value || prefs.study_start || '09:00';
+  const studyEnd   = studyEndEl?.value   || prefs.study_end   || '18:00';
+  const maxHours   = parseInt(limitEl?.value) || prefs.max_focus_hours || 6;
+
+  /* ── Validation (mirrors onboarding.html) ── */
+  function toMins(t) {
+    const [h, m] = (t || '00:00').split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+
+  /* Study end must be after study start */
+  if (toMins(studyEnd) <= toMins(studyStart)) {
+    CLAP.Toast.error('Study end time must be after study start time.');
+    /* Open the study edit row so the user can see the problem */
+    const studyEdit = document.getElementById('sp-study-edit');
+    const studyView = document.getElementById('sp-study-view');
+    const studyBtn  = document.querySelector('[onclick*="toggleSpEdit(\'study\'"]') ||
+                      document.querySelector('.edit-btn[onclick*="study"]');
+    if (studyEdit) studyEdit.style.display = 'flex';
+    if (studyView) studyView.style.display = 'none';
+    if (studyBtn)  studyBtn.textContent = 'Done';
+    return;
+  }
+
+  /* Study hours should not overlap with sleep */
+  if (toMins(studyStart) < toMins(sleepEnd)) {
+    CLAP.Toast.error('Study hours overlap with your sleep time. Please adjust.');
+    return;
+  }
+
+  /* Max focus must not exceed study window */
+  const studyDurationMins  = (toMins(studyEnd) - toMins(studyStart) + 1440) % 1440;
+  const studyDurationHours = studyDurationMins / 60;
+  if (maxHours > studyDurationHours) {
+    CLAP.Toast.error(`Max focus hours (${maxHours}h) exceeds your study window (${studyDurationHours.toFixed(1)}h).`);
+    return;
+  }
+
+  /* Max focus must be at least 1 */
+  if (maxHours < 1 || maxHours > 16) {
+    CLAP.Toast.error('Daily study limit must be between 1 and 16 hours.');
+    return;
+  }
+
+  /* ── All valid — save ── */
   const updated = {
     sleep_start:     sleepStart,
     sleep_end:       sleepEnd,
@@ -973,16 +1042,14 @@ window.saveStudyPrefs = async function() {
     max_focus_hours: maxHours,
   };
 
-  /* Always update local prefs immediately */
+  /* Update local prefs immediately */
   prefs = { ...prefs, ...updated };
-
-  /* Save to localStorage as fallback so values persist */
   try { localStorage.setItem('clap_prefs', JSON.stringify(prefs)); } catch {}
 
-  /* Try API, but don't block on failure */
+  /* Try API */
   try { await CLAP.API.put('/users/preferences/update/', updated); } catch {}
 
-  /* Update the view text directly without full re-render */
+  /* Update the view text */
   const sleepView = document.getElementById('sp-sleep-view');
   const studyView = document.getElementById('sp-study-view');
   const limitView = document.getElementById('sp-limit-view');
@@ -990,7 +1057,7 @@ window.saveStudyPrefs = async function() {
   if (studyView) studyView.textContent = `${fmtTime(studyStart)} to ${fmtTime(studyEnd)}`;
   if (limitView) limitView.textContent = `${maxHours} Hours`;
 
-  /* Collapse all edit rows and reset buttons */
+  /* Collapse all edit rows */
   ['sleep', 'study', 'limit'].forEach(f => {
     const editEl = document.getElementById(`sp-${f}-edit`);
     const viewEl = document.getElementById(`sp-${f}-view`);

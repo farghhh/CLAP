@@ -421,15 +421,7 @@ function getMock() {
      * CONNECT: backend sets this when a session was scheduled yesterday
      *          and not marked complete, and has auto-rescheduled it.
      */
-    missed_task: {
-      task_title:       'Database (FP)',
-      task_day:         'Thursday',
-      task_start:       '2:00 PM',
-      task_end:         '4:00 PM',
-      reschedule_day:   'Friday',
-      reschedule_start: '10:00 AM',
-      reschedule_end:   '12:00 PM',
-    },
+    missed_task: null,
     task_date_meta: taskDateMeta,  // kept for backwards-compat
     /* CONNECT: replace with real API data. assignment_due_dates is the canonical field. */
     assignment_due_dates: [
@@ -530,56 +522,110 @@ function renderSchedule(schedule) {
   _renderScheduleTable(schedule);
 }
 
-function _renderScheduleTable(schedule) {
-  /* Build time slots based on user's study hours */
-  const studyStartH = parseInt((userPrefs.study_start||'09:00').split(':')[0]);
-  const studyEndH   = parseInt((userPrefs.study_end  ||'18:00').split(':')[0]);
-
-  /* Collect all task times so nothing is hidden */
-  const allTimes = new Set();
-  Object.values(schedule).forEach(tasks=>{
-    if(!Array.isArray(tasks)) return;
-    tasks.forEach(t=>{ if(t.time) allTimes.add(t.time); });
-  });
-  /* Add hourly slots from study window (cap at 8 rows for readability) */
-  const timeSet=new Set();
-  for(let h=studyStartH;h<studyEndH&&timeSet.size<8;h++){
-    timeSet.add(`${String(h).padStart(2,'0')}:00`);
+/* Convert any time string (HH:MM 24h OR "H.MM AM/PM") to total minutes since midnight */
+function _timeToMins(t) {
+  if (!t) return 0;
+  t = t.trim();
+  /* "H.MM AM" / "H.MM PM" format (from schedule.html normalizer) */
+  if (/\d{1,2}\.\d{2}\s*(AM|PM)/i.test(t)) {
+    const [hm, ap] = t.split(/\s+/);
+    let [h, m] = hm.split('.').map(Number);
+    if (/PM/i.test(ap) && h !== 12) h += 12;
+    if (/AM/i.test(ap) && h === 12) h = 0;
+    return h * 60 + (m || 0);
   }
-  allTimes.forEach(t=>timeSet.add(t));
-  const TIMES=Array.from(timeSet).sort();
+  /* "HH:MM" 24h format */
+  if (t.includes(':')) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+  return parseInt(t) * 60;
+}
 
-  const map={};
-  DAYS.forEach(d=>{map[d]={};});
-  Object.entries(schedule).forEach(([day,tasks])=>{
-    if(!Array.isArray(tasks))return;
-    tasks.forEach(t=>{if(map[day])map[day][t.time]=t;});
+/* Format total minutes back to "HH:MM" for display */
+function _minsToLabel(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+function _renderScheduleTable(schedule) {
+  /* Normalise all task times to HH:MM so row keys are consistent */
+  const normalised = {};
+  DAYS.forEach(d => { normalised[d] = []; });
+  Object.entries(schedule).forEach(([day, tasks]) => {
+    if (!Array.isArray(tasks)) return;
+    tasks.forEach(t => {
+      const startMins = _timeToMins(t.time);
+      const endMins   = t.end ? _timeToMins(t.end) : startMins + 60;
+      normalised[day].push({
+        ...t,
+        _startMins: startMins,
+        _endMins:   endMins,
+        _timeKey:   _minsToLabel(startMins),
+      });
+    });
   });
 
-  const skip={};let html='';
-  TIMES.forEach((time,ti)=>{
-    html+=`<tr><td>${time}</td>`;
-    DAYS.forEach(day=>{
-      const k=day+ti; if(skip[k]) return;
-      const task=map[day]?.[time];
-      if(task){
-        const startH=parseInt(time.split(':')[0]);
-        const endH  =task.end?parseInt(task.end.split(':')[0]):startH+1;
-        const span  =Math.max(1,endH-startH);
-        for(let s=1;s<span;s++) skip[day+(ti+s)]=true;
-        const col=(task.difficulty&&DIFF_COLOR[task.difficulty])?DIFF_COLOR[task.difficulty]:(task.color||'blue');
-        const rs=span>1?` rowspan="${span}"`:'';
-        html+=`<td${rs} style="vertical-align:top;padding:2px">
+  /* Build study-window time rows (30-min granularity if any task starts on :30) */
+  const studyStartMins = _timeToMins(userPrefs.study_start || '09:00');
+  const studyEndMins   = _timeToMins(userPrefs.study_end   || '18:00');
+
+  /* Collect all unique start times */
+  const allStartMins = new Set();
+  Object.values(normalised).forEach(tasks => tasks.forEach(t => allStartMins.add(t._startMins)));
+
+  /* Add hourly slots from study window */
+  const timeSet = new Set();
+  for (let m = studyStartMins; m < studyEndMins && timeSet.size < 12; m += 60) {
+    timeSet.add(m);
+  }
+  /* Add any task start times that fall outside the study window */
+  allStartMins.forEach(m => timeSet.add(m));
+
+  const TIMES = Array.from(timeSet).sort((a, b) => a - b);
+
+  /* Build a map: day → { timeKey: task } */
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+  Object.entries(normalised).forEach(([day, tasks]) => {
+    tasks.forEach(t => { if (map[day]) map[day][t._startMins] = t; });
+  });
+
+  const skip = {}; let html = '';
+  TIMES.forEach((timeMins, ti) => {
+    const label = _minsToLabel(timeMins);
+    html += `<tr><td>${label}</td>`;
+    DAYS.forEach(day => {
+      const k = `${day}|${ti}`; if (skip[k]) return;
+      const task = map[day]?.[timeMins];
+      if (task) {
+        /* Calculate rowspan: how many time rows does this task cover? */
+        let span = 1;
+        for (let nxt = ti + 1; nxt < TIMES.length; nxt++) {
+          if (TIMES[nxt] < task._endMins) {
+            span++;
+            skip[`${day}|${nxt}`] = true;
+          } else break;
+        }
+        const col = (task.difficulty && DIFF_COLOR[task.difficulty])
+          ? DIFF_COLOR[task.difficulty] : (task.color || 'blue');
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+        const endLabel = _minsToLabel(task._endMins);
+        html += `<td${rs} style="vertical-align:top;padding:2px">
           <a href="schedule.html" style="text-decoration:none;display:block;">
-            <div class="t-block ${col}" style="cursor:pointer" title="${task.title}">${task.title}</div>
+            <div class="t-block ${col}" style="cursor:pointer;min-height:${span*28}px;" title="${task.title}">
+              <div style="font-weight:800;line-height:1.2;">${task.title}</div>
+              <div style="font-size:0.62rem;opacity:0.75;margin-top:2px;">${label} – ${endLabel}</div>
+            </div>
           </a></td>`;
       } else {
-        html+='<td></td>';
+        html += '<td></td>';
       }
     });
-    html+='</tr>';
+    html += '</tr>';
   });
-  document.getElementById('plan-body').innerHTML=html;
+  document.getElementById('plan-body').innerHTML = html;
 }
 
 function emptySchedule(isAdvanceHint) {
@@ -664,22 +710,27 @@ _drawCal();
 
 /* ── Todo / Upcoming ── */
 const COL_ICONS={purple:'🗄️',orange:'⚙️',blue:'📱',green:'📗',red:'📕'};
+const COL_CYCLE = ['green','orange','blue','purple','red'];
 
 function renderTodo(tasks, upcoming) {
   const el  = document.getElementById('todo-list');
   const hdr = document.getElementById('todo-section-hdr');
 
-  if (tasks && tasks.length>0) {
-    hdr.textContent='Today Must-Do List';
-    el.innerHTML=tasks.map(t=>{
-      const col=taskColor(t); const icon=COL_ICONS[col]||'📝';
+  /* Filter today's tasks to only those that actually have a valid time/title */
+  const todayValid = (tasks || []).filter(t => t && t.title);
+
+  if (todayValid.length > 0) {
+    hdr.textContent = 'Today Must-Do List';
+    el.innerHTML = todayValid.map(t => {
+      const col = taskColor(t) || 'blue';
+      const icon = COL_ICONS[col] || '📝';
       return `
       <div class="todo-item" id="td-${t.id}">
         <div class="todo-pill ${col}">
           <div class="todo-icon-wrap">${icon}</div>
           <div>
             <div class="todo-name ${col}">${t.title}</div>
-            <div class="todo-time">${t.start}${t.end?' – '+t.end:''}</div>
+            <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
           </div>
         </div>
         <div class="todo-btns">
@@ -689,27 +740,36 @@ function renderTodo(tasks, upcoming) {
       </div>`;
     }).join('');
   } else {
-    /* No today tasks → show upcoming with dates */
-    hdr.textContent='Upcoming Tasks';
-    const up = (upcoming && upcoming.length>0)
-      ? upcoming
-      : _deriveUpcoming(window._scheduleCache||{});
+    /* No today tasks → show upcoming assignments with due dates */
+    hdr.textContent = 'Upcoming Tasks';
 
-    if(!up||up.length===0){
-      el.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 Nothing scheduled — enjoy your break!</p>';
+    /* Priority: passed-in upcoming list > schedule-derived > assignment_due_dates cache */
+    let up = (upcoming && upcoming.length > 0)
+      ? upcoming
+      : _deriveUpcoming(window._scheduleCache || {});
+
+    /* Ensure every item has a color */
+    up = up.map((t, i) => ({
+      ...t,
+      color: t.color || COL_CYCLE[i % COL_CYCLE.length],
+    }));
+
+    if (!up || up.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 Nothing scheduled — enjoy your break!</p>';
       return;
     }
-    el.innerHTML=`<div class="todo-upcoming-sublbl">Coming up</div>`+
-      up.slice(0,4).map(t=>{
-        const col=taskColor(t); const icon=COL_ICONS[col]||'📝';
+    el.innerHTML = `<div class="todo-upcoming-sublbl">Coming up</div>` +
+      up.slice(0, 4).map(t => {
+        const col  = t.color || 'blue';
+        const icon = COL_ICONS[col] || '📝';
         return `
         <div class="todo-item">
           <div class="todo-pill ${col}">
             <div class="todo-icon-wrap">${icon}</div>
             <div>
               <div class="todo-name ${col}">${t.title}</div>
-              ${t.start?`<div class="todo-time">${t.start}${t.end?' – '+t.end:''}</div>`:''}
-              ${t.date?`<div class="todo-date-tag">📅 ${t.date}</div>`:''}
+              ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
+              ${t.date  ? `<div class="todo-date-tag">📅 ${t.date}</div>` : ''}
             </div>
           </div>
         </div>`;
@@ -817,19 +877,26 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   }
 
   /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
-  let upcomingTasks = data.upcoming_tasks;
-  if ((!upcomingTasks || upcomingTasks.length === 0) && Array.isArray(data.assignment_due_dates)) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const COLORS = ['green','orange','blue','purple','red'];
+  let upcomingTasks = data.upcoming_tasks && data.upcoming_tasks.length > 0
+    ? data.upcoming_tasks
+    : null;
+
+  if (!upcomingTasks && Array.isArray(data.assignment_due_dates) && data.assignment_due_dates.length > 0) {
+    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
     upcomingTasks = data.assignment_due_dates
-      .filter(item => { const d=new Date(item.date); d.setHours(0,0,0,0); return d >= today; })
-      .sort((a,b)=>new Date(a.date)-new Date(b.date))
-      .slice(0,4)
-      .map((item,i)=>({
+      .filter(item => { const d = new Date(item.date); d.setHours(0,0,0,0); return d >= todayMidnight; })
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 4)
+      .map((item, i) => ({
         title: item.title,
-        color: COLORS[i % COLORS.length],
-        date:  new Date(item.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+        color: COL_CYCLE[i % COL_CYCLE.length],
+        date:  new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
       }));
+  }
+
+  /* Last resort: derive from schedule cache */
+  if (!upcomingTasks || upcomingTasks.length === 0) {
+    upcomingTasks = _deriveUpcoming(data.schedule || {});
   }
 
   renderStats(data);
