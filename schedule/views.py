@@ -334,26 +334,43 @@ def regenerate_schedule(request):
     # Auto apply redistribution if overload detected
     from core.schedule_engine import check_and_redistribute, apply_recommendation
 
-    max_attempts = 5  # prevent infinite loop
+    max_attempts = 5
     attempts = 0
     recommendation = check_and_redistribute(user, preference)
 
     while recommendation and attempts < max_attempts:
-        # Auto apply the recommendation
         apply_recommendation(
             recommendation['session'],
             recommendation['suggested_date']
         )
         attempts += 1
-        # Check again after applying
         recommendation = check_and_redistribute(user, preference)
 
-    # Final check — any remaining recommendation?
     final_recommendation = check_and_redistribute(user, preference)
+
+    # Check if schedule is still overloaded after redistribution
+    still_overloaded = False
+    from datetime import date as date_today
+    from datetime import timedelta
+    today = date_today.today()
+    days_to_check = [
+        today + timedelta(days=i)
+        for i in range(14)
+        if (today + timedelta(days=i)).weekday() < 5
+    ]
+
+    from core.schedule_engine import get_daily_cls_percentage
+    for day in days_to_check:
+        pct = get_daily_cls_percentage(user, day, preference.max_focus_hours)
+        if pct >= 80:
+            still_overloaded = True
+            break
 
     response_data = {
         'message': 'Schedule regenerated and optimized successfully!',
         'redistributions_applied': attempts,
+        'still_overloaded': still_overloaded,
+        'warning': 'Your workload is too heavy for the available days. Consider extending deadlines or reducing task hours.' if still_overloaded else None,
     }
 
     if final_recommendation:
