@@ -366,24 +366,35 @@ function closeModal() {
  */
 async function confirmRegenerate() {
   const confirmBtn = document.querySelector('#confirm-modal .btn-confirm');
-  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Regenerating…'; }
+
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Regenerating…';
+  }
+
   closeModal();
 
   try {
-    await CLAP.API.post('/schedule/regenerate/', {});
-    if (response.still_overloaded && response.warning) {
+    const response = await CLAP.API.post('/schedule/regenerate/', {});
+
+    if (response?.still_overloaded && response?.warning) {
       CLAP.Toast.warning(response.warning);
+    } else if (response?.message) {
+      CLAP.Toast.success(response.message);
     } else {
       CLAP.Toast.success('New schedule generated successfully!');
     }
+
     loadAnalytics(+document.getElementById('period-select').value);
   } catch (err) {
-    CLAP.Toast.error(err.message || 'Failed to regenerate schedule.');
+    CLAP.Toast.error(err?.message || 'Failed to regenerate schedule.');
   } finally {
-    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Yes, Regenerate'; }
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Yes, Regenerate';
+    }
   }
 }
-
 /* ── EVENTS ─────────────────────────────────────────────────── */
 
 /* Re-load analytics when the period dropdown changes. */

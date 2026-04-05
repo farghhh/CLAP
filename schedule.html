@@ -347,6 +347,7 @@ async function load(offset) {
   let data;
   try {
     data = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
+    console.log('schedule response =', data);
   } catch (err) {
     console.error('[CLAP]', err);
     CLAP.Toast.error('Could not load schedule. Please try again.');
