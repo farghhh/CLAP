@@ -105,7 +105,7 @@ def schedule_view(request):
                 'time': available_times[i],
                 'subject': session.task.title,
                 'code': session.task.course_code,
-                'duration': max(1, round(session.scheduled_hours)),
+                'duration': max(1, (session.scheduled_hours)),
                 'color': task_colors.get(session.task.task_id, 'blue'),
                 'session_id': session.session_id,
                 'task_id': session.task.task_id,
