@@ -166,12 +166,13 @@ SIMPLE_JWT = {
 #forgot password email
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp-relay.brevo.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'clap.iief@gmail.com')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'tfke ozni vxjx suwr')
-FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
+EMAIL_TIMEOUT = 10
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'a72cbc001@smtp-brevo.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'xsmtpsib-e031c81942c8f0f15e5c450d12ef0776cab9553b79d6792acf7f557193ddd5b8-ETEqKbqXv73RfjOZ')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://farghhh.github.io/CLAP')
 
 # Whitenoise for static files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
