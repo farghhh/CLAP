@@ -204,11 +204,13 @@
       /*
        * CONNECT: POST /api/auth/login/
        * Expected response: { access, refresh, user: { … } }
+       * FIX: Pass retry:false so a 401 wrong-password response is never intercepted
+       * by API.request's token-refresh logic and is always thrown to this catch block.
        */
       const data = await CLAP.API.post('/auth/login/', {
         email:    emailInp.value.trim().toLowerCase(),
         password: pwInp.value,
-      }, { auth: false });
+      }, { auth: false, retry: false });
 
       /* Persist tokens and user profile. */
       CLAP.Auth.setTokens(data.access, data.refresh);

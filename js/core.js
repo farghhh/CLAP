@@ -103,7 +103,18 @@ const API = {
       clearTimeout(timeoutId);
 
       /* ── Token expired: attempt silent refresh, then retry once ── */
-      if (res.status === 401 && retry) {
+      /* FIX (signin wrong-password bug): The original code intercepted ALL 401 responses,
+         including those from unauthenticated endpoints (auth:false) like /auth/login/.
+         When a user entered a wrong password, the backend correctly returned HTTP 401.
+         But API.request caught it here, called refreshToken() (which either succeeded
+         and retried the login silently, or failed and called clearTokens() + showed
+         "Session expired. Please sign in again." toast + redirected back to signin.html),
+         and returned null — so the signin catch block NEVER fired. The user saw the wrong
+         toast and the password field was never highlighted red.
+         Fix: only attempt token refresh when auth:true — if we didn't send a token,
+         a 401 cannot mean "your token expired"; it is always a business-logic rejection
+         that must be passed through to the caller. */
+      if (res.status === 401 && retry && auth) {
         const refreshed = await API.refreshToken();
         if (refreshed) return API.request(endpoint, { method, body, auth, retry: false });
 
