@@ -358,14 +358,19 @@ AppShell.init('dashboard.html', { showTopbar: false });
 const _u  = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
 const _avEl = document.getElementById('db-av');
-if (_u.profile_picture) {
+const _pic = _u.profile_picture || _u.avatarDataUrl || null;
+if (_pic) {
   _avEl.textContent = '';
   _avEl.style.background = 'transparent';
   _avEl.style.padding = '0';
   const _avImg = document.createElement('img');
-  _avImg.src = _u.profile_picture;
+  _avImg.src = _pic;
   _avImg.alt = _u.name || 'Profile';
   _avImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+  _avImg.onerror = () => {
+    _avEl.textContent = (_u.name || 'S').charAt(0).toUpperCase();
+    _avEl.style.background = '';
+  };
   _avEl.appendChild(_avImg);
 } else {
   _avEl.textContent = (_u.name || 'S').charAt(0).toUpperCase();
@@ -892,11 +897,14 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
         nextData.slots.forEach(s=>{
           const day=dayMap[(s.day||'').toLowerCase()]||s.day;
           if(!nextSched[day]) nextSched[day]=[];
-          const startH=parseInt((s.time||'09:00').split(':')[0]);
-          const endH=startH+(s.duration||1);
+          const [startH, startM] = (s.time||'09:00').split(':').map(Number);
+          const durationMins = Math.round((s.duration||1) * 60);
+          const endTotalMins = startH * 60 + (startM||0) + durationMins;
+          const endH = Math.floor(endTotalMins / 60) % 24;
+          const endM = endTotalMins % 60;
           nextSched[day].push({
             time: s.time||'09:00',
-            end:  `${String(endH).padStart(2,'0')}:00`,
+            end:  `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`,
             title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
             difficulty: (s.difficulty||'easy').toLowerCase(),
           });
