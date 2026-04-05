@@ -123,6 +123,7 @@ def generate_study_sessions(task, preference):
         other_sessions = StudySession.objects.filter(
             user=task.user,
             scheduled_date=day
+            is_completed=False
         ).exclude(task=task)
         other_hours = sum(s.scheduled_hours for s in other_sessions)
         available_hours = round(max_focus - other_hours, 2)
@@ -153,18 +154,22 @@ def generate_study_sessions(task, preference):
 
         remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # ── Step 6: Safety net ────────────────────────────────────
+   # ── Step 6: Safety net ────────────────────────────────────
     if remaining_hours >= 0.5:
+        # Try ALL available days including ones not in selected_days
         for day in available_days:
             if remaining_hours <= 0:
                 break
 
+            # Only count incomplete sessions from OTHER tasks
             other_sessions = StudySession.objects.filter(
                 user=task.user,
-                scheduled_date=day
+                scheduled_date=day,
+                is_completed=False
             ).exclude(task=task)
             other_hours = sum(s.scheduled_hours for s in other_sessions)
 
+            # Also count what we already scheduled for this task today
             already_this_task = sum(
                 s['scheduled_hours'] for s in sessions
                 if s['scheduled_date'] == day
@@ -177,6 +182,10 @@ def generate_study_sessions(task, preference):
 
             hours_today = round(min(remaining_hours, available_hours), 2)
 
+            if hours_today < 0.5:
+                continue
+
+            # Check if session already exists for this day
             existing = next(
                 (s for s in sessions if s['scheduled_date'] == day), None
             )
