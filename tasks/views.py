@@ -207,6 +207,8 @@ def assignment_detail(request, task_id):
         try:
             preference = SleepStudyPreference.objects.get(user=request.user)
             sessions = generate_study_sessions(task, preference)
+            
+            hours_saved = 0
             for session in sessions:
                 StudySession.objects.create(
                     task=task,
@@ -215,6 +217,8 @@ def assignment_detail(request, task_id):
                     scheduled_hours=session['scheduled_hours'],
                     cls_contribution=session['cls_contribution'],
                 )
+                hours_saved += session['scheduled_hours']
+
         except SleepStudyPreference.DoesNotExist:
             pass
 
@@ -230,6 +234,11 @@ def assignment_detail(request, task_id):
             'message': 'Assignment updated successfully!',
             'cls_score': cls_score,
             'risk_level': risk_level,
+            'debug': {
+                'task_hours': task.hours,
+                'sessions_generated': len(sessions) if 'sessions' in dir() else 0,
+                'hours_scheduled': round(hours_saved, 2) if 'hours_saved' in dir() else 0,
+            }
         }
 
         if recommendation:
