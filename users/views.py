@@ -130,10 +130,25 @@ def forgot_password(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         reset_link = f"{settings.FRONTEND_URL}/reset-password.html?uid={uid}&token={token}"
 
-        try:
-            send_mail(
-                subject='Reset Your CLAP Password',
-                message=f'''
+        # Send via Brevo HTTP API instead of SMTP
+        import requests as http_requests
+
+        brevo_api_key = os.environ.get('BREVO_API_KEY', '')
+
+        response = http_requests.post(
+            'https://api.brevo.com/v3/smtp/email',
+            headers={
+                'api-key': brevo_api_key,
+                'Content-Type': 'application/json',
+            },
+            json={
+                'sender': {
+                    'name': 'CLAP',
+                    'email': 'clap.iief@gmail.com'
+                },
+                'to': [{'email': email}],
+                'subject': 'Reset Your CLAP Password',
+                'textContent': f'''
 Hi {user.username},
 
 Click the link below to reset your password:
@@ -142,20 +157,24 @@ Click the link below to reset your password:
 This link will expire in 24 hours.
 
 CLAP Team
-                ''',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=[email],
-                fail_silently=False,
-            )
-        except Exception as e:
-            # Return the actual email error so we can see it
+                '''
+            },
+            timeout=10
+        )
+
+        if response.status_code not in [200, 201]:
             return Response(
-                {'error': f'Email sending failed: {str(e)}'},
+                {'error': f'Email sending failed: {response.text}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     except User.DoesNotExist:
         pass
+    except Exception as e:
+        return Response(
+            {'error': f'Email sending failed: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     return Response({
         'message': 'If an account exists for this email, a reset link has been sent.'
