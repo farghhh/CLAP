@@ -587,6 +587,28 @@ function normalizeScheduleData(apiData) {
     fri: 'Friday'
   };
 
+  /*
+   * The backend may return slots under different keys, or as a day-keyed
+   * object ({ Monday: [...], Tuesday: [...] }) rather than a flat array.
+   * Resolve to a flat array before processing.
+   */
+  function extractRawSlots(data) {
+    /* Flat array keys — try each in order of likelihood */
+    for (const key of ['slots', 'sessions', 'schedule_slots', 'data', 'items']) {
+      if (Array.isArray(data[key]) && data[key].length > 0) return data[key];
+    }
+    /* Day-keyed object: { Monday: [...], Tuesday: [...], ... } */
+    const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+    if (DAY_NAMES.some(d => Array.isArray(data[d]))) {
+      return DAY_NAMES.flatMap(d =>
+        (data[d] || []).map(s => ({ ...s, day: s.day || d.slice(0,3).toLowerCase() }))
+      );
+    }
+    /* If the response itself is an array */
+    if (Array.isArray(data)) return data;
+    return [];
+  }
+
   /* Helper: convert total minutes → formatted "H.MM AM/PM" string */
   function minsToFormatted(totalMins) {
     let h = Math.floor(totalMins / 60) % 24;
@@ -617,7 +639,7 @@ function normalizeScheduleData(apiData) {
 
   /* First pass: build raw slots with duration info, grouped by day */
   const rawByDay = {};
-  (apiData.slots || []).forEach(slot => {
+  extractRawSlots(apiData).forEach(slot => {
     const day = dayMap[(slot.day || '').toLowerCase()] || slot.day;
     if (!rawByDay[day]) rawByDay[day] = [];
     const sessionDuration = slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1;
@@ -632,7 +654,7 @@ function normalizeScheduleData(apiData) {
       rawTime:       slot.time,       // original "HH:MM" string for anchor
       hasRealEnd:    !!slot.end,
       rawEnd:        slot.end || null,
-      title:         [slot.code, slot.subject].filter(Boolean).join(' '),
+      title:         slot.title || slot.name || [slot.code, slot.subject].filter(Boolean).join(' '),
       difficulty,
       is_completed:  slot.is_completed || false,
       duration:      sessionDuration,
