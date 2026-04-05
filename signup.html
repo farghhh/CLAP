@@ -115,7 +115,7 @@
           </div>
 
           <!-- Password field + strength meter + visibility toggle -->
-          <div class="form-group">
+          <div class="form-group" style="position:relative;">
             <label class="form-label sr-only" for="signup-password">Password</label>
             <div class="form-input-wrap">
               <span class="input-icon" aria-hidden="true">
@@ -145,8 +145,23 @@
               </div>
               <span class="pw-strength-label" id="signup-pw-label"></span>
             </div>
-            <!-- Password requirements checklist -->
-            <div id="signup-pw-reqs" style="display:none;margin-top:10px;flex-direction:column;gap:5px;text-align:left;">
+            <!-- Password requirements checklist — floats below, doesn't push layout -->
+            <div id="signup-pw-reqs" style="
+              display:none;
+              position:absolute;
+              left:0; top:calc(100% + 6px);
+              z-index:200;
+              background:#fff;
+              border:1px solid #d0eaea;
+              border-radius:10px;
+              box-shadow:0 6px 20px rgba(26,58,92,0.12);
+              padding:10px 14px;
+              flex-direction:column;
+              gap:5px;
+              min-width:220px;
+              text-align:left;
+            ">
+              <div style="font-size:0.7rem;font-weight:700;color:#7a9ab5;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Password must have:</div>
               <div id="su-req-len"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least 8 characters</div>
               <div id="su-req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one uppercase letter</div>
               <div id="su-req-num"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one number</div>
@@ -232,6 +247,18 @@
       el.style.color = ok ? '#27AE60' : '#E74C3C';
       el.querySelector('.req-icon').textContent = ok ? '✓' : '✗';
     });
+  });
+
+  /* Hide checklist when password field loses focus */
+  pwInp.addEventListener('blur', function() {
+    const reqs = document.getElementById('signup-pw-reqs');
+    if (reqs) reqs.style.display = 'none';
+  });
+  /* Re-show checklist when password field is focused and has a value */
+  pwInp.addEventListener('focus', function() {
+    if (!this.value) return;
+    const reqs = document.getElementById('signup-pw-reqs');
+    if (reqs) reqs.style.display = 'flex';
   });
 
   /* Attach live validation: shows errors on blur and clears them when fixed. */
