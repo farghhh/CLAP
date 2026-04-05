@@ -88,36 +88,6 @@
       transform: scale(1.1);
     }
 
-    .week-info-banner {
-      display:none;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin: -6px auto 18px;
-      padding: 12px 16px;
-      width:min(100%, 760px);
-      background:#FFF8D9;
-      color:#856404;
-      border:1px solid #F3E1A2;
-      border-radius:14px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.04);
-      font-size:0.84rem;
-      font-weight:700;
-    }
-    .week-info-banner.show { display:flex; }
-    .week-info-banner button {
-      border:none;
-      background:rgba(75, 191, 191, 0.12);
-      color:var(--clap-teal-dark);
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:0.78rem;
-      font-weight:800;
-      cursor:pointer;
-      white-space:nowrap;
-    }
-    .week-info-banner button:hover { background:rgba(75, 191, 191, 0.18); }
-
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ── Timetable card ── */
@@ -386,10 +356,6 @@
       <button id="next-week-btn" class="nav-arrow" aria-label="Next week">›</button>
     </div>
 
-    <div class="week-info-banner" id="week-info-banner" role="status" aria-live="polite">
-      <span id="week-info-text"></span>
-      <button type="button" id="week-info-action" class="hidden">View this week</button>
-    </div>
 
     <!-- Timetable -->
     <div class="timetable-card">
@@ -452,51 +418,8 @@ AppShell.init('schedule.html', { showTopbar: false });
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 let weekOffset = 0;
-let weekBannerTimer = null;
-
-function hasScheduleSlots(data) {
-  return Array.isArray(data?.slots) && data.slots.length > 0;
-}
 
 
-function hideWeekBanner() {
-  const banner = document.getElementById('week-info-banner');
-  const textEl = document.getElementById('week-info-text');
-  const actionBtn = document.getElementById('week-info-action');
-  if (!banner || !textEl || !actionBtn) return;
-  banner.classList.remove('show');
-  textEl.textContent = '';
-  actionBtn.classList.add('hidden');
-  actionBtn.onclick = null;
-  if (weekBannerTimer) {
-    clearTimeout(weekBannerTimer);
-    weekBannerTimer = null;
-  }
-}
-
-function showWeekBanner(message, options = {}) {
-  const banner = document.getElementById('week-info-banner');
-  const textEl = document.getElementById('week-info-text');
-  const actionBtn = document.getElementById('week-info-action');
-  if (!banner || !textEl || !actionBtn) return;
-
-  hideWeekBanner();
-  textEl.textContent = message;
-  banner.classList.add('show');
-
-  if (options.actionLabel && typeof options.onAction === 'function') {
-    actionBtn.textContent = options.actionLabel;
-    actionBtn.classList.remove('hidden');
-    actionBtn.onclick = options.onAction;
-  }
-
-  const duration = Number.isFinite(options.duration) ? options.duration : 4500;
-  if (duration > 0) {
-    weekBannerTimer = setTimeout(() => {
-      hideWeekBanner();
-    }, duration);
-  }
-}
 
 /* ── MOCK DATA ───────────────────────────────────────────── */
 function getMock() {
@@ -839,22 +762,14 @@ function renderSchedule(data) {
 }
 
 /* ── LOAD SCHEDULE ───────────────────────────────────────── */
-/*
- * Auto-advance: if the current week has no slots on initial load,
- * silently try next week so the page never opens blank.
- * If both weeks are empty, stay on current week and show empty state.
- */
 async function loadSchedule(offset = 0, options = {}) {
-  const { forceShow = false, silent = false } = options;
+  const { silent = false } = options;
 
   weekOffset = offset;
   updateWeekNavLabel();
   const currentWeekLabel = getWeekLabelFromOffset(weekOffset);
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${currentWeekLabel}`;
 
-  if (!silent) hideWeekBanner();
-
-  /* ── Fetch current week ── */
   let apiData;
   try {
     apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
@@ -865,50 +780,11 @@ async function loadSchedule(offset = 0, options = {}) {
     return;
   }
 
-  /* null = 401 expired session, API is already redirecting to sign-in */
+  /* null = 401 expired session, core.js is already redirecting to sign-in */
   if (apiData === null) return;
 
   const normalizedData = normalizeScheduleData(apiData);
   normalizedData.week = currentWeekLabel;
-
-  /* ── Auto-advance: current week empty → try next week ── */
-  if (weekOffset === 0 && !forceShow && !hasScheduleSlots(normalizedData)) {
-    let nextApiData = null;
-    try {
-      nextApiData = await CLAP.API.get('/schedule/?week_offset=1');
-    } catch (nextErr) {
-      console.warn('[CLAP] Next-week check failed:', nextErr);
-    }
-
-    /* Only advance if we got a real response that actually has slots */
-    if (nextApiData !== null && nextApiData !== undefined) {
-      const nextData = normalizeScheduleData(nextApiData);
-
-      if (hasScheduleSlots(nextData)) {
-        weekOffset = 1;
-        updateWeekNavLabel();
-        const nextWeekLabel = getWeekLabelFromOffset(weekOffset);
-        nextData.week = nextWeekLabel;
-        document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextWeekLabel}`;
-
-        renderSchedule(nextData);
-
-        if (!silent) {
-          showWeekBanner(
-            `No schedule for ${currentWeekLabel} — showing next week.`,
-            {
-              actionLabel: 'View this week',
-              onAction: () => { loadSchedule(0, { forceShow: true }); },
-              duration: 5000,
-            }
-          );
-        }
-        return;
-      }
-    }
-    /* Both weeks empty (or next-week fetch failed/null) — fall through to render current week empty */
-  }
-
   renderSchedule(normalizedData);
 }
 
@@ -986,11 +862,11 @@ window.toggleDone = async function(btn) {
 
 /* ── WEEK NAVIGATION ─────────────────────────────────────── */
 document.getElementById('prev-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset - 1, { forceShow: true });
+  loadSchedule(weekOffset - 1);
 });
 
 document.getElementById('next-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset + 1, { forceShow: true });
+  loadSchedule(weekOffset + 1);
 });
 
 /* ── LEGEND POPUP ────────────────────────────────────────── */
@@ -1029,7 +905,7 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
        Rendering that response always produced a blank timetable.
        Instead: fire the regenerate call, then re-fetch the fresh schedule. */
     await CLAP.API.post('/schedule/regenerate/', {});
-    await loadSchedule(weekOffset, { forceShow: false });
+    await loadSchedule(weekOffset);
     CLAP.Toast.success('Schedule regenerated!');
   } catch (err) {
     console.error('REGENERATE ERROR:', err);
@@ -1050,7 +926,7 @@ try {
     const { type } = event.data || {};
     if (type === 'assignment_deleted' || type === 'assignment_updated') {
       /* Re-fetch the schedule so stale task titles / removed slots disappear */
-      loadSchedule(weekOffset, { forceShow: true });
+      loadSchedule(weekOffset);
     }
   });
 } catch { /* BroadcastChannel not supported — silent fail */ }
