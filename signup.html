@@ -262,10 +262,24 @@
       /*
        * Django REST returns field-specific errors in err.data.
        * Surface them next to the relevant input if present.
+       * FIX (Bug 2): Backend also returns a flat { error: '...' } string for duplicate
+       * email/username — e.g. { error: 'Email already registered' }. The original code
+       * only checked err.data.email and err.data.name (DRF field-level format), so the
+       * inline red-border highlight NEVER fired for duplicates. Fix: also handle the
+       * flat error key and route it to the correct field based on the message content.
        */
       if (err.data) {
         if (err.data.email) Validate.setError(emailInp, err.data.email[0]);
         if (err.data.name)  Validate.setError(nameInp,  err.data.name[0]);
+
+        if (err.data.error) {
+          const msg = err.data.error.toLowerCase();
+          if (msg.includes('email')) {
+            Validate.setError(emailInp, err.data.error);
+          } else if (msg.includes('username') || msg.includes('name')) {
+            Validate.setError(nameInp, err.data.error);
+          }
+        }
       }
     }
   });

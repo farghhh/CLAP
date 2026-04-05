@@ -49,7 +49,7 @@
       </div>
       <div class="stress-stat-card">
         <div class="stress-stat-icon" aria-hidden="true">🔥</div>
-        <div class="stress-stat-value" id="s-peak" style="color:var(--danger)">—</div>
+        <div class="stress-stat-value" id="s-peak">—</div>
         <div class="stress-stat-label">Peak Load</div>
       </div>
       <div class="stress-stat-card">
@@ -133,6 +133,12 @@ AppShell.init('stress-analytics.html', { showTopbar: false });
 /* Active Chart.js instance; stored so it can be destroyed before re-render. */
 let trendChart = null;
 
+/* FIX (Bug 2): Monotonically incrementing counter — each loadAnalytics() call
+   captures its own ID. If a newer call has started by the time an older response
+   arrives, the older response is silently discarded, preventing stale data from
+   overwriting the UI when the user rapidly switches the period dropdown. */
+let analyticsLoadId = 0;
+
 /* ── MOCK DATA ──────────────────────────────────────────────
    Generates plausible cognitive load data for a given number
    of days. Called when the API is not yet available.
@@ -197,6 +203,11 @@ function buildMock(days) {
    @param {number} days  Number of days to query.
    ─────────────────────────────────────────────────────────── */
 async function loadAnalytics(days) {
+  /* FIX (Bug 2): Capture this call's generation ID before any await point.
+     If analyticsLoadId has incremented by the time we get data back, a newer
+     call has already started and we must not overwrite its results. */
+  const thisLoad = ++analyticsLoadId;
+
   let data;
   try {
     data = await CLAP.API.get(`/stress-analytics/?days=${days}`);
@@ -205,10 +216,23 @@ async function loadAnalytics(days) {
     data = buildMock(days);
   }
 
+  /* FIX (Bug 2): Discard stale response if a newer loadAnalytics() call fired. */
+  if (thisLoad !== analyticsLoadId) return;
+
   /* ── Populate stat cards ── */
   const s = data.stats || {};
   document.getElementById('s-avg').textContent  = s.avg_load      != null ? s.avg_load  + '%' : '—';
-  document.getElementById('s-peak').textContent = s.peak_load     != null ? s.peak_load + '%' : '—';
+
+  /* FIX (Bug 3): Peak load colour was hardcoded as var(--danger) in the HTML,
+     making it always red even for low values (e.g. 20%). Now the colour is set
+     dynamically to match the actual severity of the peak load reading. */
+  const peakEl = document.getElementById('s-peak');
+  peakEl.textContent = s.peak_load != null ? s.peak_load + '%' : '—';
+  peakEl.style.color = s.peak_load == null  ? ''
+                     : s.peak_load >= 80    ? 'var(--danger)'
+                     : s.peak_load >= 60    ? 'var(--warning)'
+                     :                        'var(--success)';
+
   document.getElementById('s-over').textContent = s.overload_days ?? '—';
   document.getElementById('s-safe').textContent = s.safe_days     ?? '—';
 
@@ -242,6 +266,21 @@ function renderTrendChart(labels, values) {
   /* Destroy previous instance to avoid canvas reuse errors. */
   if (trendChart) { trendChart.destroy(); trendChart = null; }
   if (!labels || !values) return;
+
+  /* FIX (Bug 1): If Chart.js CDN failed to load, `Chart` is undefined.
+     Without this guard the ReferenceError propagates out of renderTrendChart,
+     crashes loadAnalytics, and prevents stat cards + recommendation from rendering.
+     Instead we degrade gracefully and show a plain message in the canvas wrapper. */
+  if (typeof Chart === 'undefined') {
+    console.warn('[CLAP] Chart.js did not load — trend chart unavailable.');
+    const wrap = document.querySelector('.graph-canvas-wrap');
+    if (wrap) {
+      wrap.innerHTML = '<p style="text-align:center;color:var(--text-muted);' +
+        'padding:60px 0;font-size:0.85rem;">Chart unavailable — ' +
+        'Chart.js failed to load. Check your internet connection.</p>';
+    }
+    return;
+  }
 
   const ctx = document.getElementById('trend-chart').getContext('2d');
 

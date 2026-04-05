@@ -154,6 +154,12 @@ const API = {
     if (typeof data === 'string') return data;
     if (data.detail)              return data.detail;
     if (data.non_field_errors)    return data.non_field_errors[0];
+    /* FIX (Bug 3): Backend returns { error: '...' } for all validation failures
+       (duplicate email, wrong password, invalid token, etc.). Without this branch,
+       _extractErrorMsg fell through to the generic `firstKey: msg` formatter and
+       produced "error: Email already registered" — the "error: " prefix appeared
+       in every toast across signin, signup, reset-password, and settings pages. */
+    if (data.error)               return data.error;
 
     const keys = Object.keys(data);
     if (keys.length) {
@@ -165,21 +171,41 @@ const API = {
   },
 
   async refreshToken() {
+    /* FIX (Bug 5): Without this guard, multiple concurrent API calls that all receive
+       401 would each independently call refreshToken(). The first call refreshes and
+       stores a new access token. If the backend rotates refresh tokens (invalidates the
+       old one on use), the 2nd and 3rd calls use the now-dead refresh token, fail, and
+       CLAP.Auth.clearTokens() is called — booting the user to sign-in even though they
+       were legitimately authenticated. The fix: if a refresh is already in-flight, all
+       callers wait on the same Promise instead of issuing duplicate requests. */
+    if (API._refreshPromise) return API._refreshPromise;
+
     const refresh = Auth.getRefreshToken();
     if (!refresh) return false;
-    try {
-      const data = await API.request('/auth/token/refresh/', {
-        method: 'POST',
-        body:   { refresh },
-        auth:   false,
-        retry:  false,
-      });
-      Auth.setTokens(data.access, refresh);
-      return true;
-    } catch {
-      return false;
-    }
+
+    API._refreshPromise = (async () => {
+      try {
+        const data = await API.request('/auth/token/refresh/', {
+          method: 'POST',
+          body:   { refresh },
+          auth:   false,
+          retry:  false,
+        });
+        Auth.setTokens(data.access, refresh);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        /* Always clear so the next genuine token expiry can trigger a fresh refresh. */
+        API._refreshPromise = null;
+      }
+    })();
+
+    return API._refreshPromise;
   },
+
+  /* Shared refresh-in-flight promise (null when idle). */
+  _refreshPromise: null,
 
   /* Convenience shortcut methods */
   get(endpoint, opts = {})         { return API.request(endpoint, { ...opts, method: 'GET' }); },
