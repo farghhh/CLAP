@@ -225,9 +225,9 @@ async function loadPreferences() {
   try {
     const profileData = await CLAP.API.get('/auth/profile/');
     if (profileData) {
-      user.name            = profileData.name;
-      user.email           = profileData.email;
-      user.profile_picture = profileData.profile_picture || '';
+      user.name  = profileData.name || user.name;
+      user.email = profileData.email || user.email;
+      user.profile_picture = profileData.profile_picture || user.profile_picture || user.avatarDataUrl || '';
       localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
     }
   } catch {}
@@ -746,29 +746,29 @@ window.saveProfile = async function() {
       email:           user.email,
       profile_picture: picturePayload,
     });
-    if (data) {
-      user.name            = data.name            || user.name;
-      user.email           = data.email           || user.email;
-      /* If server returns a URL use it; otherwise keep the local data URL */
-      user.profile_picture = data.profile_picture || user.avatarDataUrl || user.profile_picture;
-    }
-    /* Clear the pending avatar change now that it's persisted */
+
+    user.name  = data?.name  || user.name;
+    user.email = data?.email || user.email;
+    user.profile_picture = data?.profile_picture || user.avatarDataUrl || user.profile_picture || '';
     delete user.avatarDataUrl;
     localStorage.setItem(userKey, JSON.stringify(user));
-    CLAP.Toast.success('Profile saved!');
+    CLAP.Toast.success('Profile saved successfully!');
+    if (curSec === 'general-menu' && curSub === 'profile') {
+      document.getElementById('settings-panel').innerHTML = panelProfile();
+      bindProfileButtons();
+    }
   } catch (err) {
-    /* Save locally so changes aren't lost, but surface the real server error.
-       Copy avatarDataUrl → profile_picture so other pages (dashboard) can read it. */
     if (user.avatarDataUrl !== undefined) {
-      user.profile_picture = user.avatarDataUrl;
+      user.profile_picture = user.avatarDataUrl || '';
+    } else if (picturePayload === null) {
+      user.profile_picture = '';
     }
     delete user.avatarDataUrl;
     localStorage.setItem(userKey, JSON.stringify(user));
-    const msg = err?.data?.error || err?.message;
-    if (msg) {
-      CLAP.Toast.error(msg);
-    } else {
-      CLAP.Toast.success('Profile saved locally!');
+    CLAP.Toast.success('Changes saved on this device.');
+    if (curSec === 'general-menu' && curSub === 'profile') {
+      document.getElementById('settings-panel').innerHTML = panelProfile();
+      bindProfileButtons();
     }
   } finally {
     if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }

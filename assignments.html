@@ -763,14 +763,20 @@
 
     function normalizeAssignment(a) {
       if (!a) return null;
+      const hours = Number(a.hours ?? a.estimated_hours ?? 0);
+      const completedHours = Number(a.hours_done ?? a.completed_hours ?? a.done_hours ?? 0);
+      const derivedProgress = hours > 0 && completedHours >= 0
+        ? Math.round((completedHours / hours) * 100)
+        : null;
+
       return {
         id:          a.id ?? Date.now(),
         course_code: a.course_code ?? a.code ?? '',
         title:       a.title ?? a.assignment_title ?? a.name ?? '',
         deadline:    a.deadline ?? a.due_date ?? '',
-        hours:       Number(a.hours ?? a.estimated_hours ?? 0),
+        hours,
         difficulty:  (a.difficulty ?? 'easy').toLowerCase(),
-        progress:    Number(a.progress ?? a.progress_percentage ?? 0),
+        progress:    Math.max(0, Math.min(100, Number(derivedProgress ?? a.progress ?? a.progress_percentage ?? 0))),
         created_at:  a.created_at ?? a.createdAt ?? null,
       };
     }
