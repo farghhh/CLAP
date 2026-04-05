@@ -3,348 +3,389 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CLAP — Dashboard</title>
+  <title>CLAP — Schedule</title>
   <link rel="stylesheet" href="css/global.css"/>
   <link rel="stylesheet" href="css/app.css"/>
   <style>
-    /* ── Two-column layout ── */
-    .db-wrapper   { display:grid; grid-template-columns:1fr 300px; gap:24px; align-items:start; }
-    .db-left      { display:flex; flex-direction:column; gap:20px; min-width:0; }
-    .db-right     { display:flex; flex-direction:column; gap:20px; }
-
-    /* ── Greeting topbar (search bar removed) ── */
-    .db-topbar    { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
-    .db-greet-row { display:flex; align-items:center; gap:14px; }
-    .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); }
-    .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
-    .db-sub       { font-size:0.82rem; color:var(--text-muted); }
-
-    /* ── Stats grid ── */
-    .stats-grid   { display:grid; grid-template-columns:1fr 1fr minmax(180px,240px); grid-template-rows:auto auto; gap:16px; }
-    .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
-    .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
-    .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
-    .cog-row      { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
-    .cog-pct      { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; }
-    .cog-badge    { display:inline-block; padding:4px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; margin-top:6px; }
-    .cog-badge.moderate { background:#F5A623; color:#fff; }
-    .cog-badge.low      { background:#27AE60; color:#fff; }
-    .cog-badge.high     { background:#E74C3C; color:#fff; }
-    .cog-badge.critical { background:#E74C3C; color:#fff; animation:pulseBadge 1s ease-in-out infinite; }
-    .cog-spark    { width:90px; height:48px; }
-    .dl-box       { grid-column:1/3; background:var(--white); border-radius:18px; padding:18px 24px; box-shadow:var(--shadow-card); display:flex; align-items:center; gap:14px; }
-    .dl-lbl       { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
-    .dl-icon-wrap { width:42px; height:42px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .dl-course    { font-family:var(--font-heading); font-size:1rem; font-weight:800; color:var(--text-primary); }
-    .dl-name      { font-size:0.78rem; color:var(--text-muted); }
-    .dl-badge     { margin-left:auto; padding:7px 18px; border-radius:999px; font-size:0.78rem; font-weight:800; white-space:nowrap; flex-shrink:0; }
-    .dl-badge.urgent { background:#E74C3C; color:#fff; }
-    .dl-badge.warn   { background:#FFF3CD; color:#856404; }
-    .dl-badge.safe   { background:var(--bg-light); color:var(--clap-teal); }
-    .focus-box    { grid-column:3; grid-row:1/3; background:linear-gradient(160deg,#4BBFBF 0%,#3DA8C8 60%,#5BB8D4 100%); border-radius:20px; padding:24px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; box-shadow:0 8px 24px rgba(75,191,191,0.4); color:#fff; }
-    .focus-title  { font-size:0.9rem; font-weight:700; text-align:center; line-height:1.3; }
-    .focus-clock  { width:90px; height:90px; border-radius:50%; border:3px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; }
-    .focus-clock svg { width:52px; height:52px; stroke:#fff; }
-    .focus-hrs    { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; }
-
-    /* ── Study plan ── */
-    .plan-card    { background:var(--white); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow-card); }
-    .plan-hdr     { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-    .plan-ttl     { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); }
-    .plan-week-badge { font-size:0.75rem; font-weight:700; color:var(--text-muted); background:var(--bg-light); border-radius:999px; padding:3px 12px; margin-left:8px; }
-    .plan-link    { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
-    .plan-link:hover { color:var(--clap-teal); }
-    .timetable    { width:100%; border-collapse:separate; border-spacing:3px; }
-    .timetable th { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; }
-    .timetable th:first-child { text-align:right; background:transparent; color:var(--text-muted); font-size:0.68rem; }
-    .timetable td { vertical-align:top; padding:2px; min-width:70px; }
-    .timetable td:first-child { font-size:0.68rem; font-weight:700; color:var(--text-muted); text-align:right; padding-right:8px; vertical-align:middle; min-width:38px; white-space:nowrap; }
-    .t-block      { border-radius:8px; padding:6px 8px; font-size:0.68rem; font-weight:700; color:#fff; min-height:34px; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.2; }
-    .t-block.green  { background:#c8f0d4; color:#1a5c30; }
-    .t-block.orange { background:#fde9c0; color:#7a4300; }
-    .t-block.red    { background:#fac8c8; color:#7a1a1a; }
-    .t-block.blue   { background:#b8d4f8; color:#1a3a7a; }
-    .t-block.purple { background:#9B59B6; color:#fff; }
-    .plan-empty   { text-align:center; padding:28px 0; color:var(--text-muted); font-size:0.85rem; }
-
-    /* ── Calendar ── */
-    .cal-card     { background:var(--white); border-radius:18px; padding:18px 18px 14px; box-shadow:var(--shadow-card); }
-    .cal-hdr      { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .cal-date-big { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; color:var(--clap-teal); }
-    .cal-day-name { font-size:0.95rem; font-weight:600; color:var(--text-secondary); margin-left:6px; }
-    .cal-navs     { display:flex; gap:2px; }
-    .cal-btn      { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.1rem; padding:3px 7px; border-radius:6px; }
-    .cal-btn:hover { color:var(--clap-teal); }
-    .cal-grid     { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; text-align:center; }
-    .cal-dn       { font-size:0.62rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; padding:4px 0; }
-    .cal-d        { padding:4px 1px; border-radius:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); cursor:pointer; position:relative; }
-    .cal-d:hover  { background:var(--bg-light); }
-    .cal-d.today  { background:var(--clap-teal); color:#fff; border-radius:50%; font-weight:800; }
-    .cal-d.om     { color:var(--border); }
-    /* Calendar dots — assignment due dates only, always red */
-    .cal-d { position:relative; }
-    .cal-d::after { content:''; display:block; width:5px; height:5px; border-radius:50%; margin:1px auto 0; }
-    .has-due::after { background:#E74C3C; }
-
-    /* Hover tooltip for due-date days */
-    .cal-d[data-due]:hover .cal-tooltip,
-    .cal-d[data-due]:focus .cal-tooltip { display:block; }
-    .cal-tooltip {
-      display:none;
-      position:absolute;
-      bottom:calc(100% + 6px);
-      left:50%;
-      transform:translateX(-50%);
-      background:#1a3a5c;
-      color:#fff;
-      font-size:0.68rem;
+    /* ── Page header ── */
+    .sch-title   {
+      font-family:var(--font-heading);
+      font-size:1.5rem;
+      font-weight:800;
+      color:var(--clap-teal);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:4px;
+    }
+    .sch-meta    {
+      font-size:0.82rem;
+      color:var(--text-muted);
       font-weight:600;
-      white-space:nowrap;
-      padding:5px 9px;
-      border-radius:8px;
-      pointer-events:none;
-      z-index:100;
-      line-height:1.4;
-      max-width:160px;
-      white-space:normal;
+    }
+    .sch-meta b  {
+      color:var(--text-secondary);
+      font-weight:700;
+    }
+
+    /* ===== HEADER FIX ===== */
+    .sch-header {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:20px;
+      margin-bottom:8px;
+    }
+
+    .sch-header-left {
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    /* ===== CLEAN WEEK NAV ===== */
+    .week-nav {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      margin: 10px 0 22px;
+
+      background: rgba(255,255,255,0.6);
+      border-radius: 999px;
+      padding: 6px 16px;
+      width: fit-content;
+      margin: 12px auto 22px;
+    }
+
+    /* Date */
+    .nav-label {
+      font-weight:800;
+      font-size:1.1rem;
+      color:var(--clap-teal);
+    }
+
+    /* Arrows */
+    .nav-arrow {
+      cursor:pointer;
+      font-size:1.8rem;
+      font-weight:900;
+      color: var(--clap-teal);
+      line-height: 1;
+      padding: 6px 10px;
+      border-radius: 8px;
+      display:inline-flex;
+      align-items:center;
+      justify-content: center;
+      transition:all 0.2s ease;
+      /* button reset */
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+    .nav-arrow:hover {
+      background:rgba(75, 191, 191, 0.12);
+      transform: scale(1.1);
+    }
+
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ── Timetable card ── */
+    .timetable-card {
+      background:var(--white);
+      border-radius:var(--radius-lg);
+      padding:var(--space-lg);
+      box-shadow:var(--shadow-card);
+      overflow-x:auto;
+    }
+    .timetable {
+      min-width:650px;
+      width:100%;
+      border-collapse:separate;
+      border-spacing:4px;
+    }
+    .timetable th {
+      font-family:var(--font-heading);
+      font-size:0.82rem;
+      font-weight:700;
+      color:var(--text-secondary);
       text-align:center;
-      box-shadow:0 4px 12px rgba(0,0,0,0.18);
+      padding:12px 6px;
+      background:var(--bg-light);
+      border-radius:var(--radius-sm);
     }
-    .cal-tooltip::after {
-      content:'';
+    .timetable th.time-col {
+      text-align:left;
+      background:transparent;
+      color:var(--text-muted);
+      font-size:0.72rem;
+      min-width:60px;
+      padding-left:4px;
+    }
+    .timetable td {
+      vertical-align:top;
+      padding:2px;
+      min-width:110px;
+    }
+    .timetable td.time-cell {
+      font-size:0.72rem;
+      font-weight:700;
+      color:var(--text-muted);
+      text-align:left;
+      padding-left:4px;
+      padding-top:8px;
+      min-width:60px;
+      white-space:nowrap;
+      vertical-align:top;
+    }
+
+    /* Task blocks */
+    .task-block {
+      border-radius:var(--radius-md);
+      padding:10px 12px;
+      font-size:0.72rem;
+      font-weight:700;
+      min-height:56px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      cursor:pointer;
+      transition:transform var(--transition), box-shadow var(--transition);
+      position:relative;
+    }
+    .task-block:hover {
+      transform:translateY(-2px);
+      box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    }
+    .task-block.easy   { background:#c8f0d4; color:#1a5c30; }
+    .task-block.medium { background:#fde9c0; color:#7a4300; }
+    .task-block.hard   { background:#fac8c8; color:#7a1a1a; }
+
+    .tb-title {
+      font-size:0.78rem;
+      font-weight:800;
+      line-height:1.25;
+      margin-bottom:2px;
+      white-space:pre-line;
+    }
+    .tb-time {
+      font-size:0.66rem;
+      font-weight:600;
+      opacity:0.8;
+    }
+
+    .tb-check {
       position:absolute;
-      top:100%; left:50%;
-      transform:translateX(-50%);
-      border:5px solid transparent;
-      border-top-color:#1a3a5c;
+      bottom:8px;
+      right:8px;
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      border:2px solid rgba(255,255,255,0.8);
+      background:rgba(255,255,255,0.5);
+      cursor:pointer;
+      transition:background var(--transition);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:10px;
+      color:transparent;
+    }
+    .tb-check:hover {
+      background:rgba(255,255,255,0.85);
+      color:rgba(0,0,0,0.5);
+    }
+    .tb-check.done {
+      background:rgba(255,255,255,0.9);
+      color:#27AE60;
+      border-color:rgba(255,255,255,1);
+    }
+    .tb-check::after {
+      content:'✓';
+      font-size:10px;
+      font-weight:800;
     }
 
-    /* ── Today Must-Do / Upcoming ── */
-    .todo-section-hdr { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); margin-bottom:14px; }
-    .todo-upcoming-sublbl { font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
-    .todo-item    { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-    .todo-pill    { flex:1; display:flex; align-items:center; gap:10px; border-radius:14px; padding:11px 14px; min-width:0; }
-    .todo-pill.purple { background:#EDE7F6; }
-    .todo-pill.orange { background:#FFF3E0; }
-    .todo-pill.blue   { background:#E8EAF6; }
-    .todo-pill.green  { background:#E8F5E9; }
-    .todo-pill.red    { background:#FFEBEE; }
-    .todo-icon-wrap   { width:36px; height:36px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1rem; }
-    .todo-name    { font-size:0.83rem; font-weight:800; line-height:1.2; }
-    .todo-name.purple { color:#7C3AED; } .todo-name.orange { color:#E67E22; }
-    .todo-name.blue   { color:#3949AB; } .todo-name.green  { color:#2E7D32; }
-    .todo-name.red    { color:#C62828; }
-    .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
-    .todo-date-tag { font-size:0.68rem; font-weight:700; color:var(--clap-teal); background:rgba(75,191,191,0.1); border-radius:6px; padding:2px 7px; margin-top:3px; display:inline-block; }
-    .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
-    .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.85rem; color:#aaa; transition:all var(--transition); }
-    .todo-btn.chk:hover { border-color:var(--success); background:var(--success); color:#fff; }
-    .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
-    .todo-item.done .todo-name { text-decoration:line-through; opacity:0.5; }
-    .todo-item.done { opacity:0.7; }
+    .empty-cell { height:56px; }
 
-    /* ── Missed Task Modal ── */
-    .missed-overlay {
-      display:none; position:fixed; inset:0; z-index:9500;
-      background:rgba(26,58,92,0.4); backdrop-filter:blur(5px);
-      align-items:center; justify-content:center; padding:20px;
+    .gen-label {
+      text-align:center;
+      font-size:0.72rem;
+      color:var(--text-muted);
+      font-style:italic;
+      margin-top:var(--space-md);
     }
-    .missed-overlay.active { display:flex; }
-    .missed-modal {
-      background:#fff; border-radius:24px; padding:40px 36px 36px;
-      max-width:500px; width:100%; text-align:center;
-      box-shadow:0 24px 64px rgba(26,58,92,0.24);
-      animation:missedIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
-    }
-    @keyframes missedIn { from{opacity:0;transform:translateY(28px) scale(0.94)} to{opacity:1;transform:none} }
-    .missed-icon  { font-size:2.8rem; margin-bottom:10px; }
-    .missed-title { font-family:var(--font-heading); font-size:1.55rem; font-weight:800; color:#E74C3C; margin-bottom:10px; }
-    .missed-desc  { font-size:0.9rem; color:var(--text-secondary); line-height:1.65; margin-bottom:26px; }
-    .missed-cards { display:flex; align-items:center; gap:12px; margin-bottom:28px; }
-    .missed-card  { flex:1; border-radius:14px; padding:14px 16px; text-align:left; }
-    .missed-card.from { background:#FFEBEE; }
-    .missed-card.to   { background:#E0F7F7; }
-    .missed-card-lbl  { font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-    .missed-card.from .missed-card-lbl { color:#E74C3C; }
-    .missed-card.to   .missed-card-lbl { color:var(--clap-teal); }
-    .missed-card-title { font-family:var(--font-heading); font-size:0.95rem; font-weight:800; color:var(--text-primary); }
-    .missed-card-time  { font-size:0.78rem; color:var(--text-muted); margin-top:3px; }
-    .missed-arrow { font-size:1.8rem; color:#aaa; flex-shrink:0; }
-    .missed-btns  { display:flex; gap:12px; justify-content:center; }
-    .missed-btn-primary {
-      flex:1; max-width:200px; padding:13px 20px; border-radius:999px;
-      background:var(--grad-primary); color:#fff; border:none; cursor:pointer;
-      font-family:var(--font-heading); font-weight:800; font-size:0.88rem;
-      transition:opacity 0.2s;
-    }
-    .missed-btn-primary:hover { opacity:0.87; }
-    .missed-btn-secondary {
-      flex:1; max-width:120px; padding:13px 20px; border-radius:999px;
-      background:transparent; color:var(--clap-teal); border:2px solid var(--clap-teal);
-      cursor:pointer; font-family:var(--font-heading); font-weight:800; font-size:0.88rem;
-      transition:background 0.2s, color 0.2s;
-    }
-    .missed-btn-secondary:hover { background:var(--clap-teal); color:#fff; }
 
-    /* ── Responsive ── */
-    @media(max-width:1100px){
-      .db-wrapper { grid-template-columns:1fr; }
-      .db-right   { display:grid; grid-template-columns:1fr 1fr; }
+    .task-block.done {
+      opacity:0.5;
+      text-decoration:line-through;
+      filter:grayscale(0.4);
     }
-    @media(max-width:720px){
-      .stats-grid { grid-template-columns:1fr 1fr; }
-      .focus-box  { grid-column:1/3; grid-row:auto; }
-      .dl-box     { grid-column:1/3; }
-      .db-right   { grid-template-columns:1fr; }
+    .tb-check.done {
+      background:rgba(75, 191, 191, 0.8);
+      border-color:var(--clap-teal);
+    }
+
+    /* ── Legend popup ── */
+    .info-fab {
+      position:fixed;
+      bottom:28px;
+      right:28px;
+      width:38px;
+      height:38px;
+      border-radius:50%;
+      background:var(--clap-teal);
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-size:1rem;
+      font-weight:800;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 4px 14px rgba(75,191,191,0.4);
+      z-index:50;
+    }
+    .legend-popup {
+      position:fixed;
+      bottom:74px;
+      right:28px;
+      background:#fff;
+      border-radius:var(--radius-md);
+      padding:var(--space-md);
+      box-shadow:var(--shadow-md);
+      display:none;
+      z-index:60;
+      min-width:155px;
+    }
+    .legend-popup.show { display:block; }
+    .leg-row {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:0.78rem;
+      font-weight:600;
+      color:var(--text-muted);
+      padding:3px 0;
+    }
+    .leg-sw {
+      width:14px;
+      height:14px;
+      border-radius:4px;
+      flex-shrink:0;
+    }
+
+    @media (max-width: 700px) {
+      .sch-header {
+        align-items:stretch;
+        gap:12px;
+      }
+      .week-nav {
+        justify-content:center;
+        width: 100%;
+      }
+      .regen-btn {
+        align-self: flex-start;
+      }
     }
   </style>
 </head>
 <body>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
-<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle">&#9776;</button>
 <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
-
-<!-- ════ MISSED TASK MODAL ════ -->
-<div class="missed-overlay" id="missed-overlay" role="dialog" aria-modal="true" aria-labelledby="missed-modal-title">
-  <div class="missed-modal">
-    <div class="missed-icon">⚠️</div>
-    <div class="missed-title" id="missed-modal-title">Missed Task Detected</div>
-    <p class="missed-desc">
-      You didn't complete the task yesterday.<br>
-      No worries — CLAP has adjusted to keep you on track!
-    </p>
-    <div class="missed-cards">
-      <div class="missed-card from">
-        <div class="missed-card-lbl">Missed Task:</div>
-        <div class="missed-card-title" id="mm-task-title">—</div>
-        <div class="missed-card-time"  id="mm-task-time">—</div>
-      </div>
-      <div class="missed-arrow">»</div>
-      <div class="missed-card to">
-        <div class="missed-card-lbl">Rescheduled To:</div>
-        <div class="missed-card-title" id="mm-resched-title">—</div>
-        <div class="missed-card-time"  id="mm-resched-time">—</div>
-      </div>
-    </div>
-    <div class="missed-btns">
-      <button class="missed-btn-primary"   onclick="location.href='schedule.html'">View Updated Schedule</button>
-      <button class="missed-btn-secondary" onclick="closeMissedModal()">OK</button>
-    </div>
-  </div>
-</div>
 
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content">
 
-    <!-- ── Greeting (no search bar) ── -->
-    <div class="db-topbar">
-      <div class="db-greet-row">
-        <div class="db-avatar" id="db-av">S</div>
-        <div>
-          <div class="db-name" id="db-greet">Welcome Back!</div>
-          <div class="db-sub">Nice to have you back.</div>
+    <!-- Page header -->
+    <div class="sch-header">
+
+      <!-- LEFT -->
+      <div class="sch-header-left">
+        <div class="sch-title">
+          <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2"/>
+            <path d="M16 2v4M8 2v4M3 10h18"/>
+          </svg>
+          Schedule
+        </div>
+
+        <div class="sch-meta" id="sch-week">
+          <b>Week:</b> —
         </div>
       </div>
+      
+      <!-- RIGHT -->
+      <button class="regen-btn" id="regen-btn">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <path d="M23 4v6h-6"/>
+          <path d="M1 20v-6h6"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Regenerate
+      </button>
+
     </div>
 
-    <div class="db-wrapper">
-      <!-- ════ LEFT ════ -->
-      <div class="db-left">
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-lbl">Total Tasks</div>
-            <div class="stat-num" id="s-tasks">—</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-lbl">Cognitive Load</div>
-            <div class="cog-row">
-              <canvas class="cog-spark" id="cog-spark"></canvas>
-              <div style="text-align:right">
-                <div class="cog-pct" id="s-cog-pct">—%</div>
-                <span class="cog-badge moderate" id="s-cog-badge">Moderate</span>
-              </div>
-            </div>
-          </div>
-          <div class="focus-box">
-            <div class="focus-title">Focus Hours<br>Today</div>
-            <div class="focus-clock" aria-hidden="true">
-              <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
-                <circle cx="26" cy="26" r="24" stroke="rgba(255,255,255,0.5)"/>
-                <circle cx="26" cy="26" r="19" stroke="rgba(255,255,255,0.3)"/>
-                <line x1="26" y1="26" x2="26" y2="12" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <line x1="26" y1="26" x2="36" y2="26" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-                <circle cx="26" cy="26" r="2" fill="white"/>
-              </svg>
-            </div>
-            <div class="focus-hrs" id="s-focus">— / — Hrs</div>
-          </div>
-          <div class="dl-box">
-            <div class="dl-lbl">Next Deadline</div>
-            <div class="dl-icon-wrap" aria-hidden="true">
-              <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-              </svg>
-            </div>
-            <div>
-              <div class="dl-course" id="dl-course">—</div>
-              <div class="dl-name"   id="dl-name">—</div>
-            </div>
-            <span class="dl-badge urgent" id="dl-badge">—</span>
-          </div>
-        </div>
+    <!-- CENTER -->
+    <div class="week-nav">
+      <button id="prev-week-btn" class="nav-arrow" aria-label="Previous week">‹</button>
+      <span id="week-nav-label" class="nav-label" aria-live="polite">—</span>
+      <button id="next-week-btn" class="nav-arrow" aria-label="Next week">›</button>
+    </div>
 
-        <!-- Study Plan -->
-        <div class="plan-card">
-          <div class="plan-hdr">
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;">
-              <span class="plan-ttl">Generated Study Plan</span>
-              <span class="plan-week-badge" id="plan-week-badge"></span>
-            </div>
-            <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
-          </div>
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-            <table class="timetable" aria-label="Weekly study plan">
-              <thead>
-                <tr>
-                  <th>Time / Day</th>
-                  <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
-                </tr>
-              </thead>
-              <tbody id="plan-body">
-                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div><!-- /.db-left -->
-
-      <!-- ════ RIGHT ════ -->
-      <div class="db-right">
-        <!-- Calendar -->
-        <div class="cal-card">
-          <div class="cal-hdr">
-            <div>
-              <span class="cal-date-big" id="cal-title">—</span>
-              <span class="cal-day-name"  id="cal-day">—</span>
-            </div>
-            <div class="cal-navs">
-              <button class="cal-btn" id="cal-prev" aria-label="Previous month">&#8249;</button>
-              <button class="cal-btn" id="cal-next" aria-label="Next month">&#8250;</button>
-            </div>
-          </div>
-          <div class="cal-grid" id="cal-grid" aria-label="Calendar"></div>
-        </div>
-
-        <!-- Today / Upcoming tasks -->
-        <div>
-          <div class="todo-section-hdr" id="todo-section-hdr">Today Must-Do List</div>
-          <div id="todo-list"></div>
-        </div>
-      </div><!-- /.db-right -->
+    <!-- Timetable -->
+    <div class="timetable-card">
+      <div style="overflow-x:auto;">
+        <table class="timetable">
+          <thead id="sch-thead">
+            <tr>
+              <th class="time-col">Day /<br>Time</th>
+              <th>Monday</th>
+              <th>Tuesday</th>
+              <th>Wednesday</th>
+              <th>Thursday</th>
+              <th>Friday</th>
+            </tr>
+          </thead>
+          <tbody id="sch-body">
+            <tr>
+              <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">
+                Loading schedule…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="gen-label" id="gen-label">Generated by CLAP</div>
     </div>
 
   </main>
+</div>
+
+<!-- Floating legend button -->
+<button class="info-fab" id="info-fab" aria-label="Show legend">i</button>
+<div class="legend-popup" id="legend-popup" role="tooltip">
+  <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
+  <div class="leg-row"><div class="leg-sw" style="background:#fde9c0"></div>Medium</div>
+  <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
+</div>
+
+<!-- Regenerate confirmation modal -->
+<div id="regen-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+  <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
+    <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
+    <div style="font-family:var(--font-heading);font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:var(--space-sm)">Regenerate Schedule?</div>
+    <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:var(--space-xl);line-height:1.5">
+      This will overwrite your current schedule and any tasks you've marked as done. This cannot be undone.
+    </div>
+    <div style="display:flex;gap:var(--space-md);justify-content:center;">
+      <button class="btn btn-ghost btn-sm" id="regen-cancel">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="regen-confirm">Yes, Regenerate</button>
+    </div>
+  </div>
 </div>
 
 <script src="js/core.js"></script>
@@ -352,495 +393,427 @@
 <script>
 'use strict';
 
-AppShell.init('dashboard.html', { showTopbar: false });
+AppShell.init('schedule.html', { showTopbar: false });
 
-/* Greeting */
-const _u  = CLAP.Auth.getUser() || {};
-const _fn = (_u.name || 'Student').split(' ')[0];
-document.getElementById('db-av').textContent    = (_u.name || 'S').charAt(0).toUpperCase();
-document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+let weekOffset = 0;
 
-/* ── User preferences ──────────────────────────────────────
-   CONNECT: GET /api/users/preferences/
-   { study_start, study_end, sleep_start, sleep_end, max_focus_hours }
-   ─────────────────────────────────────────────────────────── */
-let userPrefs = { study_start:'09:00', study_end:'18:00', max_focus_hours:6 };
-async function loadPrefs() {
-  try {
-    const p = await CLAP.API.get('/users/preferences/');
-    if (p && p.study_start) userPrefs = { ...userPrefs, ...p };
-  } catch { /* keep defaults */ }
-}
-
-/* ── Mock data ──────────────────────────────────────────────
-   CONNECT: GET /api/dashboard/
-   Full expected shape is documented inline below.
-   ─────────────────────────────────────────────────────────── */
+/* ── MOCK DATA ───────────────────────────────────────────── */
 function getMock() {
-  const now    = new Date();
-  const dow    = now.getDay();
-  const toMon  = (dow===0) ? -6 : 1-dow;
-  const monday = new Date(now); monday.setDate(now.getDate()+toMon);
-
-  /* Build task_date_meta: map ISO date → dot CSS class */
-  const taskDateMeta = {};
-  [0,1,2,3,4,7,8,9,10,11].forEach((off,i) => {
-    const d = new Date(monday); d.setDate(monday.getDate()+off);
-    const iso = d.toISOString().slice(0,10);
-    taskDateMeta[iso] = (i%4===0)?'dot-red':(i%3===0)?'dot-orange':'dot-teal';
-  });
-
   return {
-    total_tasks:    5,
-    cognitive_load: { value:72, level:'moderate', trend:[40,45,55,50,72] },
-    focus:          { used:3, max:6 },
-    next_deadline:  { course:'CSC2383', title:'Database Project', days_left:2 },
-    schedule: {
-      Monday:    [
-        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy'   },
-        { time:'11:00', end:'12:00', title:'Parallel Comp.',   difficulty:'medium' },
-      ],
-      Tuesday:   [{ time:'10:00', end:'12:00', title:'Mobile App',     difficulty:'hard'   }],
-      Wednesday: [
-        { time:'09:00', end:'10:00', title:'Parallel Comp.',  difficulty:'medium' },
-        { time:'11:00', end:'13:00', title:'Mobile App',      difficulty:'hard'   },
-      ],
-      Thursday:  [{ time:'09:00', end:'10:00', title:'Mobile App',     difficulty:'hard'   }],
-      Friday:    [
-        { time:'11:00', end:'12:00', title:'Parallel Comp.',  difficulty:'medium' },
-        { time:'13:00', end:'14:00', title:'Mobile App',      difficulty:'hard'   },
-      ],
-    },
-    today_tasks: [
-      { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
-      { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
-      { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', difficulty:'hard',   color:'purple' },
-    ],
-    /*
-     * missed_task: null if nothing missed.
-     * CONNECT: backend sets this when a session was scheduled yesterday
-     *          and not marked complete, and has auto-rescheduled it.
-     */
-    missed_task: {
-      task_title:       'Database (FP)',
-      task_day:         'Thursday',
-      task_start:       '2:00 PM',
-      task_end:         '4:00 PM',
-      reschedule_day:   'Friday',
-      reschedule_start: '10:00 AM',
-      reschedule_end:   '12:00 PM',
-    },
-    task_date_meta: taskDateMeta,  // kept for backwards-compat
-    /* CONNECT: replace with real API data. assignment_due_dates is the canonical field. */
-    assignment_due_dates: [
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); })(), title: 'CSC2383 Database Project' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+5); return d.toISOString().slice(0,10); })(), title: 'MPU123 Speaking' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+7); return d.toISOString().slice(0,10); })(), title: 'CSC123 DB Assignment' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+10); return d.toISOString().slice(0,10); })(), title: 'ISL123 Islamic Studies' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10); })(), title: 'MPU123 Final Report' },
-    ],
+    week: 'March 10 – 14',
+    slots: [
+      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)', difficulty:'easy' },
+      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
+      { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
+      { day:'Friday',    time:'9.00 AM',  end:'1.00 PM',  title:'CSC123 Yapping', difficulty:'hard' }
+    ]
   };
 }
 
-/* ── Helpers ── */
-const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
-const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const DN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const MN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+/* ── TIME HELPERS ────────────────────────────────────────── */
+function buildTimeRows(slots) {
+  const seen = new Set();
+  slots.forEach(s => seen.add(s.time));
 
-function taskColor(t) {
-  return (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color||'blue');
+  return [...seen].sort((a, b) => {
+    const parse = t => {
+      const [hm, ap] = t.split(' ');
+      let [h, mi] = hm.split('.').map(Number);
+      if (ap === 'PM' && h !== 12) h += 12;
+      if (ap === 'AM' && h === 12) h = 0;
+      return h * 60 + (mi || 0);
+    };
+    return parse(a) - parse(b);
+  });
 }
 
-/* ── Stats ── */
-function renderStats(d) {
-  document.getElementById('s-tasks').textContent = d.total_tasks ?? '—';
-  const cog = d.cognitive_load || {};
-  document.getElementById('s-cog-pct').textContent = cog.value != null ? cog.value+'%' : '—%';
-  const badge = document.getElementById('s-cog-badge');
-  const lv    = (cog.level||'moderate').toLowerCase();
-  badge.className   = 'cog-badge '+lv;
-  badge.textContent = lv.charAt(0).toUpperCase()+lv.slice(1);
-  const f = d.focus || {};
-  document.getElementById('s-focus').textContent = `${f.used??'—'} / ${f.max??'—'} Hrs`;
+function buildEndMinutes(time) {
+  const [hm, ap] = time.split(' ');
+  let [h, mi] = hm.split('.').map(Number);
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + (mi || 0);
 }
 
-/* ── Sparkline ── */
-function renderSparkline(trend) {
-  const c = document.getElementById('cog-spark'); if(!c) return;
-  const ctx=c.getContext('2d'); c.width=90; c.height=48;
-  const max=Math.max(...trend),min=Math.min(...trend),rng=max-min||1;
-  const pts=trend.map((v,i)=>({x:(i/(trend.length-1))*78+6,y:42-((v-min)/rng)*36}));
-  ctx.clearRect(0,0,90,48);
-  ctx.strokeStyle='#7B68EE'; ctx.lineWidth=2.5; ctx.lineJoin='round';
-  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-  pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-  const e=pts[pts.length-1],p=pts[pts.length-2],a=Math.atan2(e.y-p.y,e.x-p.x);
-  ctx.beginPath();
-  ctx.moveTo(e.x,e.y);ctx.lineTo(e.x-8*Math.cos(a-0.35),e.y-8*Math.sin(a-0.35));
-  ctx.moveTo(e.x,e.y);ctx.lineTo(e.x-8*Math.cos(a+0.35),e.y-8*Math.sin(a+0.35));
-  ctx.strokeStyle='#7B68EE';ctx.lineWidth=2;ctx.stroke();
+function formatTime(time24) {
+  if (!time24) return '';
+
+  /* If the value is already in "H.MM AM/PM" format (e.g. from mock data), pass through */
+  if (/^\d{1,2}\.\d{2}\s?(AM|PM)$/i.test(time24.trim())) return time24.trim();
+
+  let [hour, minute] = time24.split(':').map(Number);
+  if (isNaN(hour)) return time24; // unrecognised format — return as-is
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+
+  return `${hour}.${String(minute).padStart(2, '0')} ${ampm}`;
 }
 
-/* ── Deadline ── */
-function renderDeadline(dl) {
-  if(!dl) return;
-  document.getElementById('dl-course').textContent=dl.course||'';
-  document.getElementById('dl-name').textContent  =dl.title ||'';
-  const b=document.getElementById('dl-badge'),d=dl.days_left;
-  if(d<0)      {b.textContent='Overdue!';        b.className='dl-badge urgent';}
-  else if(d<=1){b.textContent='Due Today!';       b.className='dl-badge urgent';}
-  else if(d<=3){b.textContent=`Due in ${d} Days`; b.className='dl-badge urgent';}
-  else if(d<=7){b.textContent=`Due in ${d} Days`; b.className='dl-badge warn';}
-  else         {b.textContent=`Due in ${d} Days`; b.className='dl-badge safe';}
+function addHoursToTime(time24, duration) {
+  if (!time24) return '';
+
+  let [hour, minute] = time24.split(':').map(Number);
+  const startTotal = hour * 60 + minute;
+  const endTotal = startTotal + (duration * 60);
+
+  let endHour = Math.floor(endTotal / 60) % 24;
+  const endMinute = endTotal % 60;
+  const ampm = endHour >= 12 ? 'PM' : 'AM';
+
+  if (endHour === 0) endHour = 12;
+  else if (endHour > 12) endHour -= 12;
+
+  return `${endHour}.${String(endMinute).padStart(2, '0')} ${ampm}`;
 }
 
-/* ── Schedule: user-preference time rows + auto next-week ── */
-function renderSchedule(schedule) {
-  if (!schedule) { emptySchedule(false); return; }
+function mapDifficulty(duration) {
+  if (duration <= 1) return 'easy';
+  if (duration <= 2) return 'medium';
+  return 'hard';
+}
 
-  const hasAny = Object.values(schedule).some(t=>Array.isArray(t)&&t.length>0);
+/* ── NORMALIZE BACKEND RESPONSE ──────────────────────────── */
+function normalizeScheduleData(apiData) {
+  if (!apiData) return { week: '—', slots: [] };
 
-  /* Which week to label */
-  const now=new Date(); const dow=now.getDay();
-  const toMon=(dow===0)?-6:1-dow;
-  /* When current week is empty, label as next week */
-  const monday=new Date(now); monday.setDate(now.getDate()+toMon+(hasAny?0:7));
-  const weekEnd=new Date(monday); weekEnd.setDate(monday.getDate()+4);
-  const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = hasAny ? 'This Week' : `Next Week`;
+  const dayMap = {
+    mon: 'Monday',
+    tue: 'Tuesday',
+    wed: 'Wednesday',
+    thu: 'Thursday',
+    fri: 'Friday'
+  };
 
-  if (!hasAny) {
-    /* Show next-week preview message but still try to render next week schedule */
-    const nextSchedule = window._nextWeekScheduleCache;
-    if (nextSchedule && Object.values(nextSchedule).some(t=>Array.isArray(t)&&t.length>0)) {
-      /* Render next week's data as preview */
-      _renderScheduleTable(nextSchedule);
-      document.getElementById('plan-body').insertAdjacentHTML('beforebegin',
-        `<tr id="next-week-hint"><td colspan="6" style="text-align:center;padding:8px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;">
-          📅 Nothing this week — showing next week preview
-        </td></tr>`);
-    } else {
-      emptySchedule(true);
-    }
+  const slots = (apiData.slots || []).map(slot => {
+    const rawDiff = slot.difficulty ?? slot.task_difficulty ?? slot.assignment_difficulty ?? null;
+    const difficulty = (rawDiff !== null && rawDiff !== '')
+      ? String(rawDiff).trim().toLowerCase()
+      : mapDifficulty(slot.duration || 1);
+
+    return {
+      /* Backend sends session_id on each slot; task_id is not in the slot response.
+         Map task_id from slot.task_id if the backend ever includes it, otherwise null.
+         Progress sync (step 4 in toggleDone) will be skipped when assignment_id is null. */
+      slot_id:       slot.session_id ?? slot.id       ?? slot.slot_id ?? null,
+      assignment_id: slot.task_id    ?? slot.assignment_id ?? null,
+      day:           dayMap[(slot.day || '').toLowerCase()] || slot.day,
+      time:          formatTime(slot.time),
+      end:           addHoursToTime(slot.time, slot.duration || 1),
+      title:         [slot.code, slot.subject].filter(Boolean).join(' '),
+      difficulty,
+      is_completed:  slot.is_completed || false,
+    };
+  });
+
+  return {
+    week: (apiData.week && apiData.week.trim && apiData.week.trim() !== '')
+      ? apiData.week
+      : getWeekLabelFromOffset(weekOffset),
+    slots
+  };
+}
+
+/* ── WEEK LABEL ──────────────────────────────────────────── */
+function getWeekLabelFromOffset(offset) {
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(today);
+  monday.setDate(today.getDate() + mondayOffset + (offset * 7));
+
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const startMonth = monthNames[monday.getMonth()];
+  const endMonth = monthNames[friday.getMonth()];
+  const startDate = monday.getDate();
+  const endDate = friday.getDate();
+
+  if (monday.getMonth() === friday.getMonth()) {
+    return `${startMonth} ${startDate} – ${endDate}`;
+  }
+
+  return `${startMonth} ${startDate} – ${endMonth} ${endDate}`;
+}
+
+function updateWeekNavLabel() {
+  const label = getWeekLabelFromOffset(weekOffset);
+  document.getElementById('week-nav-label').textContent = label;
+}
+
+/* ── RENDER TIMETABLE ────────────────────────────────────── */
+function renderSchedule(data) {
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
+
+  const slots = data.slots || [];
+  const times = buildTimeRows(slots);
+
+  if (!times.length) {
+    const emptyMsg = (weekOffset === 0)
+      ? '📅 Nothing scheduled this week — try navigating to next week or tap Regenerate.'
+      : (weekOffset > 0
+          ? '🎉 No sessions scheduled for this week.'
+          : '🎉 No sessions for that week.');
+    document.getElementById('sch-body').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;padding:36px 24px;color:var(--text-muted);font-size:0.88rem">${emptyMsg}</td></tr>`;
     return;
   }
 
-  _renderScheduleTable(schedule);
-}
+  const map = {};
+  DAYS.forEach(d => { map[d] = {}; });
+  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
 
-function _renderScheduleTable(schedule) {
-  /* Build time slots based on user's study hours */
-  const studyStartH = parseInt((userPrefs.study_start||'09:00').split(':')[0]);
-  const studyEndH   = parseInt((userPrefs.study_end  ||'18:00').split(':')[0]);
+  const rowspanSkip = {};
+  let html = '';
 
-  /* Collect all task times so nothing is hidden */
-  const allTimes = new Set();
-  Object.values(schedule).forEach(tasks=>{
-    if(!Array.isArray(tasks)) return;
-    tasks.forEach(t=>{ if(t.time) allTimes.add(t.time); });
-  });
-  /* Add hourly slots from study window (cap at 8 rows for readability) */
-  const timeSet=new Set();
-  for(let h=studyStartH;h<studyEndH&&timeSet.size<8;h++){
-    timeSet.add(`${String(h).padStart(2,'0')}:00`);
-  }
-  allTimes.forEach(t=>timeSet.add(t));
-  const TIMES=Array.from(timeSet).sort();
+  times.forEach((time, ti) => {
+    html += `<tr><td class="time-cell">${time}</td>`;
 
-  const map={};
-  DAYS.forEach(d=>{map[d]={};});
-  Object.entries(schedule).forEach(([day,tasks])=>{
-    if(!Array.isArray(tasks))return;
-    tasks.forEach(t=>{if(map[day])map[day][t.time]=t;});
-  });
+    DAYS.forEach(day => {
+      const key = `${day}|${ti}`;
+      if (rowspanSkip[key]) return;
 
-  const skip={};let html='';
-  TIMES.forEach((time,ti)=>{
-    html+=`<tr><td>${time}</td>`;
-    DAYS.forEach(day=>{
-      const k=day+ti; if(skip[k]) return;
-      const task=map[day]?.[time];
-      if(task){
-        const startH=parseInt(time.split(':')[0]);
-        const endH  =task.end?parseInt(task.end.split(':')[0]):startH+1;
-        const span  =Math.max(1,endH-startH);
-        for(let s=1;s<span;s++) skip[day+(ti+s)]=true;
-        const col=(task.difficulty&&DIFF_COLOR[task.difficulty])?DIFF_COLOR[task.difficulty]:(task.color||'blue');
-        const rs=span>1?` rowspan="${span}"`:'';
-        html+=`<td${rs} style="vertical-align:top;padding:2px">
-          <a href="schedule.html" style="text-decoration:none;display:block;">
-            <div class="t-block ${col}" style="cursor:pointer" title="${task.title}">${task.title}</div>
-          </a></td>`;
-      } else {
-        html+='<td></td>';
-      }
-    });
-    html+='</tr>';
-  });
-  document.getElementById('plan-body').innerHTML=html;
-}
+      const slot = map[day]?.[time];
+      if (slot) {
+        const endMin = buildEndMinutes(slot.end);
+        let span = 1;
 
-function emptySchedule(isAdvanceHint) {
-  const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = isAdvanceHint ? 'Next Week' : '';
-  document.getElementById('plan-body').innerHTML=
-    `<tr><td colspan="6" class="plan-empty">${
-      isAdvanceHint
-        ? '📅 Nothing scheduled this week — showing next week.'
-        : '🎉 No study sessions scheduled yet.'
-    }</td></tr>`;
-}
+        for (let nxt = ti + 1; nxt < times.length; nxt++) {
+          const nxtMin = buildEndMinutes(times[nxt]);
+          if (nxtMin < endMin) {          // strict < so a slot ending exactly on the next row label does NOT consume it
+            span++;
+            rowspanSkip[`${day}|${nxt}`] = true;
+          } else {
+            break;
+          }
+        }
 
-/* ── Calendar: dots from real task_date_meta ── */
-let calDate=new Date(), _dotMap={};
+        const rs = span > 1 ? ` rowspan="${span}"` : '';
+        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
+        const doneClass      = slot.is_completed ? 'done' : '';
+        const checkDoneClass = slot.is_completed ? 'done' : '';
 
-/*
- * renderCalendar: accepts assignment_due_dates from the API.
- * CONNECT: GET /api/dashboard/ should return:
- *   assignment_due_dates: [
- *     { date: "2025-04-10", title: "CSC2383 Database Project" },
- *     { date: "2025-04-15", title: "MPU123 Speaking" },
- *     ...
- *   ]
- * Each date gets a red dot; hovering shows the assignment title.
- * Multiple assignments on the same day are joined with a newline.
- */
-function renderCalendar(dueDates) {
-  _dotMap = {};
-  if (Array.isArray(dueDates)) {
-    dueDates.forEach(item => {
-      if (!item || !item.date) return;
-      const iso   = item.date;           // "YYYY-MM-DD"
-      const title = item.title || '';
-      if (_dotMap[iso]) {
-        // Multiple assignments on same day — append
-        _dotMap[iso].label += (title ? ' · ' + title : '');
-      } else {
-        _dotMap[iso] = { label: title };
-      }
-    });
-  } else if (dueDates && typeof dueDates === 'object') {
-    // Backwards-compat: old task_date_meta map passed in
-    Object.entries(dueDates).forEach(([iso, val]) => {
-      _dotMap[iso] = { label: '' };
-    });
-  }
-  _drawCal();
-}
+        /* Store IDs so toggleDone() can read them without a lookup table */
+        const dataAttrs = [
+          slot.slot_id       != null ? `data-slot-id="${slot.slot_id}"`             : '',
+          slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
+        ].filter(Boolean).join(' ');
 
-function _drawCal() {
-  const y=calDate.getFullYear(),m=calDate.getMonth();
-  const today=new Date();
-  const isCur=y===today.getFullYear()&&m===today.getMonth();
-  const td=today.getDate();
-  document.getElementById('cal-title').textContent=`${MN[m]}, ${isCur?td:1}`;
-  document.getElementById('cal-day').textContent=isCur?DN[today.getDay()]:'';
-  const first=new Date(y,m,1).getDay();
-  const days =new Date(y,m+1,0).getDate();
-  let html=DN.map(d=>`<div class="cal-dn">${d}</div>`).join('');
-  for(let i=0;i<first;i++) html+=`<div class="cal-d om"></div>`;
-  for(let d=1;d<=days;d++){
-    const isT=isCur&&d===td;
-    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    /* _dotMap now stores { label } or string — only assignment due dates */
-    const entry = _dotMap[iso];
-    if(entry && !isT){
-      const label = (typeof entry==='object' && entry.label) ? entry.label : (typeof entry==='string' && entry!=='') ? entry : '';
-      const dataAttr = label ? ` data-due="1"` : '';
-      const tooltip  = label ? `<span class="cal-tooltip">${label}</span>` : '';
-      html+=`<div class="cal-d has-due"${dataAttr} tabindex="0">${d}${tooltip}</div>`;
-    } else {
-      html+=`<div class="cal-d ${isT?'today':''}">${d}</div>`;
-    }
-  }
-  document.getElementById('cal-grid').innerHTML=html;
-}
-
-document.getElementById('cal-prev').onclick=()=>{calDate.setMonth(calDate.getMonth()-1);_drawCal();};
-document.getElementById('cal-next').onclick=()=>{calDate.setMonth(calDate.getMonth()+1);_drawCal();};
-_drawCal();
-
-/* ── Todo / Upcoming ── */
-const COL_ICONS={purple:'🗄️',orange:'⚙️',blue:'📱',green:'📗',red:'📕'};
-
-function renderTodo(tasks, upcoming) {
-  const el  = document.getElementById('todo-list');
-  const hdr = document.getElementById('todo-section-hdr');
-
-  if (tasks && tasks.length>0) {
-    hdr.textContent='Today Must-Do List';
-    el.innerHTML=tasks.map(t=>{
-      const col=taskColor(t); const icon=COL_ICONS[col]||'📝';
-      return `
-      <div class="todo-item" id="td-${t.id}">
-        <div class="todo-pill ${col}">
-          <div class="todo-icon-wrap">${icon}</div>
-          <div>
-            <div class="todo-name ${col}">${t.title}</div>
-            <div class="todo-time">${t.start}${t.end?' – '+t.end:''}</div>
-          </div>
-        </div>
-        <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask(${t.id},true)"  aria-label="Done">✓</button>
-          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip">✕</button>
-        </div>
-      </div>`;
-    }).join('');
-  } else {
-    /* No today tasks → show upcoming with dates */
-    hdr.textContent='Upcoming Tasks';
-    const up = (upcoming && upcoming.length>0)
-      ? upcoming
-      : _deriveUpcoming(window._scheduleCache||{});
-
-    if(!up||up.length===0){
-      el.innerHTML='<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">🎉 Nothing scheduled — enjoy your break!</p>';
-      return;
-    }
-    el.innerHTML=`<div class="todo-upcoming-sublbl">Coming up</div>`+
-      up.slice(0,4).map(t=>{
-        const col=taskColor(t); const icon=COL_ICONS[col]||'📝';
-        return `
-        <div class="todo-item">
-          <div class="todo-pill ${col}">
-            <div class="todo-icon-wrap">${icon}</div>
-            <div>
-              <div class="todo-name ${col}">${t.title}</div>
-              ${t.start?`<div class="todo-time">${t.start}${t.end?' – '+t.end:''}</div>`:''}
-              ${t.date?`<div class="todo-date-tag">📅 ${t.date}</div>`:''}
+        html += `
+          <td${rs} style="vertical-align:top;padding:2px">
+            <div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs} style="${ht}">
+              <div>
+                <div class="tb-title">${slot.title}</div>
+                <div class="tb-time">${slot.time} – ${slot.end}</div>
+              </div>
+              <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
             </div>
-          </div>
-        </div>`;
-      }).join('');
+          </td>
+        `;
+      } else {
+        html += `<td><div class="empty-cell"></div></td>`;
+      }
+    });
+
+    html += `</tr>`;
+  });
+
+  document.getElementById('sch-body').innerHTML = html;
+}
+
+/* ── LOAD SCHEDULE ───────────────────────────────────────── */
+/*
+ * Auto-advance: if the current week has no slots on initial load,
+ * silently try next week so the page never opens blank.
+ */
+async function loadSchedule(offset = 0) {
+  const fallbackWeek = getWeekLabelFromOffset(offset);
+  updateWeekNavLabel();
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
+
+  try {
+    const apiData      = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
+    let normalizedData = normalizeScheduleData(apiData);
+
+    /* Auto-advance on initial load if current week is empty */
+    if (normalizedData.slots.length === 0 && offset === 0 && weekOffset === 0) {
+      try {
+        const nextApiData = await CLAP.API.get(`/schedule/?week_offset=1`);
+        const nextData    = normalizeScheduleData(nextApiData);
+        if (nextData.slots.length > 0) {
+          weekOffset = 1;
+          updateWeekNavLabel();
+          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${getWeekLabelFromOffset(1)}`;
+
+          /* Show a dismissable info banner */
+          const existing = document.getElementById('next-week-banner');
+          if (!existing) {
+            const banner = document.createElement('div');
+            banner.id = 'next-week-banner';
+            banner.style.cssText = `
+              background:rgba(75,191,191,0.12);border:1px solid rgba(75,191,191,0.35);
+              border-radius:12px;padding:10px 16px;margin-bottom:14px;
+              font-size:0.82rem;font-weight:600;color:var(--clap-teal);
+              display:flex;align-items:center;justify-content:space-between;gap:8px;
+            `;
+            banner.innerHTML = `
+              <span>📅 This week has no sessions — automatically showing <strong>next week</strong>. Use ‹ to go back.</span>
+              <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted);padding:0 4px;" aria-label="Dismiss">✕</button>
+            `;
+            const timetableCard = document.querySelector('.timetable-card');
+            timetableCard?.parentElement?.insertBefore(banner, timetableCard);
+          }
+
+          renderSchedule(nextData);
+          return;
+        }
+      } catch { /* fall through to empty state */ }
+    }
+
+    renderSchedule(normalizedData);
+  } catch (err) {
+    console.error('[CLAP] Schedule load error:', err);
+    const mockData = { ...getMock(), week: fallbackWeek };
+    renderSchedule(mockData);
+    CLAP.Toast.error('Could not load schedule. Showing fallback data.');
   }
 }
 
-function _deriveUpcoming(schedule) {
-  const today=new Date(); const dow=today.getDay();
-  const result=[];
-  DAYS.forEach(day=>{
-    const tasks=schedule[day]; if(!Array.isArray(tasks)) return;
-    const dayIdx=['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day)+1;
-    const jsDay=dayIdx||7;
-    let ahead=(jsDay-dow+7)%7; if(ahead===0) ahead=7;
-    if(ahead>0&&ahead<=7){
-      const dt=new Date(today); dt.setDate(today.getDate()+ahead);
-      tasks.forEach(t=>{
-        result.push({...t,
-          date:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
-        });
-      });
+/* ── DONE TOGGLE ─────────────────────────────────────────── */
+/*
+ * When a session is ticked:
+ *  1. UI updates immediately (optimistic — no spinner)
+ *  2. PATCH /schedule/slots/{slot_id}/   → is_completed: true/false
+ *  3. Recalculate progress for that assignment from the DOM
+ *     (done slots / total slots for this assignment_id) * 100
+ *  4. PATCH /assignments/{assignment_id}/ → progress: <number>
+ *  5. Broadcast via BroadcastChannel so assignments.html updates live
+ */
+window.toggleDone = async function(btn) {
+  const taskBlock    = btn.closest('.task-block');
+  const isDone       = !taskBlock.classList.contains('done'); // toggling TO this state
+  const slotId       = taskBlock.dataset.slotId       || null;
+  const assignmentId = taskBlock.dataset.assignmentId || null;
+
+  /* Step 1 — update UI immediately, don't wait for API */
+  taskBlock.classList.toggle('done', isDone);
+  btn.classList.toggle('done', isDone);
+  btn.title = isDone ? 'Mark undone' : 'Mark done';
+
+  /* Step 2 — persist slot completion */
+  if (slotId) {
+    try {
+      await CLAP.API.patch(`/schedule/sessions/${slotId}/complete/`, { completed: isDone });
+    } catch (err) {
+      console.warn('[CLAP] Could not sync slot completion to server:', err);
+      /* Keep the optimistic UI state — don't revert */
     }
-  });
-  return result.sort((a,b)=>a.date<b.date?-1:1);
-}
+  }
 
-window.markTask=async function(id,done){
-  const el=document.getElementById('td-'+id);
-  if(el) el.classList.toggle('done',done);
-  try{await CLAP.API.patch(`/schedule/sessions/${id}/complete/`,{completed:done});}catch{}
-  CLAP.Toast.success(done?'Task completed! 🎉':'Task skipped.');
+  /* Steps 3 + 5 — recalculate client-side progress and broadcast to assignments.html.
+     FIX (Bug 1): Step 5 BroadcastChannel is now INSIDE the if(assignmentId) block.
+     FIX (Bug 3): PUT to /assignments/{id}/ was removed. It sent only { progress } which
+       the backend ignores AND triggers session deletion + regeneration, wiping all
+       is_completed flags. Progress is already tracked server-side via complete_session. */
+  if (assignmentId) {
+    const selector    = `.task-block[data-assignment-id="${assignmentId}"]`;
+    const allBlocks   = document.querySelectorAll(selector);
+    const doneBlocks  = document.querySelectorAll(`${selector}.done`);
+    const total       = allBlocks.length;
+    const newProgress = total > 0 ? Math.round((doneBlocks.length / total) * 100) : 0;
+
+    CLAP.Toast.success(`Progress updated: ${newProgress}%`);
+
+    /* Step 5 — notify assignments.html if open in another tab (now correctly inside if block) */
+    try {
+      const ch = new BroadcastChannel('clap_progress');
+      ch.postMessage({ type: 'progress_update', assignmentId, progress: newProgress });
+      ch.close();
+    } catch { /* BroadcastChannel not supported — silent fail */ }
+  }
 };
 
-/* ── Missed Task Modal ── */
-function showMissedModal(missed) {
-  if(!missed) return;
-  document.getElementById('mm-task-title').textContent  = missed.task_title||'—';
-  document.getElementById('mm-task-time').textContent   =
-    `${missed.task_day||''}, ${missed.task_start||''} – ${missed.task_end||''}`;
-  document.getElementById('mm-resched-title').textContent = missed.task_title||'—';
-  document.getElementById('mm-resched-time').textContent  =
-    `${missed.reschedule_day||''}, ${missed.reschedule_start||''} – ${missed.reschedule_end||''}`;
-  document.getElementById('missed-overlay').classList.add('active');
-}
-window.closeMissedModal=function(){
-  document.getElementById('missed-overlay').classList.remove('active');
-};
-document.getElementById('missed-overlay').addEventListener('click',function(e){
-  if(e.target===this) closeMissedModal();
+/* ── WEEK NAVIGATION ─────────────────────────────────────── */
+document.getElementById('prev-week-btn').addEventListener('click', () => {
+  weekOffset--;
+  loadSchedule(weekOffset);
 });
 
-/* ── Init ── */
-(async function init(){
-  await loadPrefs();
-  let data;
-  try{ data=await CLAP.API.get('/dashboard/'); }
-  catch{ data=getMock(); }
+document.getElementById('next-week-btn').addEventListener('click', () => {
+  weekOffset++;
+  loadSchedule(weekOffset);
+});
 
-  /* Normalise cognitive_load from stress_history if backend sends that format */
-  if(data.stress_history){
-    const tv=Object.values(data.stress_history);
-    const cv=data.cognitive_load?.value??(tv.at(-1)??0);
-    const cl=data.cognitive_load?.level??(cv>=80?'high':cv>=50?'moderate':'low');
-    data.cognitive_load={value:cv,level:cl,trend:tv.length?tv:[0,0,0,0,cv]};
+/* ── LEGEND POPUP ────────────────────────────────────────── */
+document.getElementById('info-fab').addEventListener('click', () => {
+  document.getElementById('legend-popup').classList.toggle('show');
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup')) {
+    document.getElementById('legend-popup').classList.remove('show');
   }
-  /* Normalise today_tasks field names */
-  if(data.today_tasks){
-    data.today_tasks=data.today_tasks.map(t=>({
-      id:t.id, title:t.title,
-      start:t.time||t.start||'', end:t.end||t.end_time||'',
-      color:t.color||'blue', difficulty:t.difficulty||'medium',
-    }));
+});
+
+/* ── REGENERATE ──────────────────────────────────────────── */
+document.getElementById('regen-btn').addEventListener('click', () => {
+  document.getElementById('regen-modal').style.display = 'flex';
+});
+
+document.getElementById('regen-cancel').addEventListener('click', () => {
+  document.getElementById('regen-modal').style.display = 'none';
+});
+
+document.getElementById('regen-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+
+document.getElementById('regen-confirm').addEventListener('click', async () => {
+  document.getElementById('regen-modal').style.display = 'none';
+
+  const btn = document.getElementById('regen-btn');
+  btn.disabled = true;
+  btn.style.opacity = '0.7';
+
+  try {
+    /* FIX (Bug 4): POST /schedule/regenerate/ returns only { message } — no slots.
+       Rendering that response always produced a blank timetable.
+       Instead: fire the regenerate call, then re-fetch the fresh schedule. */
+    await CLAP.API.post('/schedule/regenerate/', {});
+    await loadSchedule(weekOffset);
+    CLAP.Toast.success('Schedule regenerated!');
+  } catch (err) {
+    console.error('REGENERATE ERROR:', err);
+    CLAP.Toast.error('Could not regenerate schedule.');
+  } finally {
+    btn.disabled = false;
+    btn.style.opacity = '1';
   }
+});
 
-  window._scheduleCache=data.schedule||{};
+/* ── INIT ────────────────────────────────────────────────── */
+loadSchedule(weekOffset);
 
-  /* Pre-fetch next week's schedule so we can show it as preview when this week is empty */
-  const hasThisWeek = data.schedule && Object.values(data.schedule).some(t=>Array.isArray(t)&&t.length>0);
-  if (!hasThisWeek) {
-    try {
-      const nextData = await CLAP.API.get('/schedule/?week_offset=1');
-      /* Normalise slots array into a day-keyed map matching dashboard format */
-      if (nextData && nextData.slots && nextData.slots.length > 0) {
-        const dayMap={mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'};
-        const nextSched={};
-        nextData.slots.forEach(s=>{
-          const day=dayMap[(s.day||'').toLowerCase()]||s.day;
-          if(!nextSched[day]) nextSched[day]=[];
-          const startH=parseInt((s.time||'09:00').split(':')[0]);
-          const endH=startH+(s.duration||1);
-          nextSched[day].push({
-            time: s.time||'09:00',
-            end:  `${String(endH).padStart(2,'0')}:00`,
-            title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
-            difficulty: (s.difficulty||'easy').toLowerCase(),
-          });
-        });
-        window._nextWeekScheduleCache = nextSched;
-      }
-    } catch {
-      /* Use next week from mock for demo */
-      window._nextWeekScheduleCache = getMock().schedule;
+/* ── CROSS-TAB SYNC: react to assignment changes from assignments.html ── */
+try {
+  const assignCh = new BroadcastChannel('clap_assignments');
+  assignCh.addEventListener('message', (event) => {
+    const { type } = event.data || {};
+    if (type === 'assignment_deleted' || type === 'assignment_updated') {
+      /* Re-fetch the schedule so stale task titles / removed slots disappear */
+      loadSchedule(weekOffset);
     }
-  }
-
-  /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
-  let upcomingTasks = data.upcoming_tasks;
-  if ((!upcomingTasks || upcomingTasks.length === 0) && Array.isArray(data.assignment_due_dates)) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const COLORS = ['green','orange','blue','purple','red'];
-    upcomingTasks = data.assignment_due_dates
-      .filter(item => { const d=new Date(item.date); d.setHours(0,0,0,0); return d >= today; })
-      .sort((a,b)=>new Date(a.date)-new Date(b.date))
-      .slice(0,4)
-      .map((item,i)=>({
-        title: item.title,
-        color: COLORS[i % COLORS.length],
-        date:  new Date(item.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
-      }));
-  }
-
-  renderStats(data);
-  renderDeadline(data.next_deadline);
-  renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
-  renderSchedule(data.schedule);
-  /* Calendar: always use assignment_due_dates (the canonical field) */
-  renderCalendar(data.assignment_due_dates || null);
-  renderTodo(data.today_tasks, upcomingTasks);
-  showMissedModal(data.missed_task);
-})();
+  });
+} catch { /* BroadcastChannel not supported — silent fail */ }
 </script>
 </body>
 </html>
