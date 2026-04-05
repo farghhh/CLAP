@@ -34,6 +34,7 @@ def get_week_dates(week_offset=0):
     today  = date.today()
     monday = today - timedelta(days=today.weekday())
     monday = monday + timedelta(weeks=week_offset)
+    return [monday + timedelta(days=i) for i in range(5)]
 
 
 def build_time_slots(start_time, max_hours):
