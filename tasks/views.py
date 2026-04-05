@@ -207,8 +207,9 @@ def assignment_detail(request, task_id):
         try:
             preference = SleepStudyPreference.objects.get(user=request.user)
             sessions = generate_study_sessions(task, preference)
-            
+
             hours_saved = 0
+            session_details = []
             for session in sessions:
                 StudySession.objects.create(
                     task=task,
@@ -218,6 +219,10 @@ def assignment_detail(request, task_id):
                     cls_contribution=session['cls_contribution'],
                 )
                 hours_saved += session['scheduled_hours']
+                session_details.append({
+                    'date': str(session['scheduled_date']),
+                    'hours': session['scheduled_hours'],
+                })
 
         except SleepStudyPreference.DoesNotExist:
             pass
@@ -231,13 +236,16 @@ def assignment_detail(request, task_id):
             pass
 
         response_data = {
-            'message': 'Assignment updated successfully!',
-            'cls_score': cls_score,
-            'risk_level': risk_level,
-            'debug': {
-                'task_hours': task.hours,
-                'sessions_generated': len(sessions) if 'sessions' in dir() else 0,
-                'hours_scheduled': round(hours_saved, 2) if 'hours_saved' in dir() else 0,
+        'message': 'Assignment updated successfully!',
+        'cls_score': cls_score,
+        'risk_level': risk_level,
+        'debug': {
+            'task_hours': task.hours,
+            'deadline': str(task.deadline),
+            'max_focus': preference.max_focus_hours if 'preference' in dir() else 'N/A',
+            'sessions_generated': len(sessions) if 'sessions' in dir() else 0,
+            'hours_scheduled': round(hours_saved, 2) if 'hours_saved' in dir() else 0,
+            'session_details': session_details if 'session_details' in dir() else [],
             }
         }
 
