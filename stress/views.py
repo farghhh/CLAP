@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from schedule.models import StudySession
 from sleep.models import SleepStudyPreference
+from tasks.models import Task
 from datetime import date, timedelta
 
 @api_view(['GET'])
@@ -22,52 +23,88 @@ def stress_analytics(request):
 
     max_cls = max_focus * 1.5
 
-    # Build daily CLS data for the past N days
+    # ── Build date range ──────────────────────────────────────
+    # Show 7 past days + today + future days (up to days limit)
+    # This ensures the chart shows actual scheduled sessions
+
+    past_days = 7  # always show last 7 days
+    future_days = days - past_days  # rest of the period is future
+
+    start_date = today - timedelta(days=past_days)
+    end_date = today + timedelta(days=future_days)
+
+    # Find furthest deadline to ensure we show all upcoming work
+    furthest_task = Task.objects.filter(
+        user=user,
+        is_completed=False
+    ).order_by('-deadline').first()
+
+    if furthest_task and furthest_task.deadline > end_date:
+        end_date = furthest_task.deadline
+
+    # ── Build daily CLS data ──────────────────────────────────
     labels = []
     values = []
+    current = start_date
 
-    for i in range(days - 1, -1, -1):
-        day_date = today - timedelta(days=i)
+    while current <= end_date:
         day_sessions = StudySession.objects.filter(
             user=user,
-            scheduled_date=day_date
+            scheduled_date=current
         )
         total_cls = sum(s.cls_contribution for s in day_sessions)
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
 
-        # Format label
-        label = day_date.strftime('%a %d %b')
+        # Format label — mark today and weekends
+        if current == today:
+            label = f'TODAY ({current.strftime("%d %b")})'
+        else:
+            label = current.strftime('%a %d %b')
+
         labels.append(label)
         values.append(cls_pct)
 
-    # Calculate stats
+        current += timedelta(days=1)
+
+    # ── Calculate stats ───────────────────────────────────────
     non_zero = [v for v in values if v > 0]
     avg_load = round(sum(non_zero) / len(non_zero)) if non_zero else 0
     peak_load = max(values) if values else 0
     overload_days = len([v for v in values if v >= 80])
     safe_days = len([v for v in values if v < 60])
 
-    # Burnout risk — 3 or more consecutive high days
+    # ── Burnout risk ──────────────────────────────────────────
+    # Check for 3 or more consecutive high load days
     burnout_risk = False
     burnout_msg = None
     consecutive = 0
-    for v in values[-7:]:  # check last 7 days
+
+    for v in values:
         if v >= 70:
             consecutive += 1
             if consecutive >= 3:
                 burnout_risk = True
-                burnout_msg = f'You have had high cognitive load for {consecutive} consecutive days. Please take a break and redistribute your tasks.'
+                burnout_msg = (
+                    f'You have {consecutive} consecutive high load days. '
+                    f'Please redistribute your tasks to avoid burnout.'
+                )
                 break
         else:
             consecutive = 0
 
-    # Recommendation
+    # ── Recommendation ────────────────────────────────────────
     recommendation = None
     if peak_load >= 80:
         recommendation = {
-            'alert': f'Your peak cognitive load reached {peak_load}% this period.',
-            'suggestion': 'Consider spreading your tasks more evenly across the week to reduce overload.',
+            'alert': f'Your peak cognitive load is {peak_load}%.',
+            'suggestion': 'Consider spreading your tasks more evenly to reduce overload.',
             'reduction': round(peak_load - 70)
+        }
+    elif avg_load >= 60:
+        recommendation = {
+            'alert': f'Your average cognitive load is {avg_load}%.',
+            'suggestion': 'Your workload is moderate. Keep monitoring to avoid overload.',
+            'reduction': round(avg_load - 50)
         }
 
     return Response({
