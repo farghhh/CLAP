@@ -391,41 +391,52 @@ function panelChangePassword() {
       <!-- New Password -->
       <div class="form-group">
         <label class="form-label" for="cp-new">New Password*</label>
-        <div class="form-input-wrap">
-          <span class="input-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-          </span>
-          <input class="form-input" type="password" id="cp-new"
-                 placeholder="Enter new password" autocomplete="new-password"
-                 oninput="updatePwStrength(this.value)" />
-          <button type="button" class="pw-toggle" id="cp-new-toggle"
-                  onclick="togglePw('cp-new','cp-new-toggle')" aria-label="Toggle password visibility">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
+        <div style="position:relative;">
+          <div class="form-input-wrap">
+            <span class="input-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </span>
+            <input class="form-input" type="password" id="cp-new"
+                   placeholder="Enter new password" autocomplete="new-password"
+                   oninput="updatePwStrength(this.value)"
+                   onblur="(function(){var r=document.getElementById('pw-reqs');if(r)r.style.display='none';})()"
+                   onfocus="(function(){var v=document.getElementById('cp-new').value;var r=document.getElementById('pw-reqs');if(r&&v)r.style.display='flex';})()" />
+            <button type="button" class="pw-toggle" id="cp-new-toggle"
+                    onclick="togglePw('cp-new','cp-new-toggle')" aria-label="Toggle password visibility">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+          <!-- Requirements checklist pops UP above the input -->
+          <div id="pw-reqs" style="
+            display:none;
+            position:absolute;
+            left:0; right:0;
+            bottom:calc(100% + 6px);
+            z-index:300;
+            background:#fff;
+            border:1px solid #d0eaea;
+            border-radius:10px;
+            box-shadow:0 -4px 20px rgba(26,58,92,0.12);
+            padding:10px 14px;
+            flex-direction:column;
+            gap:5px;
+            pointer-events:none;
+          ">
+            <div style="font-size:0.7rem;font-weight:700;color:#7a9ab5;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Password must have:</div>
+            <div class="pw-req" id="req-len"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least 8 characters</div>
+            <div class="pw-req" id="req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one uppercase letter</div>
+            <div class="pw-req" id="req-num"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one number</div>
+            <div class="pw-req" id="req-sym"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one special character</div>
+          </div>
         </div>
-        <!-- Strength bar (same style as signup) -->
+        <!-- Strength bar below input in normal flow -->
         <div class="pw-strength" id="pw-strength-wrap" style="display:none;margin-top:4px;">
           <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
           <span class="pw-strength-label" id="pw-strength-label"></span>
-        </div>
-        <!-- Requirements checklist -->
-        <div id="pw-reqs" style="display:none;margin-top:10px;display:flex;flex-direction:column;gap:4px;">
-          <div class="pw-req" id="req-len"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
-            <span class="req-icon">✗</span> At least 8 characters
-          </div>
-          <div class="pw-req" id="req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
-            <span class="req-icon">✗</span> At least one uppercase letter
-          </div>
-          <div class="pw-req" id="req-num"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
-            <span class="req-icon">✗</span> At least one number
-          </div>
-          <div class="pw-req" id="req-sym"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
-            <span class="req-icon">✗</span> At least one special character
-          </div>
         </div>
       </div>
 
