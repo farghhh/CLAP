@@ -42,10 +42,6 @@ def get_daily_hours_used(user, day, max_focus):
 # CORE SESSION GENERATION
 
 def generate_study_sessions(task, preference):
-    """
-    Generates study sessions for a task distributed evenly across available days.
-    Respects max_focus_hours per day but shares daily hours with other tasks.
-    """
     from schedule.models import StudySession
 
     today = date.today()
@@ -53,42 +49,59 @@ def generate_study_sessions(task, preference):
     total_hours = task.hours
     max_focus = preference.max_focus_hours
 
-    # Convert difficulty integer to string for cls_engine
     diff_map = {1: 'easy', 2: 'medium', 3: 'hard'}
     difficulty_str = diff_map.get(task.difficulty, 'medium')
 
-    # Get available weekdays before deadline
     available_days = get_available_days(today, deadline)
 
     if not available_days:
         return []
 
-    sessions = []
-    remaining_hours = total_hours
     num_days = len(available_days)
 
-    # Calculate ideal hours per day for this task
-    # Split total hours evenly across available days
-    ideal_hours_per_day = round(total_hours / num_days, 2)
+    # ── KEY FIX ──────────────────────────────────────────────
+    # Minimum session = 1 hour, maximum session = max_focus hours
+    # Calculate how many sessions we actually need
+    MIN_SESSION_HOURS = 1.0
+    ideal_hours_per_session = min(max_focus, max(MIN_SESSION_HOURS, total_hours / num_days))
 
-    for day in available_days:
+    # How many sessions do we need?
+    import math
+    num_sessions_needed = math.ceil(total_hours / ideal_hours_per_session)
+
+    # Pick evenly spaced days from available days
+    if num_sessions_needed >= num_days:
+        # Need more sessions than days — use every day
+        selected_days = available_days
+    else:
+        # Space sessions evenly across available days
+        step = num_days / num_sessions_needed
+        selected_days = [
+            available_days[min(round(i * step), num_days - 1)]
+            for i in range(num_sessions_needed)
+        ]
+    # ─────────────────────────────────────────────────────────
+
+    sessions = []
+    remaining_hours = total_hours
+
+    for day in selected_days:
         if remaining_hours <= 0:
             break
 
-        # Check how many hours already scheduled for this day
+        # Check existing hours on this day
         existing_hours = get_daily_hours_used(task.user, day, max_focus)
         available_hours = max_focus - existing_hours
 
         if available_hours <= 0:
             continue
 
-        # Use ideal hours per day but cap at available hours and remaining
-        hours_today = min(ideal_hours_per_day, available_hours, remaining_hours)
+        # Schedule ideal hours but don't exceed available or remaining
+        hours_today = min(ideal_hours_per_session, available_hours, remaining_hours)
 
-        if hours_today <= 0:
+        if hours_today < 0.5:  # Skip if less than 30 minutes
             continue
 
-        # Calculate CLS contribution for this session
         cls_contribution = round(
             (hours_today / total_hours) * calculate_cls(
                 difficulty_str,
@@ -105,58 +118,15 @@ def generate_study_sessions(task, preference):
 
         remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # If there are remaining hours (because some days were full),
-    # try to fit them in days that still have space
-    if remaining_hours > 0:
-        for day in available_days:
-            if remaining_hours <= 0:
-                break
-
-            existing_hours = get_daily_hours_used(task.user, day, max_focus)
-            
-            # Also count what we already scheduled for this task today
-            already_scheduled = sum(
-                s['scheduled_hours'] for s in sessions
-                if s['scheduled_date'] == day
-            )
-            
-            available_hours = max_focus - existing_hours - already_scheduled
-
-            if available_hours <= 0:
-                continue
-
-            extra_hours = min(available_hours, remaining_hours)
-
-            if extra_hours <= 0:
-                continue
-
-            # Add to existing session for this day if exists
-            existing_session = next(
-                (s for s in sessions if s['scheduled_date'] == day), None
-            )
-
-            if existing_session:
-                existing_session['scheduled_hours'] = round(
-                    existing_session['scheduled_hours'] + extra_hours, 2
-                )
-                existing_session['cls_contribution'] = round(
-                    (existing_session['scheduled_hours'] / total_hours) * calculate_cls(
-                        difficulty_str, task.hours, task.deadline
-                    ), 2
-                )
-            else:
-                cls_contribution = round(
-                    (extra_hours / total_hours) * calculate_cls(
-                        difficulty_str, task.hours, task.deadline
-                    ), 2
-                )
-                sessions.append({
-                    'scheduled_date': day,
-                    'scheduled_hours': round(extra_hours, 2),
-                    'cls_contribution': cls_contribution,
-                })
-
-            remaining_hours = round(remaining_hours - extra_hours, 2)
+    # If remaining hours left, add to last session or create new one
+    if remaining_hours > 0.5 and sessions:
+        last = sessions[-1]
+        last['scheduled_hours'] = round(last['scheduled_hours'] + remaining_hours, 2)
+        last['cls_contribution'] = round(
+            (last['scheduled_hours'] / total_hours) * calculate_cls(
+                difficulty_str, task.hours, task.deadline
+            ), 2
+        )
 
     return sessions
 
