@@ -169,9 +169,9 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'clap.iief@gmail.com'
-EMAIL_HOST_PASSWORD = 'mqod aifj mnpd lopb'
-FRONTEND_URL = 'http://127.0.0.1:5500'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'clap.iief@gmail.com')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', 'mqod aifj mnpd lopb')
+FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:5500')
 
 # Whitenoise for static files
 MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
