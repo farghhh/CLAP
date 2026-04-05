@@ -236,12 +236,6 @@ ul, ol { list-style: none; }
 .btn.loading { pointer-events: none; color: transparent; }
 .btn.loading::before {
   content: ''; position: absolute;
-  /* FIX (Bug 1): No top/left/transform was set — the spinner appeared at the
-     top-left corner of every loading button across signin, signup, forgot-password,
-     reset-password, assignments, onboarding, and settings. The button text was hidden
-     (color:transparent) leaving a blank button with a misplaced ring in the corner. */
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
   width: 18px; height: 18px;
   border: 2px solid rgba(255,255,255,0.4);
   border-top-color: var(--white);
@@ -448,17 +442,16 @@ select.form-input {
 .load-badge.high     { background: #F8D7DA; color: #721C24; }
 .load-badge.low      { background: #D1ECF1; color: #0C5460; }
 .load-badge.critical { background: #F8D7DA; color: #721C24; animation: pulseBadge 1s ease-in-out infinite; }
-/* FIX (Bug 3): @keyframes pulseBadge was defined here (opacity:0.7 midpoint) AND in
-   app.css (opacity:0.65 midpoint). app.css always loaded after and won on app pages,
-   making this declaration dead code. Removed here; app.css is the single authority. */
+@keyframes pulseBadge { 0%,100%{opacity:1} 50%{opacity:0.7} }
 
 /* ---------- Progress Bar ---------- */
-/* FIX (Bug 2): .progress-bar and .progress-fill were duplicated in both global.css
-   and app.css with different values (gradient vs solid teal, .success vs .completed
-   modifier names). app.css always loaded after and silently won — but any code
-   expecting the gradient or the .success modifier on an app page got the wrong result.
-   Removed from global.css entirely; app.css is the single authority for app-page
-   progress bars. Auth pages do not use these classes. */
+.progress-bar { height: 8px; background: var(--border); border-radius: var(--radius-pill); overflow: hidden; }
+.progress-fill {
+  height: 100%; border-radius: var(--radius-pill);
+  background: var(--grad-primary); transition: width 0.6s var(--ease);
+}
+.progress-fill.danger  { background: linear-gradient(90deg, var(--warning), var(--danger)); }
+.progress-fill.success { background: var(--success); }
 
 /* ---------- Calendar Mini ---------- */
 .mini-calendar { user-select: none; }
