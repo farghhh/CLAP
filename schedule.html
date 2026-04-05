@@ -555,9 +555,8 @@ function renderSchedule(data) {
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
 
   const slots = data.slots || [];
-  const times = buildTimeRows(slots);
 
-  if (!times.length) {
+  if (!slots.length) {
     const emptyMsg = (weekOffset === 0)
       ? '📅 Nothing scheduled this week — try navigating to next week or tap Regenerate.'
       : (weekOffset > 0
@@ -568,64 +567,63 @@ function renderSchedule(data) {
     return;
   }
 
-  const map = {};
-  DAYS.forEach(d => { map[d] = {}; });
-  slots.forEach(s => { if (map[s.day]) map[s.day][s.time] = s; });
+  /*
+   * FIX: The old rowspan approach caused sessions to disappear when two sessions
+   * on the same day were assigned consecutive time slots by the backend.
+   * The rowspan of session A would "consume" the row where session B lived,
+   * making B invisible. Fix: group sessions by day and stack them vertically
+   * in each day's column — every session is always rendered, nothing is hidden.
+   */
 
-  const rowspanSkip = {};
-  let html = '';
-
-  times.forEach((time, ti) => {
-    html += `<tr><td class="time-cell">${time}</td>`;
-
-    DAYS.forEach(day => {
-      const key = `${day}|${ti}`;
-      if (rowspanSkip[key]) return;
-
-      const slot = map[day]?.[time];
-      if (slot) {
-        const endMin = buildEndMinutes(slot.end);
-        let span = 1;
-
-        for (let nxt = ti + 1; nxt < times.length; nxt++) {
-          const nxtMin = buildEndMinutes(times[nxt]);
-          if (nxtMin < endMin) {          // strict < so a slot ending exactly on the next row label does NOT consume it
-            span++;
-            rowspanSkip[`${day}|${nxt}`] = true;
-          } else {
-            break;
-          }
-        }
-
-        const rs = span > 1 ? ` rowspan="${span}"` : '';
-        const ht = span > 1 ? `min-height:${span * 58}px;` : '';
-        const doneClass      = slot.is_completed ? 'done' : '';
-        const checkDoneClass = slot.is_completed ? 'done' : '';
-
-        /* Store IDs so toggleDone() can read them without a lookup table */
-        const dataAttrs = [
-          slot.slot_id       != null ? `data-slot-id="${slot.slot_id}"`             : '',
-          slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
-        ].filter(Boolean).join(' ');
-
-        html += `
-          <td${rs} style="vertical-align:top;padding:2px">
-            <div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs} style="${ht}">
-              <div>
-                <div class="tb-title">${slot.title}</div>
-                <div class="tb-time">${slot.time} – ${slot.end}</div>
-              </div>
-              <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
-            </div>
-          </td>
-        `;
-      } else {
-        html += `<td><div class="empty-cell"></div></td>`;
-      }
-    });
-
-    html += `</tr>`;
+  /* Group slots by day, sorted by start time */
+  const daySlots = {};
+  DAYS.forEach(d => { daySlots[d] = []; });
+  slots.forEach(s => { if (daySlots[s.day]) daySlots[s.day].push(s); });
+  DAYS.forEach(d => {
+    daySlots[d].sort((a, b) => buildEndMinutes(a.time) - buildEndMinutes(b.time));
   });
+
+  /* Single table row — each day column stacks all its sessions vertically */
+  let html = '<tr>';
+
+  /* Time column — show earliest start and latest end as a range */
+  const earliest = slots.reduce((best, s) =>
+    buildEndMinutes(s.time) < buildEndMinutes(best.time) ? s : best).time;
+  const latest = slots.reduce((best, s) =>
+    buildEndMinutes(s.end) > buildEndMinutes(best.end) ? s : best).end;
+
+  html += `<td class="time-cell" style="vertical-align:top;padding-top:10px;white-space:nowrap;">
+    ${earliest}<br><span style="opacity:0.3;font-size:0.9em;">│</span><br>${latest}
+  </td>`;
+
+  DAYS.forEach(day => {
+    const daySessions = daySlots[day];
+    if (!daySessions.length) {
+      html += `<td><div class="empty-cell"></div></td>`;
+      return;
+    }
+
+    const blocks = daySessions.map(slot => {
+      const doneClass      = slot.is_completed ? 'done' : '';
+      const checkDoneClass = slot.is_completed ? 'done' : '';
+      const dataAttrs = [
+        slot.slot_id       != null ? `data-slot-id="${slot.slot_id}"`             : '',
+        slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
+      ].filter(Boolean).join(' ');
+
+      return `<div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs} style="margin-bottom:6px;">
+          <div>
+            <div class="tb-title">${slot.title}</div>
+            <div class="tb-time">${slot.time} – ${slot.end}</div>
+          </div>
+          <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
+        </div>`;
+    }).join('');
+
+    html += `<td style="vertical-align:top;padding:4px 2px;">${blocks}</td>`;
+  });
+
+  html += '</tr>';
 
   document.getElementById('sch-body').innerHTML = html;
 }
