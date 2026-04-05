@@ -310,10 +310,17 @@ def regenerate_schedule(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Regenerate for all incomplete tasks sorted by deadline
-    tasks = Task.objects.filter(user=user, is_completed=False).order_by('deadline')
+    # Sort tasks: most urgent first, then by most hours
+    tasks = Task.objects.filter(
+        user=user,
+        is_completed=False
+    ).order_by('deadline', '-hours')
+
+    total_scheduled = {}  # track hours scheduled per task
+
     for task in tasks:
         sessions = generate_study_sessions(task, preference)
+        hours_saved = 0
         for session in sessions:
             StudySession.objects.create(
                 task=task,
@@ -322,9 +329,23 @@ def regenerate_schedule(request):
                 scheduled_hours=session['scheduled_hours'],
                 cls_contribution=session['cls_contribution'],
             )
+            hours_saved += session['scheduled_hours']
+        total_scheduled[task.task_id] = round(hours_saved, 2)
+
+    # Build summary to check if all hours were scheduled
+    summary = []
+    for task in tasks:
+        scheduled = total_scheduled.get(task.task_id, 0)
+        summary.append({
+            'task': task.title,
+            'expected_hours': task.hours,
+            'scheduled_hours': scheduled,
+            'complete': abs(scheduled - float(task.hours)) < 0.6
+        })
 
     return Response({
         'message': 'Schedule regenerated successfully!',
+        'summary': summary,
     }, status=status.HTTP_200_OK)
 
 

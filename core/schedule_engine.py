@@ -59,40 +59,29 @@ def generate_study_sessions(task, preference):
     num_available = len(available_days)
     days_until_deadline = (deadline - today).days
 
-    # ── Step 1: How many days do we MINIMALLY need? ───────────
-    # Based on max_focus — this is the fastest we can finish
+    # ── Step 1: Minimum days needed ───────────────────────────
     min_days_needed = math.ceil(total_hours / max_focus)
 
-    # ── Step 2: How many days should we actually use? ─────────
-    # Based on urgency — spread more if deadline is far
+    # ── Step 2: Target days based on urgency ──────────────────
     if days_until_deadline > 14:
-        # Far deadline — spread across more days, easier pace
-        target_days = min(num_available, max(min_days_needed * 3, min_days_needed))
+        target_days = min(num_available, min_days_needed * 3)
     elif days_until_deadline > 7:
-        # Medium — spread moderately
-        target_days = min(num_available, max(min_days_needed * 2, min_days_needed))
+        target_days = min(num_available, min_days_needed * 2)
     else:
-        # Urgent — use minimum days needed, maximize hours per day
         target_days = min(num_available, min_days_needed)
 
-    # Make sure we don't exceed available days
-    target_days = max(1, min(target_days, num_available))
+    target_days = max(1, target_days)
 
     # ── Step 3: Hours per session ─────────────────────────────
-    # Divide total hours evenly across target days
     hours_per_session = total_hours / target_days
-
-    # Round to nearest 0.5 for cleanliness
-    hours_per_session = math.ceil(hours_per_session * 2) / 2
-
-    # Never exceed max_focus
+    hours_per_session = math.ceil(hours_per_session * 2) / 2  # round up to 0.5
     hours_per_session = min(hours_per_session, max_focus)
 
     # Recalculate target_days after rounding
     target_days = math.ceil(total_hours / hours_per_session)
     target_days = min(target_days, num_available)
 
-    # ── Step 4: Pick which days ───────────────────────────────
+    # ── Step 4: Pick start day based on urgency ───────────────
     if days_until_deadline > 14:
         start_index = num_available // 3
     elif days_until_deadline > 7:
@@ -100,13 +89,11 @@ def generate_study_sessions(task, preference):
     else:
         start_index = 0
 
-    usable_days = available_days[start_index:]
-    if not usable_days:
-        usable_days = available_days
+    usable_days = available_days[start_index:] or available_days
 
     # Space sessions evenly
     if target_days >= len(usable_days):
-        selected_days = usable_days
+        selected_days = list(usable_days)
     else:
         step = len(usable_days) / target_days
         selected_days = [
@@ -132,28 +119,29 @@ def generate_study_sessions(task, preference):
         if remaining_hours <= 0:
             break
 
-        existing_hours = get_daily_hours_used(task.user, day, max_focus)
-        available_hours = round(max_focus - existing_hours, 2)
+        # Only count OTHER tasks' sessions (not this task)
+        other_sessions = StudySession.objects.filter(
+            user=task.user,
+            scheduled_date=day
+        ).exclude(task=task)
+        other_hours = sum(s.scheduled_hours for s in other_sessions)
+        available_hours = round(max_focus - other_hours, 2)
 
         if available_hours <= 0:
             continue
 
-        # Last session gets all remaining
         if i == num_selected - 1:
             hours_today = min(remaining_hours, available_hours)
         else:
             hours_today = min(hours_per_session, available_hours, remaining_hours)
 
         hours_today = round(hours_today, 2)
-
         if hours_today < 0.5:
             continue
 
         cls_contribution = round(
             (hours_today / total_hours) * calculate_cls(
-                difficulty_str,
-                task.hours,
-                task.deadline
+                difficulty_str, task.hours, task.deadline
             ), 2
         )
 
@@ -165,35 +153,40 @@ def generate_study_sessions(task, preference):
 
         remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # ── Step 6: Safety net — look beyond selected days ────────
+    # ── Step 6: Safety net ────────────────────────────────────
     if remaining_hours >= 0.5:
-        # Try ALL available days not just selected ones
         for day in available_days:
             if remaining_hours <= 0:
                 break
 
-            existing_hours = get_daily_hours_used(task.user, day, max_focus)
-            already_scheduled = sum(
+            other_sessions = StudySession.objects.filter(
+                user=task.user,
+                scheduled_date=day
+            ).exclude(task=task)
+            other_hours = sum(s.scheduled_hours for s in other_sessions)
+
+            already_this_task = sum(
                 s['scheduled_hours'] for s in sessions
                 if s['scheduled_date'] == day
             )
-            available_hours = round(max_focus - existing_hours - already_scheduled, 2)
+
+            available_hours = round(max_focus - other_hours - already_this_task, 2)
 
             if available_hours < 0.5:
                 continue
 
             hours_today = round(min(remaining_hours, available_hours), 2)
 
-            existing_session = next(
+            existing = next(
                 (s for s in sessions if s['scheduled_date'] == day), None
             )
 
-            if existing_session:
-                existing_session['scheduled_hours'] = round(
-                    existing_session['scheduled_hours'] + hours_today, 2
+            if existing:
+                existing['scheduled_hours'] = round(
+                    existing['scheduled_hours'] + hours_today, 2
                 )
-                existing_session['cls_contribution'] = round(
-                    (existing_session['scheduled_hours'] / total_hours) * calculate_cls(
+                existing['cls_contribution'] = round(
+                    (existing['scheduled_hours'] / total_hours) * calculate_cls(
                         difficulty_str, task.hours, task.deadline
                     ), 2
                 )
