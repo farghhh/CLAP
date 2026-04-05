@@ -390,9 +390,25 @@ function panelChangePassword() {
             </svg>
           </button>
         </div>
+        <!-- Strength bar (same style as signup) -->
         <div class="pw-strength" id="pw-strength-wrap" style="display:none;margin-top:4px;">
           <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
           <span class="pw-strength-label" id="pw-strength-label"></span>
+        </div>
+        <!-- Requirements checklist -->
+        <div id="pw-reqs" style="display:none;margin-top:10px;display:flex;flex-direction:column;gap:4px;">
+          <div class="pw-req" id="req-len"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
+            <span class="req-icon">✗</span> At least 8 characters
+          </div>
+          <div class="pw-req" id="req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
+            <span class="req-icon">✗</span> At least one uppercase letter
+          </div>
+          <div class="pw-req" id="req-num"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
+            <span class="req-icon">✗</span> At least one number
+          </div>
+          <div class="pw-req" id="req-sym"  style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:var(--danger)">
+            <span class="req-icon">✗</span> At least one special character
+          </div>
         </div>
       </div>
 
@@ -806,19 +822,37 @@ window.togglePw = function(inputId, btnId) {
     : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 };
 
-/** Update password-strength indicator. */
+/** Update password-strength indicator and requirements checklist. */
 window.updatePwStrength = function(val) {
   const wrap  = document.getElementById('pw-strength-wrap');
   const fill  = document.getElementById('pw-strength-fill');
   const label = document.getElementById('pw-strength-label');
+  const reqs  = document.getElementById('pw-reqs');
   if (!wrap || !fill || !label) return;
-  if (!val) { wrap.style.display = 'none'; return; }
+  if (!val) {
+    wrap.style.display = 'none';
+    if (reqs) reqs.style.display = 'none';
+    return;
+  }
   wrap.style.display = 'block';
-  let score = 0;
-  if (val.length >= 8)          score++;
-  if (/[A-Z]/.test(val))        score++;
-  if (/[0-9]/.test(val))        score++;
-  if (/[^A-Za-z0-9]/.test(val)) score++;
+  if (reqs) reqs.style.display = 'flex';
+
+  const checks = {
+    len:   val.length >= 8,
+    upper: /[A-Z]/.test(val),
+    num:   /[0-9]/.test(val),
+    sym:   /[^A-Za-z0-9]/.test(val),
+  };
+  let score = Object.values(checks).filter(Boolean).length;
+
+  /* Update checklist items */
+  Object.entries(checks).forEach(([key, ok]) => {
+    const el = document.getElementById(`req-${key}`);
+    if (!el) return;
+    el.style.color = ok ? 'var(--success)' : 'var(--danger)';
+    el.querySelector('.req-icon').textContent = ok ? '✓' : '✗';
+  });
+
   const levels = ['', 'weak', 'fair', 'good', 'strong'];
   const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
   const cls = levels[score] || 'weak';
@@ -884,6 +918,19 @@ window.toggleSpEdit = function(field, btn) {
   if (!view || !edit) return;
   const isEditing = edit.style.display === 'flex';
   if (isEditing) {
+    /* Done clicked — update view text from current input values */
+    if (field === 'sleep') {
+      const s = document.getElementById('sp-sleep-start')?.value || prefs.sleep_start || '23:00';
+      const e = document.getElementById('sp-sleep-end')?.value   || prefs.sleep_end   || '07:00';
+      view.textContent = `${fmtTime(s)} to ${fmtTime(e)}`;
+    } else if (field === 'study') {
+      const s = document.getElementById('sp-study-start')?.value || prefs.study_start || '09:00';
+      const e = document.getElementById('sp-study-end')?.value   || prefs.study_end   || '18:00';
+      view.textContent = `${fmtTime(s)} to ${fmtTime(e)}`;
+    } else if (field === 'limit') {
+      const v = document.getElementById('sp-limit-val')?.value || prefs.max_focus_hours || 6;
+      view.textContent = `${v} Hours`;
+    }
     edit.style.display = 'none';
     view.style.display = '';
     btn.textContent = 'Edit';
@@ -891,6 +938,19 @@ window.toggleSpEdit = function(field, btn) {
     edit.style.display = 'flex';
     view.style.display = 'none';
     btn.textContent = 'Done';
+
+    /* Attach live-update listeners to inputs so view would be ready when Done is clicked */
+    if (field === 'sleep') {
+      const startEl = document.getElementById('sp-sleep-start');
+      const endEl   = document.getElementById('sp-sleep-end');
+      if (startEl) startEl.oninput = () => { /* preview updates on Done */ };
+      if (endEl)   endEl.oninput   = () => {};
+    } else if (field === 'study') {
+      const startEl = document.getElementById('sp-study-start');
+      const endEl   = document.getElementById('sp-study-end');
+      if (startEl) startEl.oninput = () => {};
+      if (endEl)   endEl.oninput   = () => {};
+    }
   }
 };
 

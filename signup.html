@@ -145,6 +145,13 @@
               </div>
               <span class="pw-strength-label" id="signup-pw-label"></span>
             </div>
+            <!-- Password requirements checklist -->
+            <div id="signup-pw-reqs" style="display:none;margin-top:10px;flex-direction:column;gap:5px;text-align:left;">
+              <div id="su-req-len"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least 8 characters</div>
+              <div id="su-req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one uppercase letter</div>
+              <div id="su-req-num"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one number</div>
+              <div id="su-req-sym"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one special character</div>
+            </div>
             <span class="field-error" id="signup-password-error" role="alert"></span>
           </div>
 
@@ -205,6 +212,27 @@
   /* Wire up password visibility toggle and strength meter. */
   CLAP.initPwToggle(pwToggle, pwInp);
   CLAP.initPasswordStrength(pwInp, pwBar, pwLabel);
+
+  /* Live password requirements checklist */
+  pwInp.addEventListener('input', function() {
+    const val = this.value;
+    const reqs = document.getElementById('signup-pw-reqs');
+    if (!reqs) return;
+    reqs.style.display = val ? 'flex' : 'none';
+    const checks = {
+      len:   val.length >= 8,
+      upper: /[A-Z]/.test(val),
+      num:   /[0-9]/.test(val),
+      sym:   /[^A-Za-z0-9]/.test(val),
+    };
+    const ids = { len:'su-req-len', upper:'su-req-upper', num:'su-req-num', sym:'su-req-sym' };
+    Object.entries(checks).forEach(([key, ok]) => {
+      const el = document.getElementById(ids[key]);
+      if (!el) return;
+      el.style.color = ok ? '#27AE60' : '#E74C3C';
+      el.querySelector('.req-icon').textContent = ok ? '✓' : '✗';
+    });
+  });
 
   /* Attach live validation: shows errors on blur and clears them when fixed. */
   const { Validate } = CLAP;

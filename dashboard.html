@@ -500,17 +500,37 @@ function renderSchedule(schedule) {
   if (!schedule) { emptySchedule(false); return; }
 
   const hasAny = Object.values(schedule).some(t=>Array.isArray(t)&&t.length>0);
-  if (!hasAny)  { emptySchedule(true); return; }
 
   /* Which week to label */
   const now=new Date(); const dow=now.getDay();
   const toMon=(dow===0)?-6:1-dow;
+  /* When current week is empty, label as next week */
   const monday=new Date(now); monday.setDate(now.getDate()+toMon+(hasAny?0:7));
   const weekEnd=new Date(monday); weekEnd.setDate(monday.getDate()+4);
   const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = hasAny ? 'This Week' : `Next Week · ${fmt(monday)}–${fmt(weekEnd)}`;
+  if(badge) badge.textContent = hasAny ? 'This Week' : `Next Week`;
 
+  if (!hasAny) {
+    /* Show next-week preview message but still try to render next week schedule */
+    const nextSchedule = window._nextWeekScheduleCache;
+    if (nextSchedule && Object.values(nextSchedule).some(t=>Array.isArray(t)&&t.length>0)) {
+      /* Render next week's data as preview */
+      _renderScheduleTable(nextSchedule);
+      document.getElementById('plan-body').insertAdjacentHTML('beforebegin',
+        `<tr id="next-week-hint"><td colspan="6" style="text-align:center;padding:8px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;">
+          📅 Nothing this week — showing next week preview
+        </td></tr>`);
+    } else {
+      emptySchedule(true);
+    }
+    return;
+  }
+
+  _renderScheduleTable(schedule);
+}
+
+function _renderScheduleTable(schedule) {
   /* Build time slots based on user's study hours */
   const studyStartH = parseInt((userPrefs.study_start||'09:00').split(':')[0]);
   const studyEndH   = parseInt((userPrefs.study_end  ||'18:00').split(':')[0]);
@@ -767,12 +787,58 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
 
   window._scheduleCache=data.schedule||{};
 
+  /* Pre-fetch next week's schedule so we can show it as preview when this week is empty */
+  const hasThisWeek = data.schedule && Object.values(data.schedule).some(t=>Array.isArray(t)&&t.length>0);
+  if (!hasThisWeek) {
+    try {
+      const nextData = await CLAP.API.get('/schedule/?week_offset=1');
+      /* Normalise slots array into a day-keyed map matching dashboard format */
+      if (nextData && nextData.slots && nextData.slots.length > 0) {
+        const dayMap={mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'};
+        const nextSched={};
+        nextData.slots.forEach(s=>{
+          const day=dayMap[(s.day||'').toLowerCase()]||s.day;
+          if(!nextSched[day]) nextSched[day]=[];
+          const startH=parseInt((s.time||'09:00').split(':')[0]);
+          const endH=startH+(s.duration||1);
+          nextSched[day].push({
+            time: s.time||'09:00',
+            end:  `${String(endH).padStart(2,'0')}:00`,
+            title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
+            difficulty: (s.difficulty||'easy').toLowerCase(),
+          });
+        });
+        window._nextWeekScheduleCache = nextSched;
+      }
+    } catch {
+      /* Use next week from mock for demo */
+      window._nextWeekScheduleCache = getMock().schedule;
+    }
+  }
+
+  /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
+  let upcomingTasks = data.upcoming_tasks;
+  if ((!upcomingTasks || upcomingTasks.length === 0) && Array.isArray(data.assignment_due_dates)) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const COLORS = ['green','orange','blue','purple','red'];
+    upcomingTasks = data.assignment_due_dates
+      .filter(item => { const d=new Date(item.date); d.setHours(0,0,0,0); return d >= today; })
+      .sort((a,b)=>new Date(a.date)-new Date(b.date))
+      .slice(0,4)
+      .map((item,i)=>({
+        title: item.title,
+        color: COLORS[i % COLORS.length],
+        date:  new Date(item.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
+      }));
+  }
+
   renderStats(data);
   renderDeadline(data.next_deadline);
   renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
   renderSchedule(data.schedule);
-  renderCalendar(data.assignment_due_dates || data.task_date_meta || null);
-  renderTodo(data.today_tasks, data.upcoming_tasks);
+  /* Calendar: always use assignment_due_dates (the canonical field) */
+  renderCalendar(data.assignment_due_dates || null);
+  renderTodo(data.today_tasks, upcomingTasks);
   showMissedModal(data.missed_task);
 })();
 </script>

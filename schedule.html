@@ -559,8 +559,10 @@ function renderSchedule(data) {
 
   if (!times.length) {
     const emptyMsg = (weekOffset === 0)
-      ? '📅 Nothing scheduled this week — navigating to next week, or tap Regenerate.'
-      : '🎉 No sessions scheduled for this week.';
+      ? '📅 Nothing scheduled this week — try navigating to next week or tap Regenerate.'
+      : (weekOffset > 0
+          ? '🎉 No sessions scheduled for this week.'
+          : '🎉 No sessions for that week.');
     document.getElementById('sch-body').innerHTML =
       `<tr><td colspan="6" style="text-align:center;padding:36px 24px;color:var(--text-muted);font-size:0.88rem">${emptyMsg}</td></tr>`;
     return;
@@ -651,6 +653,26 @@ async function loadSchedule(offset = 0) {
           weekOffset = 1;
           updateWeekNavLabel();
           document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${getWeekLabelFromOffset(1)}`;
+
+          /* Show a dismissable info banner */
+          const existing = document.getElementById('next-week-banner');
+          if (!existing) {
+            const banner = document.createElement('div');
+            banner.id = 'next-week-banner';
+            banner.style.cssText = `
+              background:rgba(75,191,191,0.12);border:1px solid rgba(75,191,191,0.35);
+              border-radius:12px;padding:10px 16px;margin-bottom:14px;
+              font-size:0.82rem;font-weight:600;color:var(--clap-teal);
+              display:flex;align-items:center;justify-content:space-between;gap:8px;
+            `;
+            banner.innerHTML = `
+              <span>📅 This week has no sessions — automatically showing <strong>next week</strong>. Use ‹ to go back.</span>
+              <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted);padding:0 4px;" aria-label="Dismiss">✕</button>
+            `;
+            const timetableCard = document.querySelector('.timetable-card');
+            timetableCard?.parentElement?.insertBefore(banner, timetableCard);
+          }
+
           renderSchedule(nextData);
           return;
         }
