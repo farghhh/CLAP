@@ -28,20 +28,12 @@ DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
 # HELPER FUNCTIONS
 # ─────────────────────────────────────────────────────────────
 
+
 def get_week_dates(week_offset=0):
-    """Returns list of 5 weekday dates for a given week offset.
-    On weekends, snaps forward to the upcoming Monday so that
-    week_offset=0 always means the next/current working week,
-    not the week that just ended.
-    """
-    today   = date.today()
-    weekday = today.weekday()  # Mon=0 … Sun=6
-    if weekday >= 5:           # Saturday or Sunday
-        days_to_monday = 7 - weekday   # Sat→+2, Sun→+1
-    else:
-        days_to_monday = -weekday      # snap back to this week's Monday
-    monday = today + timedelta(days=days_to_monday) + timedelta(weeks=week_offset)
-    return [monday + timedelta(days=i) for i in range(5)]
+    """Returns list of 5 weekday dates for a given week offset"""
+    today  = date.today()
+    monday = today - timedelta(days=today.weekday())
+    monday = monday + timedelta(weeks=week_offset)
 
 
 def build_time_slots(start_time, max_hours):
