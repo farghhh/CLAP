@@ -204,15 +204,23 @@
       /*
        * CONNECT: POST /api/auth/login/
        * Expected response: { access, refresh, user: { … } }
+       * FIX: Pass retry:false so a 401 wrong-password response is never intercepted
+       * by API.request's token-refresh logic and is always thrown to this catch block.
        */
       const data = await CLAP.API.post('/auth/login/', {
         email:    emailInp.value.trim().toLowerCase(),
         password: pwInp.value,
-      }, { auth: false });
+      }, { auth: false, retry: false });
 
       /* Persist tokens and user profile. */
       CLAP.Auth.setTokens(data.access, data.refresh);
       CLAP.Auth.setUser(data.user || { email: emailInp.value.trim() });
+
+      /* FIX (Bug 6): failedAttempts was never reset on success. After 5 failures,
+         even a correct password triggered the "Too many failed attempts" guard and
+         returned early — permanently locking the user out for the entire browser
+         session without any way to recover except a full page reload. */
+      failedAttempts = 0;
 
       statusEl.textContent = 'Signed in. Redirecting…';
       CLAP.Toast.success('Welcome back!');
