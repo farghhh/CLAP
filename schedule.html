@@ -48,70 +48,6 @@
     }
 
     /* =========================================================
-       NOTICE BANNER
-    ========================================================= */
-    .sch-notice {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      flex-wrap: wrap;
-      margin: 0 auto 14px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: #fff4cf;
-      border: 1px solid #f1db87;
-      color: #7a5a00;
-      font-size: 0.86rem;
-      font-weight: 700;
-      box-shadow: 0 8px 20px rgba(122, 90, 0, 0.08);
-    }
-
-    .sch-notice.show {
-      display: flex;
-    }
-
-    .sch-notice-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .sch-notice-btn,
-    .sch-notice-close {
-      border: none;
-      cursor: pointer;
-      font: inherit;
-      border-radius: 999px;
-      transition: 0.2s ease;
-    }
-
-    .sch-notice-btn {
-      background: #ffffff;
-      color: #7a5a00;
-      padding: 8px 12px;
-      font-weight: 800;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    }
-
-    .sch-notice-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .sch-notice-close {
-      width: 32px;
-      height: 32px;
-      background: rgba(255, 255, 255, 0.7);
-      color: #7a5a00;
-      font-size: 1rem;
-      font-weight: 900;
-    }
-
-    .sch-notice-close:hover {
-      background: rgba(255, 255, 255, 1);
-    }
-
-    /* =========================================================
        WEEK NAV
     ========================================================= */
     .week-nav {
@@ -424,10 +360,6 @@
       .regen-btn {
         align-self: flex-start;
       }
-
-      .sch-notice {
-        padding: 12px;
-      }
     }
   </style>
 </head>
@@ -440,7 +372,6 @@
   <aside id="sidebar" class="sidebar"></aside>
 
   <main class="main-content">
-    <!-- PAGE HEADER -->
     <div class="sch-header">
       <div class="sch-header-left">
         <div class="sch-title">
@@ -465,23 +396,12 @@
       </button>
     </div>
 
-    <!-- AUTO-ADVANCE NOTICE -->
-    <div class="sch-notice" id="sch-notice" aria-live="polite">
-      <span id="sch-notice-text">No schedule for this week — showing next week.</span>
-      <div class="sch-notice-actions">
-        <button class="sch-notice-btn" id="sch-notice-view-current" type="button">View this week</button>
-        <button class="sch-notice-close" id="sch-notice-close" type="button" aria-label="Close notice">×</button>
-      </div>
-    </div>
-
-    <!-- WEEK NAV -->
     <div class="week-nav">
       <button id="prev-week-btn" class="nav-arrow" aria-label="Previous week">‹</button>
       <span id="week-nav-label" class="nav-label" aria-live="polite">—</span>
       <button id="next-week-btn" class="nav-arrow" aria-label="Next week">›</button>
     </div>
 
-    <!-- SCHEDULE CARD -->
     <div class="timetable-card">
       <div id="schedule-host">
         <div class="schedule-empty">Loading schedule…</div>
@@ -491,7 +411,6 @@
   </main>
 </div>
 
-<!-- FLOATING LEGEND -->
 <button class="info-fab" id="info-fab" aria-label="Show legend">i</button>
 <div class="legend-popup" id="legend-popup" role="tooltip">
   <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
@@ -499,7 +418,6 @@
   <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
 </div>
 
-<!-- REGENERATE MODAL -->
 <div id="regen-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
     <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
@@ -521,21 +439,16 @@
 
 AppShell.init('schedule.html', { showTopbar: false });
 
-/* =========================================================
-   CONSTANTS / STATE
-========================================================= */
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
-
 let weekOffset = 0;
-let noticeTimer = null;
 
 /* =========================================================
-   DATE / WEEK HELPERS
+   WEEK HELPERS
 ========================================================= */
 function getStartOfMonday(baseDate = new Date()) {
   const d = new Date(baseDate);
-  d.setHours(12, 0, 0, 0); /* midday avoids DST edge cases */
-  const day = d.getDay();  /* 0=Sun, 1=Mon */
+  d.setHours(12, 0, 0, 0);
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0, 0, 0, 0);
@@ -579,34 +492,6 @@ function updateWeekLabelUI(offset) {
 }
 
 /* =========================================================
-   NOTICE BANNER
-========================================================= */
-function hideNotice() {
-  const box = document.getElementById('sch-notice');
-  box.classList.remove('show');
-
-  if (noticeTimer) {
-    clearTimeout(noticeTimer);
-    noticeTimer = null;
-  }
-}
-
-function showNotice(message, { autoHideMs = 5000 } = {}) {
-  const box = document.getElementById('sch-notice');
-  const text = document.getElementById('sch-notice-text');
-
-  text.textContent = message;
-  box.classList.add('show');
-
-  if (noticeTimer) clearTimeout(noticeTimer);
-  if (autoHideMs > 0) {
-    noticeTimer = setTimeout(() => {
-      hideNotice();
-    }, autoHideMs);
-  }
-}
-
-/* =========================================================
    TIME HELPERS
 ========================================================= */
 function normalizeDayName(rawDay) {
@@ -639,13 +524,11 @@ function parseTimeToMinutes(value) {
 
   const raw = String(value).trim();
 
-  /* 24h format: 09:00 */
   if (/^\d{1,2}:\d{2}$/.test(raw)) {
     const [h, m] = raw.split(':').map(Number);
     return (h * 60) + m;
   }
 
-  /* 12h format with dot: 9.00 AM or 09.00 PM */
   const dotMatch = raw.match(/^(\d{1,2})\.(\d{2})\s*(AM|PM)$/i);
   if (dotMatch) {
     let hour = Number(dotMatch[1]);
@@ -658,7 +541,6 @@ function parseTimeToMinutes(value) {
     return (hour * 60) + minute;
   }
 
-  /* 12h format with colon: 9:00 AM */
   const colonMatch = raw.match(/^(\d{1,2})\:(\d{2})\s*(AM|PM)$/i);
   if (colonMatch) {
     let hour = Number(colonMatch[1]);
@@ -693,12 +575,6 @@ function formatTime(value) {
   return minutesToDisplay(mins);
 }
 
-function addHoursToTime(startTime, durationHours) {
-  const mins = parseTimeToMinutes(startTime);
-  if (mins === null) return '';
-  return minutesToDisplay(mins + Math.round((Number(durationHours || 1)) * 60));
-}
-
 function mapDifficulty(duration) {
   const hours = Number(duration || 1);
   if (hours <= 1) return 'easy';
@@ -707,7 +583,7 @@ function mapDifficulty(duration) {
 }
 
 /* =========================================================
-   BACKEND NORMALIZATION
+   NORMALIZE BACKEND RESPONSE
 ========================================================= */
 function extractRawSlots(data) {
   if (!data) return [];
@@ -740,7 +616,6 @@ function normalizeScheduleData(apiData, offsetForWeekLabel) {
 
   const rawSlots = extractRawSlots(apiData);
 
-  /* Group raw sessions by normalized day */
   const byDay = {
     Monday: [],
     Tuesday: [],
@@ -796,40 +671,17 @@ function normalizeScheduleData(apiData, offsetForWeekLabel) {
 
   Object.keys(byDay).forEach(day => {
     const sessions = byDay[day];
-
     if (!sessions.length) return;
 
-    /* Sort by real provided raw start time first */
     sessions.sort((a, b) => {
       const aMins = parseTimeToMinutes(a.rawStart);
       const bMins = parseTimeToMinutes(b.rawStart);
       return (aMins ?? 0) - (bMins ?? 0);
     });
 
-    /* Rebuild cumulative times safely */
-    let currentStart = parseTimeToMinutes(sessions[0].rawStart);
-
-    if (currentStart === null) currentStart = 9 * 60; /* fallback 9.00 AM */
-
-    sessions.forEach((session, index) => {
+    sessions.forEach(session => {
       let startMins = parseTimeToMinutes(session.rawStart);
-
-      /* Use cumulative chaining when backend times are missing or unreliable */
-      if (index === 0) {
-        startMins = startMins ?? currentStart;
-      } else {
-        const prev = normalizedSlots[normalizedSlots.length - 1];
-        if (prev && prev.day === day) {
-          startMins = parseTimeToMinutes(session.rawStart);
-          const prevEndMins = parseTimeToMinutes(prev.end);
-
-          if (startMins === null || startMins < prevEndMins) {
-            startMins = prevEndMins;
-          }
-        } else {
-          startMins = startMins ?? currentStart;
-        }
-      }
+      if (startMins === null) startMins = 9 * 60;
 
       let endMins = parseTimeToMinutes(session.rawEnd);
       if (endMins === null || endMins <= startMins) {
@@ -857,7 +709,7 @@ function normalizeScheduleData(apiData, offsetForWeekLabel) {
 }
 
 /* =========================================================
-   RENDERING
+   RENDER
 ========================================================= */
 function renderEmptySchedule(message) {
   const host = document.getElementById('schedule-host');
@@ -871,10 +723,7 @@ function renderSchedule(data) {
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data?.week || '—'}`;
 
   if (!slots.length) {
-    const emptyMsg = weekOffset === 0
-      ? 'No sessions scheduled for this week yet.'
-      : 'No sessions scheduled for this week.';
-    renderEmptySchedule(emptyMsg);
+    renderEmptySchedule('No sessions scheduled for this week.');
     return;
   }
 
@@ -973,75 +822,27 @@ function renderSchedule(data) {
 }
 
 /* =========================================================
-   FETCH / LOAD SCHEDULE
+   LOAD SCHEDULE
 ========================================================= */
-async function fetchScheduleData(offset) {
-  const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
-  if (apiData === null) return null; /* session expired / redirected */
-  return normalizeScheduleData(apiData, offset);
-}
-
-async function loadSchedule(offset = 0, options = {}) {
-  const {
-    forceShow = false,
-    allowAutoAdvance = true,
-    silent = false
-  } = options;
-
+async function loadSchedule(offset = 0) {
   weekOffset = offset;
   updateWeekLabelUI(weekOffset);
 
-  if (!silent) hideNotice();
-
-  let currentData;
-
   try {
-    currentData = await fetchScheduleData(weekOffset);
+    const apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
+    if (apiData === null) return;
+
+    const normalizedData = normalizeScheduleData(apiData, weekOffset);
+    renderSchedule(normalizedData);
   } catch (err) {
     console.error('[CLAP] Failed to load schedule:', err);
     renderEmptySchedule('Could not load schedule. Please try again.');
     CLAP.Toast.error('Could not load schedule. Please try again.');
-    return;
   }
-
-  if (currentData === null) return;
-
-  const hasCurrentSlots = currentData.slots.length > 0;
-
-  /*
-    Main rule:
-    - show current week first
-    - if current week empty and this is offset 0 and auto-advance allowed,
-      try next week silently
-    - if next week has sessions, show next week + banner
-    - user can still click "View this week" to force current empty week
-  */
-  if (
-    weekOffset === 0 &&
-    !forceShow &&
-    allowAutoAdvance &&
-    !hasCurrentSlots
-  ) {
-    try {
-      const nextData = await fetchScheduleData(1);
-
-      if (nextData && nextData.slots.length > 0) {
-        weekOffset = 1;
-        updateWeekLabelUI(weekOffset);
-        renderSchedule(nextData);
-        showNotice(`No schedule for ${getWeekLabelFromOffset(0)} — showing next week instead.`, { autoHideMs: 5000 });
-        return;
-      }
-    } catch (err) {
-      console.warn('[CLAP] Auto-advance check failed:', err);
-    }
-  }
-
-  renderSchedule(currentData);
 }
 
 /* =========================================================
-   DONE TOGGLE + PROGRESS SYNC
+   DONE TOGGLE
 ========================================================= */
 window.toggleDone = async function(btn) {
   const taskBlock = btn.closest('.px-block');
@@ -1051,7 +852,6 @@ window.toggleDone = async function(btn) {
   const slotId = taskBlock.dataset.slotId || null;
   const assignmentId = taskBlock.dataset.assignmentId || null;
 
-  /* Optimistic UI */
   taskBlock.classList.toggle('done', goingDone);
   btn.classList.toggle('done', goingDone);
   btn.title = goingDone ? 'Mark undone' : 'Mark done';
@@ -1064,7 +864,6 @@ window.toggleDone = async function(btn) {
     return;
   }
 
-  /* Save session completion */
   try {
     await CLAP.API.patch(`/schedule/sessions/${slotId}/complete/`, {
       completed: goingDone
@@ -1078,7 +877,6 @@ window.toggleDone = async function(btn) {
     return;
   }
 
-  /* Recalculate progress by HOURS, not by number of sessions */
   if (assignmentId) {
     const blocks = document.querySelectorAll(`.px-block[data-assignment-id="${assignmentId}"]`);
 
@@ -1097,19 +895,16 @@ window.toggleDone = async function(btn) {
       ? Math.round((doneHours / totalHours) * 100)
       : 0;
 
-    /* Persist progress to assignment if endpoint exists */
     try {
       await CLAP.API.patch(`/assignments/${assignmentId}/`, {
         progress: newProgress
       });
     } catch (err) {
-      /* Keep UI success for session complete, but warn in console only */
       console.warn('[CLAP] Could not patch assignment progress:', err);
     }
 
     CLAP.Toast.success(`Progress updated: ${newProgress}%`);
 
-    /* Cross-tab update for assignments page */
     try {
       const progressChannel = new BroadcastChannel('clap_progress');
       progressChannel.postMessage({
@@ -1118,9 +913,7 @@ window.toggleDone = async function(btn) {
         progress: newProgress
       });
       progressChannel.close();
-    } catch (err) {
-      /* no-op */
-    }
+    } catch (err) {}
   } else {
     CLAP.Toast.success(goingDone ? 'Session marked complete!' : 'Session unmarked.');
   }
@@ -1130,29 +923,12 @@ window.toggleDone = async function(btn) {
    WEEK NAV
 ========================================================= */
 document.getElementById('prev-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset - 1, {
-    forceShow: true,
-    allowAutoAdvance: false
-  });
+  loadSchedule(weekOffset - 1);
 });
 
 document.getElementById('next-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset + 1, {
-    forceShow: true,
-    allowAutoAdvance: false
-  });
+  loadSchedule(weekOffset + 1);
 });
-
-/* Notice actions */
-document.getElementById('sch-notice-view-current').addEventListener('click', () => {
-  hideNotice();
-  loadSchedule(0, {
-    forceShow: true,
-    allowAutoAdvance: false
-  });
-});
-
-document.getElementById('sch-notice-close').addEventListener('click', hideNotice);
 
 /* =========================================================
    LEGEND
@@ -1200,17 +976,7 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
       CLAP.Toast.success('Schedule regenerated!');
     }
 
-    /*
-      After regenerate:
-      - reload from current week rule again
-      - do not force current week if empty
-      - allow current->next week fallback
-    */
-    await loadSchedule(0, {
-      forceShow: false,
-      allowAutoAdvance: true
-    });
-
+    await loadSchedule(weekOffset);
   } catch (err) {
     console.error('[CLAP] Regenerate error:', err);
     CLAP.Toast.error('Could not regenerate schedule.');
@@ -1223,10 +989,7 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
 /* =========================================================
    INIT
 ========================================================= */
-loadSchedule(0, {
-  forceShow: false,
-  allowAutoAdvance: true
-});
+loadSchedule(0);
 
 /* =========================================================
    CROSS-TAB SYNC
@@ -1242,16 +1005,10 @@ try {
       type === 'assignment_updated' ||
       type === 'assignment_created'
     ) {
-      loadSchedule(weekOffset, {
-        forceShow: true,
-        allowAutoAdvance: false,
-        silent: true
-      });
+      loadSchedule(weekOffset);
     }
   });
-} catch (err) {
-  /* BroadcastChannel unsupported - ignore */
-}
+} catch (err) {}
 </script>
 </body>
 </html>
