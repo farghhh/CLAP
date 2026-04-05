@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/global.css" />
   <link rel="stylesheet" href="css/auth.css" />
   <style>
-    /* Ensure selects show a visible chevron in all browsers */
+    /* Keep select chevron for max-focus dropdown */
     .form-input.no-icon {
       appearance: none;
       -webkit-appearance: none;
@@ -54,21 +54,23 @@
           <div class="routine-field-label">1. Sleep Time</div>
           <div class="time-range" role="group" aria-labelledby="sleep-label">
             <span class="sr-only" id="sleep-label">Sleep time from and to</span>
-            <select
+            <input
+              type="time"
               id="sleep-start"
-              class="form-input no-icon"
+              class="form-input"
+              value="23:00"
               aria-label="Sleep start time"
               aria-required="true"
               aria-describedby="sleep-error">
-            </select>
             <span class="time-range-to" aria-hidden="true">to</span>
-            <select
+            <input
+              type="time"
               id="sleep-end"
-              class="form-input no-icon"
+              class="form-input"
+              value="07:00"
               aria-label="Sleep end time"
               aria-required="true"
               aria-describedby="sleep-error">
-            </select>
           </div>
           <span class="field-error" id="sleep-error" role="alert"></span>
         </div>
@@ -78,21 +80,23 @@
           <div class="routine-field-label">2. Active Study Hours</div>
           <div class="time-range" role="group" aria-labelledby="study-label">
             <span class="sr-only" id="study-label">Study hours from and to</span>
-            <select
+            <input
+              type="time"
               id="study-start"
-              class="form-input no-icon"
+              class="form-input"
+              value="09:00"
               aria-label="Study start time"
               aria-required="true"
               aria-describedby="study-error">
-            </select>
             <span class="time-range-to" aria-hidden="true">to</span>
-            <select
+            <input
+              type="time"
               id="study-end"
-              class="form-input no-icon"
+              class="form-input"
+              value="18:00"
               aria-label="Study end time"
               aria-required="true"
               aria-describedby="study-error">
-            </select>
           </div>
           <span class="field-error" id="study-error" role="alert"></span>
         </div>
@@ -116,6 +120,12 @@
             <option value="8">8 Hours</option>
             <option value="9">9 Hours</option>
             <option value="10">10 Hours</option>
+            <option value="11">11 Hours</option>
+            <option value="12">12 Hours</option>
+            <option value="13">13 Hours</option>
+            <option value="14">14 Hours</option>
+            <option value="15">15 Hours</option>
+            <option value="16">16 Hours</option>
           </select>
           <span class="field-error" id="focus-error" role="alert"></span>
         </div>
@@ -143,52 +153,48 @@
   const saveBtn     = document.getElementById('save-prefs-btn');
   const statusEl    = document.getElementById('prefs-status');
 
-  /* ---- Build time options ---- */
-  function buildTimeOptions(selectEl, defaultVal) {
-    const hours   = Array.from({length:24}, (_,i) => i);
-    const minutes = ['00'];
-    selectEl.innerHTML = '';
-    hours.forEach(h => {
-      minutes.forEach(m => {
-        const h12  = h === 0 ? 12 : h > 12 ? h - 12 : h;
-        const ampm = h < 12 ? 'AM' : 'PM';
-        const label = `${String(h12).padStart(2,'0')}.${m} ${ampm}`;
-        const val   = `${String(h).padStart(2,'0')}:${m}`;
-        const opt = document.createElement('option');
-        opt.value = val;
-        opt.textContent = label;
-        if (val === defaultVal) opt.selected = true;
-        selectEl.appendChild(opt);
-      });
-    });
-  }
-
-  buildTimeOptions(document.getElementById('sleep-start'), '23:00');
-  buildTimeOptions(document.getElementById('sleep-end'),   '07:00');
-  buildTimeOptions(document.getElementById('study-start'), '09:00');
-  buildTimeOptions(document.getElementById('study-end'),   '18:00');
-
   /* ---- Welcome → Prefs ---- */
   getStarted.addEventListener('click', () => {
     stepWelcome.style.display = 'none';
     stepPrefs.style.display   = 'flex';
-    stepPrefs.querySelector('select, input')?.focus();
+    stepPrefs.querySelector('input, select')?.focus();
   });
 
   /* ---- Validation helpers ---- */
   function validateTimeRange(startSel, endSel, errId, label) {
     const errEl = document.getElementById(errId);
+
     if (!startSel.value || !endSel.value) {
       errEl.textContent = `${label} is required.`;
       return false;
     }
-    /* Study hours: start must be before end */
-    if (startSel.id.startsWith('study') && startSel.value >= endSel.value) {
-      errEl.textContent = 'Study end time must be after start time.';
+
+    /* Allow overnight ranges, only reject identical start/end */
+    if (startSel.value === endSel.value) {
+      errEl.textContent = `${label} start and end cannot be the same.`;
       return false;
     }
+
     errEl.textContent = '';
     return true;
+  }
+
+  function toMinutes(timeStr) {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+
+  function normaliseRange(startStr, endStr) {
+    const start = toMinutes(startStr);
+    let end = toMinutes(endStr);
+
+    if (end <= start) end += 1440;
+
+    return { start, end };
+  }
+
+  function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && bStart < aEnd;
   }
 
   /* ---- Submit ---- */
@@ -203,8 +209,8 @@
     const focusErr   = document.getElementById('focus-error');
 
     let valid = true;
-    if (!validateTimeRange(sleepStart, sleepEnd,   'sleep-error', 'Sleep time'))  valid = false;
-    if (!validateTimeRange(studyStart, studyEnd,   'study-error', 'Study hours')) valid = false;
+    if (!validateTimeRange(sleepStart, sleepEnd, 'sleep-error', 'Sleep time')) valid = false;
+    if (!validateTimeRange(studyStart, studyEnd, 'study-error', 'Study hours')) valid = false;
 
     if (!maxFocus.value) {
       focusErr.textContent = 'Please select maximum focus hours.';
@@ -213,22 +219,20 @@
       focusErr.textContent = '';
     }
 
-    if (!valid) { CLAP.Toast.error('Please complete all fields.'); return; }
-
-    /* FIX (Bug 8): parseInt("07:30") returns 7, silently ignoring the 30-minute part.
-       The original overlap check and window-duration calculation were wrong for any time
-       value with non-zero minutes (e.g. "07:30", "09:30"). Now uses total minutes. */
-    function toMinutes(timeStr) {
-      const [h, m] = timeStr.split(':').map(Number);
-      return h * 60 + (m || 0);
+    if (!valid) {
+      CLAP.Toast.error('Please complete all fields.');
+      return;
     }
 
-    const studyStartMin    = toMinutes(studyStart.value);
-    const sleepEndMin      = toMinutes(sleepEnd.value);
-    const studyEndMin      = toMinutes(studyEnd.value);
+    const sleepRange = normaliseRange(sleepStart.value, sleepEnd.value);
+    const studyRange = normaliseRange(studyStart.value, studyEnd.value);
 
-    /* Extra check: study hours should not overlap sleep */
-    if (studyStartMin < sleepEndMin) {
+    const overlapsSleep =
+      rangesOverlap(studyRange.start, studyRange.end, sleepRange.start, sleepRange.end) ||
+      rangesOverlap(studyRange.start, studyRange.end, sleepRange.start + 1440, sleepRange.end + 1440) ||
+      rangesOverlap(studyRange.start + 1440, studyRange.end + 1440, sleepRange.start, sleepRange.end);
+
+    if (overlapsSleep) {
       const errEl = document.getElementById('study-error');
       errEl.textContent = 'Study hours overlap with sleep time.';
       errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -236,10 +240,10 @@
       return;
     }
 
-    /* Max focus should not exceed study window (in hours) */
-    const studyDurationMins  = (studyEndMin - studyStartMin + 1440) % 1440;
+    const studyDurationMins  = studyRange.end - studyRange.start;
     const studyDurationHours = studyDurationMins / 60;
-    if (parseInt(maxFocus.value) > studyDurationHours) {
+
+    if (parseInt(maxFocus.value, 10) > studyDurationHours) {
       const errEl = document.getElementById('focus-error');
       errEl.textContent = 'Exceeds your study window duration.';
       errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -256,7 +260,7 @@
       sleep_end:       sleepEnd.value,
       study_start:     studyStart.value,
       study_end:       studyEnd.value,
-      max_focus_hours: parseInt(maxFocus.value),
+      max_focus_hours: parseInt(maxFocus.value, 10),
     };
 
     try {

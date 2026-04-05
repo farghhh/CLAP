@@ -117,7 +117,6 @@
     @media (max-width: 520px) {
       .team-members-row { grid-template-columns: 1fr; }
     }
-    /* pw-toggle inside form-input-wrap (change password panel) */
     .form-input-wrap .pw-toggle {
       position: absolute;
       right: 12px;
@@ -135,7 +134,6 @@
     .form-input-wrap .pw-toggle:hover { color: var(--clap-teal); }
     .form-input-wrap .form-input { padding-right: 44px; }
 
-    /* Compact requirement pill badges */
     .req-pill { display:flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; padding:4px 8px; border-radius:999px; transition:background 0.2s,color 0.2s; }
     .req-pill.req-fail { background:#fde8e8; color:#c0392b; }
     .req-pill.req-pass { background:#e8f8ee; color:#1e8449; }
@@ -152,7 +150,6 @@
     .pw-strength-label.fair   { color:#F5A623; }
     .pw-strength-label.good   { color:#3498DB; }
     .pw-strength-label.strong { color:#27AE60; }
-    /* Requirements checklist */
     .pw-req { display:flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:600; }
     .req-icon { font-size:0.85rem; font-weight:800; }
   </style>
@@ -166,7 +163,6 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content" id="main">
 
-    <!-- ── Page title ── -->
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:var(--space-xl);">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--clap-teal)" stroke-width="2.5" aria-hidden="true">
         <circle cx="12" cy="12" r="3"/>
@@ -175,13 +171,10 @@
       <h1 class="page-title">Settings</h1>
     </div>
 
-    <!-- ── Two-column layout: left nav + right panel ── -->
     <div class="settings-layout">
 
-      <!-- Left navigation -->
       <nav class="settings-sidenav" aria-label="Settings sections">
         <button class="settings-sidenav-item" data-sec="general-menu">General</button>
-        <!-- Sub-items revealed when "General" is active -->
         <div id="general-subnav" class="settings-subnav" style="display:none">
           <button class="settings-subnav-item" data-sub="profile">Profile</button>
           <button class="settings-subnav-item" data-sub="study-prefs">Study Preferences</button>
@@ -190,7 +183,6 @@
         <button class="settings-sidenav-item" data-sec="team">Our Team &amp; Contributions</button>
       </nav>
 
-      <!-- Right content panel — innerHTML replaced by setSection() -->
       <div class="settings-panel" id="settings-panel">
         <p style="color:var(--text-muted);text-align:center;padding:40px 0">
           Select a section from the left to get started.
@@ -206,31 +198,13 @@
 <script>
 'use strict';
 
-/*
- * Settings has its own page title in the HTML above,
- * so we do not need the AppShell topbar greeting.
- */
 AppShell.init('settings.html', { showSearch: false, showTopbar: false });
 
-/* Read the stored user profile (set during sign-in). */
 const user = CLAP.Auth.getUser() || {};
-
-/* Track the current section and sub-section. */
 let curSec = '';
-let curSub = 'profile'; // default sub-section within "General"
+let curSub = 'profile';
+let prefs = {};
 
-/*
- * FIX: panelStudyPrefs originally read from localStorage('clap_prefs'),
- * but preferences are saved via the API in onboarding and never written
- * to localStorage — so the panel always showed default/empty values.
- *
- * Now preferences are fetched from GET /api/users/preferences/ and stored
- * in the module-level `prefs` object. A loading state is shown while the
- * request is in flight.
- */
-let prefs = {}; // populated by loadPreferences()
-
-/** Format a "HH:MM" 24-hour time string into a human-readable label. */
 function fmtTime(t) {
   if (!t) return '—';
   const [h, m] = t.split(':').map(Number);
@@ -239,15 +213,12 @@ function fmtTime(t) {
   return `${String(h12).padStart(2, '0')}:${String(m || 0).padStart(2, '0')} ${ampm}`;
 }
 
-/** Fetch study preferences from the API once per page load. */
 async function loadPreferences() {
-  /* First load from localStorage for instant display */
   try {
     const stored = localStorage.getItem('clap_prefs');
     if (stored) prefs = JSON.parse(stored);
   } catch {}
 
-  /* Also refresh the user profile from the server */
   try {
     const profileData = await CLAP.API.get('/auth/profile/');
     if (profileData) {
@@ -257,7 +228,6 @@ async function loadPreferences() {
     }
   } catch {}
 
-  /* Fetch preferences from backend */
   try {
     const fresh = await CLAP.API.get('/users/preferences/get/');
     if (fresh) {
@@ -265,7 +235,6 @@ async function loadPreferences() {
       localStorage.setItem('clap_prefs', JSON.stringify(prefs));
     }
   } catch {
-    /* Fall back to safe defaults if no data found anywhere */
     if (!prefs || !prefs.sleep_start) {
       prefs = {
         sleep_start:     '23:00',
@@ -278,30 +247,21 @@ async function loadPreferences() {
   }
 }
 
-/* ── PANEL BUILDERS ─────────────────────────────────────────── */
-
-/**
- * Entry point for the "General" section.
- * Ensures the sub-nav is visible and delegates to the active sub-panel.
- */
 function panelGeneral() {
   document.getElementById('general-subnav').style.display = 'flex';
   return curSub === 'study-prefs' ? panelStudyPrefs() : panelProfile();
 }
 
-/** Renders the profile editing panel. */
 function panelProfile() {
   const initial = (user.name || 'S').charAt(0).toUpperCase();
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Profile</span></div>
 
-    <!-- Avatar: preview + upload/remove buttons -->
     <div class="profile-pic-wrap">
       <div class="profile-avatar" id="av-preview" aria-label="Profile picture preview">${initial}</div>
       <div>
         <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
         <div style="display:flex;gap:8px">
-          <!-- Remove photo -->
           <button class="upload-btn" id="del-avatar-btn"
                   style="background:var(--danger-light);border-color:rgba(231,76,60,.3);color:var(--danger)"
                   title="Remove photo" aria-label="Remove profile photo">
@@ -310,7 +270,6 @@ function panelProfile() {
             </svg>
             Remove
           </button>
-          <!-- Upload new photo -->
           <label class="upload-btn" style="cursor:pointer;" title="Upload photo" aria-label="Upload profile photo">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -324,7 +283,6 @@ function panelProfile() {
       </div>
     </div>
 
-    <!-- Editable profile fields -->
     <div class="settings-row" id="row-name">
       <div>
         <div class="settings-row-label">Full Name</div>
@@ -350,7 +308,6 @@ function panelProfile() {
     <button class="save-changes-btn" onclick="saveProfile()">Save Changes</button>`;
 }
 
-/** Renders the Change Password sub-view. */
 function panelChangePassword() {
   return `
     <div style="margin-bottom:var(--space-lg);">
@@ -372,7 +329,6 @@ function panelChangePassword() {
 
     <div style="display:flex;flex-direction:column;gap:var(--space-md);max-width:400px;">
 
-      <!-- Old Password -->
       <div class="form-group">
         <label class="form-label" for="cp-old">Old Password*</label>
         <div class="form-input-wrap">
@@ -392,7 +348,6 @@ function panelChangePassword() {
         </div>
       </div>
 
-      <!-- New Password -->
       <div class="form-group">
         <label class="form-label" for="cp-new">New Password*</label>
         <div class="form-input-wrap">
@@ -411,12 +366,10 @@ function panelChangePassword() {
             </svg>
           </button>
         </div>
-        <!-- Strength bar -->
         <div class="pw-strength" id="pw-strength-wrap" style="display:none;margin-top:4px;">
           <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
           <span class="pw-strength-label" id="pw-strength-label"></span>
         </div>
-        <!-- Compact pill badges — shown while typing -->
         <div id="pw-reqs" style="display:none;margin-top:7px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
             <div id="req-len"   class="req-pill req-fail"><span class="req-dot">✗</span>8+ chars</div>
@@ -427,7 +380,6 @@ function panelChangePassword() {
         </div>
       </div>
 
-      <!-- Confirm Password -->
       <div class="form-group">
         <label class="form-label" for="cp-confirm">Confirm New Password*</label>
         <div class="form-input-wrap">
@@ -453,12 +405,6 @@ function panelChangePassword() {
             onclick="submitChangePassword()">Change Password</button>`;
 }
 
-/**
- * FIX: Previously read from localStorage('clap_prefs') which was
- * never written to — preferences were always empty/default.
- * Now renders from the `prefs` object populated by loadPreferences()
- * via GET /api/users/preferences/.
- */
 function panelStudyPrefs() {
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Study Preferences</span></div>
@@ -515,7 +461,6 @@ function panelStudyPrefs() {
     <button class="save-changes-btn" onclick="saveStudyPrefs()">Save Changes</button>`;
 }
 
-/** Renders the About Us panel. */
 function panelAbout() {
   return `
     <div class="settings-breadcrumb">Settings › <span>About Us</span></div>
@@ -540,7 +485,6 @@ function panelAbout() {
     <div class="about-version">CLAP v1.0.0 — Developed for IIEF 2026</div>`;
 }
 
-/** Renders the Our Team & Contributions panel. */
 function panelTeam() {
   const members = [
     {
@@ -619,16 +563,9 @@ function panelTeam() {
     </div>`;
 }
 
-/* ── SECTION NAVIGATION ─────────────────────────────────────── */
-
-/**
- * Switch the visible section in the right panel.
- * @param {string} sec  'general-menu' | 'about'
- */
 function setSection(sec) {
   curSec = sec;
 
-  /* Reset UI state. */
   document.getElementById('general-subnav').style.display = 'none';
   document.querySelectorAll('.settings-sidenav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.sec === sec);
@@ -637,7 +574,6 @@ function setSection(sec) {
     b.classList.remove('active');
   });
 
-  /* Build panel HTML. */
   let html = '';
   if (sec === 'general-menu') {
     html = panelGeneral();
@@ -650,23 +586,19 @@ function setSection(sec) {
 
   document.getElementById('settings-panel').innerHTML = html;
 
-  /* Highlight the active sub-item. */
   document.querySelectorAll('.settings-subnav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.sub === curSub);
   });
 
-  /* Wire up avatar file-picker handlers after innerHTML replacement. */
   if (sec === 'general-menu' && curSub === 'profile') {
     attachAvatarHandlers();
   }
 }
 
-/* Main nav click handlers. */
 document.querySelectorAll('.settings-sidenav-item').forEach(btn => {
   btn.addEventListener('click', () => setSection(btn.dataset.sec));
 });
 
-/* Sub-nav click handlers. */
 document.querySelectorAll('.settings-subnav-item').forEach(btn => {
   btn.addEventListener('click', () => {
     curSub = btn.dataset.sub;
@@ -674,21 +606,11 @@ document.querySelectorAll('.settings-subnav-item').forEach(btn => {
   });
 });
 
-/* ── INLINE EDIT ────────────────────────────────────────────── */
-
-/**
- * Replace a static value display with an editable input + Save/Cancel.
- * @param {string} field  Key in the `user` object ('name'|'email'|'program').
- * @param {string} label  Human-readable label for the input.
- */
 window.startInlineEdit = function(field, label) {
   const valEl = document.getElementById('val-' + field);
   if (!valEl) return;
   const currentVal = user[field] || '';
 
-  /* FIX (Bug 7): Previously used innerHTML with unescaped currentVal — breaks on names
-     containing ' or " (e.g. O'Brien) and is an XSS vector if data comes from the API.
-     Now uses safe DOM property assignments only. */
   valEl.innerHTML = '';
 
   const wrapper = document.createElement('div');
@@ -698,7 +620,7 @@ window.startInlineEdit = function(field, label) {
   input.id          = `edit-input-${field}`;
   input.className   = 'inline-input';
   input.type        = 'text';
-  input.value       = currentVal;        // safe: DOM property, not attribute injection
+  input.value       = currentVal;
   input.placeholder = label;
   input.style.cssText = 'flex:1;min-width:140px;';
   input.setAttribute('aria-label', `Edit ${label}`);
@@ -721,10 +643,6 @@ window.startInlineEdit = function(field, label) {
   input.focus();
 };
 
-/**
- * Commit the inline edit value to the local `user` object.
- * Changes are persisted to the server when "Save Changes" is clicked.
- */
 window.commitInlineEdit = function(field) {
   const input = document.getElementById('edit-input-' + field);
   if (!input) return;
@@ -736,24 +654,16 @@ window.commitInlineEdit = function(field) {
   CLAP.Toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated. Click Save Changes to persist.`);
 };
 
-/** Revert the field back to its original value (cancel the edit). */
 window.cancelInlineEdit = function(field, originalVal) {
   const valEl = document.getElementById('val-' + field);
   if (valEl) valEl.textContent = originalVal || '—';
 };
 
-/* ── AVATAR UPLOAD/REMOVE ───────────────────────────────────── */
-
-/**
- * Attach change and click handlers to the avatar controls after
- * they are injected into the DOM by panelProfile().
- */
 function attachAvatarHandlers() {
   const fileInput = document.getElementById('avatar-file-input');
   const delBtn    = document.getElementById('del-avatar-btn');
   const preview   = document.getElementById('av-preview');
 
-  /* Read selected image file and show it as a circular preview. */
   if (fileInput) {
     fileInput.addEventListener('change', () => {
       const file = fileInput.files[0];
@@ -769,7 +679,6 @@ function attachAvatarHandlers() {
     });
   }
 
-  /* Remove the photo and revert to the initial letter. */
   if (delBtn) {
     delBtn.addEventListener('click', () => {
       const initial = (user.name || 'S').charAt(0).toUpperCase();
@@ -780,12 +689,6 @@ function attachAvatarHandlers() {
   }
 }
 
-/* ── SAVE PROFILE ───────────────────────────────────────────── */
-
-/**
- * Send the modified profile fields to the API and update localStorage.
- * CONNECT: PATCH /api/users/me/
- */
 window.saveProfile = async function() {
   const userKey = CLAP.CONFIG.USER_KEY || 'clap_user';
 
@@ -794,7 +697,6 @@ window.saveProfile = async function() {
       name:  user.name,
       email: user.email,
     });
-    /* Update local user object with what the server confirmed */
     if (data) {
       user.name  = data.name  || user.name;
       user.email = data.email || user.email;
@@ -802,7 +704,6 @@ window.saveProfile = async function() {
     localStorage.setItem(userKey, JSON.stringify(user));
     CLAP.Toast.success('Profile saved!');
   } catch (err) {
-    /* Save locally even if API fails, and show specific error */
     localStorage.setItem(userKey, JSON.stringify(user));
     if (err && err.data && err.data.error) {
       CLAP.Toast.error(err.data.error);
@@ -812,20 +713,15 @@ window.saveProfile = async function() {
   }
 };
 
-/* ── CHANGE PASSWORD ─────────────────────────────────────────── */
-
-/** Switch the panel to the Change Password view. */
 window.showChangePassword = function() {
   document.getElementById('settings-panel').innerHTML = panelChangePassword();
 };
 
-/** Go back to the Profile panel. */
 window.showProfile = function() {
   curSub = 'profile';
   setSection('general-menu');
 };
 
-/** Toggle password field visibility. */
 window.togglePw = function(inputId, btnId) {
   const inp = document.getElementById(inputId);
   const btn = document.getElementById(btnId);
@@ -837,7 +733,6 @@ window.togglePw = function(inputId, btnId) {
     : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 };
 
-/** Update password-strength bar and requirement pill badges. */
 window.updatePwStrength = function(val) {
   const wrap  = document.getElementById('pw-strength-wrap');
   const fill  = document.getElementById('pw-strength-fill');
@@ -861,7 +756,6 @@ window.updatePwStrength = function(val) {
   };
   const score = Object.values(checks).filter(Boolean).length;
 
-  /* Update pill badges */
   Object.entries(checks).forEach(([key, ok]) => {
     const el = document.getElementById(`req-${key}`);
     if (!el) return;
@@ -878,10 +772,6 @@ window.updatePwStrength = function(val) {
   label.textContent = labels[score] || 'Weak';
 };
 
-/**
- * Submit the change-password form.
- * CONNECT: POST /api/auth/change-password/
- */
 window.submitChangePassword = async function() {
   const oldPw  = document.getElementById('cp-old')?.value;
   const newPw  = document.getElementById('cp-new')?.value;
@@ -912,7 +802,6 @@ window.submitChangePassword = async function() {
     CLAP.Toast.success('Password changed successfully!');
     window.showProfile();
   } catch (err) {
-    /* Map backend error messages to user-friendly text */
     const msg = (err && err.data && err.data.error) ? err.data.error : (err && err.message);
     if (msg && msg.toLowerCase().includes('incorrect')) {
       CLAP.Toast.error('Current password is incorrect.');
@@ -926,16 +815,12 @@ window.submitChangePassword = async function() {
   }
 };
 
-/* ── STUDY PREFERENCES EDIT ──────────────────────────────────── */
-
-/** Toggle between view and edit mode for a study prefs field. */
 window.toggleSpEdit = function(field, btn) {
   const view = document.getElementById(`sp-${field}-view`);
   const edit = document.getElementById(`sp-${field}-edit`);
   if (!view || !edit) return;
   const isEditing = edit.style.display === 'flex';
   if (isEditing) {
-    /* Done clicked — update view text from current input values */
     if (field === 'sleep') {
       const s = document.getElementById('sp-sleep-start')?.value || prefs.sleep_start || '23:00';
       const e = document.getElementById('sp-sleep-end')?.value   || prefs.sleep_end   || '07:00';
@@ -956,11 +841,10 @@ window.toggleSpEdit = function(field, btn) {
     view.style.display = 'none';
     btn.textContent = 'Done';
 
-    /* Attach live-update listeners to inputs so view would be ready when Done is clicked */
     if (field === 'sleep') {
       const startEl = document.getElementById('sp-sleep-start');
       const endEl   = document.getElementById('sp-sleep-end');
-      if (startEl) startEl.oninput = () => { /* preview updates on Done */ };
+      if (startEl) startEl.oninput = () => {};
       if (endEl)   endEl.oninput   = () => {};
     } else if (field === 'study') {
       const startEl = document.getElementById('sp-study-start');
@@ -971,11 +855,6 @@ window.toggleSpEdit = function(field, btn) {
   }
 };
 
-/**
- * Save updated study preferences to the API.
- * Validates inputs the same way the onboarding page does before saving.
- * CONNECT: PATCH /api/users/preferences/
- */
 window.saveStudyPrefs = async function() {
   const sleepStartEl = document.getElementById('sp-sleep-start');
   const sleepEndEl   = document.getElementById('sp-sleep-end');
@@ -983,54 +862,74 @@ window.saveStudyPrefs = async function() {
   const studyEndEl   = document.getElementById('sp-study-end');
   const limitEl      = document.getElementById('sp-limit-val');
 
-  /* Read current values — fall back to saved prefs if an edit row is collapsed */
   const sleepStart = sleepStartEl?.value || prefs.sleep_start || '23:00';
   const sleepEnd   = sleepEndEl?.value   || prefs.sleep_end   || '07:00';
   const studyStart = studyStartEl?.value || prefs.study_start || '09:00';
   const studyEnd   = studyEndEl?.value   || prefs.study_end   || '18:00';
-  const maxHours   = parseInt(limitEl?.value) || prefs.max_focus_hours || 6;
+  const maxHours   = parseInt(limitEl?.value, 10) || prefs.max_focus_hours || 6;
 
-  /* ── Validation (mirrors onboarding.html) ── */
   function toMins(t) {
     const [h, m] = (t || '00:00').split(':').map(Number);
     return h * 60 + (m || 0);
   }
 
-  /* Study end must be after study start */
-  if (toMins(studyEnd) <= toMins(studyStart)) {
-    CLAP.Toast.error('Study end time must be after study start time.');
-    /* Open the study edit row so the user can see the problem */
+  function normaliseRange(startStr, endStr) {
+    const start = toMins(startStr);
+    let end = toMins(endStr);
+
+    if (end <= start) end += 1440;
+
+    return { start, end };
+  }
+
+  function rangesOverlap(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  function reopenStudyEdit() {
     const studyEdit = document.getElementById('sp-study-edit');
     const studyView = document.getElementById('sp-study-view');
     const studyBtn  = document.querySelector('[onclick*="toggleSpEdit(\'study\'"]') ||
                       document.querySelector('.edit-btn[onclick*="study"]');
+
     if (studyEdit) studyEdit.style.display = 'flex';
     if (studyView) studyView.style.display = 'none';
     if (studyBtn)  studyBtn.textContent = 'Done';
+  }
+
+  if (studyStart === studyEnd) {
+    CLAP.Toast.error('Study start and end time cannot be the same.');
+    reopenStudyEdit();
     return;
   }
 
-  /* Study hours should not overlap with sleep */
-  if (toMins(studyStart) < toMins(sleepEnd)) {
+  const sleepRange = normaliseRange(sleepStart, sleepEnd);
+  const studyRange = normaliseRange(studyStart, studyEnd);
+
+  const overlapsSleep =
+    rangesOverlap(studyRange.start, studyRange.end, sleepRange.start, sleepRange.end) ||
+    rangesOverlap(studyRange.start, studyRange.end, sleepRange.start + 1440, sleepRange.end + 1440) ||
+    rangesOverlap(studyRange.start + 1440, studyRange.end + 1440, sleepRange.start, sleepRange.end);
+
+  if (overlapsSleep) {
     CLAP.Toast.error('Study hours overlap with your sleep time. Please adjust.');
+    reopenStudyEdit();
     return;
   }
 
-  /* Max focus must not exceed study window */
-  const studyDurationMins  = (toMins(studyEnd) - toMins(studyStart) + 1440) % 1440;
+  const studyDurationMins  = studyRange.end - studyRange.start;
   const studyDurationHours = studyDurationMins / 60;
+
   if (maxHours > studyDurationHours) {
     CLAP.Toast.error(`Max focus hours (${maxHours}h) exceeds your study window (${studyDurationHours.toFixed(1)}h).`);
     return;
   }
 
-  /* Max focus must be at least 1 */
   if (maxHours < 1 || maxHours > 16) {
     CLAP.Toast.error('Daily study limit must be between 1 and 16 hours.');
     return;
   }
 
-  /* ── All valid — save ── */
   const updated = {
     sleep_start:     sleepStart,
     sleep_end:       sleepEnd,
@@ -1039,28 +938,26 @@ window.saveStudyPrefs = async function() {
     max_focus_hours: maxHours,
   };
 
-  /* Update local prefs immediately */
   prefs = { ...prefs, ...updated };
   try { localStorage.setItem('clap_prefs', JSON.stringify(prefs)); } catch {}
 
-  /* Try API */
   try { await CLAP.API.put('/users/preferences/update/', updated); } catch {}
 
-  /* Update the view text */
   const sleepView = document.getElementById('sp-sleep-view');
   const studyView = document.getElementById('sp-study-view');
   const limitView = document.getElementById('sp-limit-view');
+
   if (sleepView) sleepView.textContent = `${fmtTime(sleepStart)} to ${fmtTime(sleepEnd)}`;
   if (studyView) studyView.textContent = `${fmtTime(studyStart)} to ${fmtTime(studyEnd)}`;
   if (limitView) limitView.textContent = `${maxHours} Hours`;
 
-  /* Collapse all edit rows */
   ['sleep', 'study', 'limit'].forEach(f => {
     const editEl = document.getElementById(`sp-${f}-edit`);
     const viewEl = document.getElementById(`sp-${f}-view`);
     if (editEl) editEl.style.display = 'none';
     if (viewEl) viewEl.style.display = '';
   });
+
   document.querySelectorAll('.settings-panel .edit-btn').forEach(b => {
     if (b.textContent === 'Done') b.textContent = 'Edit';
   });
@@ -1068,13 +965,7 @@ window.saveStudyPrefs = async function() {
   CLAP.Toast.success('Study preferences saved!');
 };
 
-/* ── INIT ───────────────────────────────────────────────────── */
-
-/*
- * Load preferences from the API before rendering the panel,
- * so that panelStudyPrefs() has real data available.
- */
-loadPreferences(); // async; prefs will be populated by the time user navigates to that section
+loadPreferences();
 </script>
 </body>
 </html>
