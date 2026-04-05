@@ -222,9 +222,10 @@ async function loadPreferences() {
   try {
     const profileData = await CLAP.API.get('/auth/profile/');
     if (profileData) {
-      user.name  = profileData.name;
-      user.email = profileData.email;
-      localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
+        user.name  = profileData.name;
+        user.email = profileData.email;
+        user.profile_picture = profileData.profile_picture || '';
+        localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
     }
   } catch {}
 
@@ -254,11 +255,15 @@ function panelGeneral() {
 
 function panelProfile() {
   const initial = (user.name || 'S').charAt(0).toUpperCase();
+  const avatarContent = user.profile_picture
+    ? `<img src="${user.profile_picture}" alt="Profile photo"
+        style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+    : initial;
   return `
     <div class="settings-breadcrumb">Settings › <span>General</span> › <span>Profile</span></div>
 
     <div class="profile-pic-wrap">
-      <div class="profile-avatar" id="av-preview" aria-label="Profile picture preview">${initial}</div>
+      <div class="profile-avatar" id="av-preview" aria-label="Profile picture preview">${avatarContent}</div>
       <div>
         <div style="font-size:.8rem;font-weight:700;color:var(--text-muted);margin-bottom:8px">Profile Picture</div>
         <div style="display:flex;gap:8px">
@@ -696,6 +701,7 @@ window.saveProfile = async function() {
     const data = await CLAP.API.put('/auth/profile/', {
       name:  user.name,
       email: user.email,
+      profile_picture: user.avatarDataUrl !== undefined ? user.avatarDataUrl : user.profile_picture,
     });
     if (data) {
       user.name  = data.name  || user.name;
