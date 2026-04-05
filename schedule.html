@@ -88,36 +88,6 @@
       transform: scale(1.1);
     }
 
-    .week-info-banner {
-      display:none;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin: -6px auto 18px;
-      padding: 12px 16px;
-      width:min(100%, 760px);
-      background:#FFF8D9;
-      color:#856404;
-      border:1px solid #F3E1A2;
-      border-radius:14px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.04);
-      font-size:0.84rem;
-      font-weight:700;
-    }
-    .week-info-banner.show { display:flex; }
-    .week-info-banner button {
-      border:none;
-      background:rgba(75, 191, 191, 0.12);
-      color:var(--clap-teal-dark);
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:0.78rem;
-      font-weight:800;
-      cursor:pointer;
-      white-space:nowrap;
-    }
-    .week-info-banner button:hover { background:rgba(75, 191, 191, 0.18); }
-
     @keyframes spin { to { transform:rotate(360deg); } }
 
     /* ── Timetable card ── */
@@ -386,11 +356,6 @@
       <button id="next-week-btn" class="nav-arrow" aria-label="Next week">›</button>
     </div>
 
-    <div class="week-info-banner" id="week-info-banner" role="status" aria-live="polite">
-      <span id="week-info-text"></span>
-      <button type="button" id="week-info-action" class="hidden">View this week</button>
-    </div>
-
     <!-- Timetable -->
     <div class="timetable-card">
       <div style="overflow-x:auto;">
@@ -452,81 +417,7 @@ AppShell.init('schedule.html', { showTopbar: false });
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 let weekOffset = 0;
-let weekBannerTimer = null;
-
-function hasScheduleSlots(data) {
-  return Array.isArray(data?.slots) && data.slots.length > 0;
-}
-
-async function shouldTreatNextWeekAsCurrentWeek() {
-  try {
-    const items = await CLAP.API.get('/assignments/');
-    if (!Array.isArray(items) || items.length === 0) return false;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const monday = new Date(today);
-    const day = monday.getDay();
-    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
-    monday.setHours(0, 0, 0, 0);
-
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-    friday.setHours(23, 59, 59, 999);
-
-    return items.some(item => {
-      const raw = item?.deadline ?? item?.due_date ?? null;
-      if (!raw) return false;
-      const dl = new Date(raw);
-      if (isNaN(dl)) return false;
-      dl.setHours(12, 0, 0, 0);
-      return dl >= monday && dl <= friday;
-    });
-  } catch (err) {
-    console.warn('[CLAP] Could not inspect assignments for week alignment:', err);
-    return false;
-  }
-}
-
-function hideWeekBanner() {
-  const banner = document.getElementById('week-info-banner');
-  const textEl = document.getElementById('week-info-text');
-  const actionBtn = document.getElementById('week-info-action');
-  if (!banner || !textEl || !actionBtn) return;
-  banner.classList.remove('show');
-  textEl.textContent = '';
-  actionBtn.classList.add('hidden');
-  actionBtn.onclick = null;
-  if (weekBannerTimer) {
-    clearTimeout(weekBannerTimer);
-    weekBannerTimer = null;
-  }
-}
-
-function showWeekBanner(message, options = {}) {
-  const banner = document.getElementById('week-info-banner');
-  const textEl = document.getElementById('week-info-text');
-  const actionBtn = document.getElementById('week-info-action');
-  if (!banner || !textEl || !actionBtn) return;
-
-  hideWeekBanner();
-  textEl.textContent = message;
-  banner.classList.add('show');
-
-  if (options.actionLabel && typeof options.onAction === 'function') {
-    actionBtn.textContent = options.actionLabel;
-    actionBtn.classList.remove('hidden');
-    actionBtn.onclick = options.onAction;
-  }
-
-  const duration = Number.isFinite(options.duration) ? options.duration : 4500;
-  if (duration > 0) {
-    weekBannerTimer = setTimeout(() => {
-      hideWeekBanner();
-    }, duration);
-  }
-}
+let assignmentMetaById = null;
 
 /* ── MOCK DATA ───────────────────────────────────────────── */
 function getMock() {
@@ -603,6 +494,76 @@ function mapDifficulty(duration) {
   if (duration <= 1) return 'easy';
   if (duration <= 2) return 'medium';
   return 'hard';
+}
+
+
+function getWeekRangeFromOffset(offset) {
+  const today = new Date();
+  const day = today.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+
+  const monday = new Date(today);
+  monday.setHours(0,0,0,0);
+  monday.setDate(today.getDate() + mondayOffset + (offset * 7));
+
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  friday.setHours(23,59,59,999);
+
+  return { start: monday, end: friday };
+}
+
+function parseISODateOnly(iso) {
+  if (!iso) return null;
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+
+async function ensureAssignmentMeta() {
+  if (assignmentMetaById) return assignmentMetaById;
+  assignmentMetaById = {};
+  try {
+    const res = await CLAP.API.get('/assignments/');
+    const list = Array.isArray(res) ? res : (res?.results || res?.assignments || []);
+    list.forEach(item => {
+      if (!item) return;
+      const id = item.id ?? item.assignment_id;
+      if (id == null) return;
+      assignmentMetaById[String(id)] = {
+        deadline: item.deadline || item.due_date || null,
+        title: item.title || '',
+        code: item.course_code || item.code || ''
+      };
+    });
+  } catch (err) {
+    console.warn('[CLAP] Could not preload assignment metadata for week filtering:', err);
+  }
+  return assignmentMetaById;
+}
+
+function filterSlotsForDisplayedWeek(data, offset) {
+  const slots = Array.isArray(data?.slots) ? data.slots : [];
+  if (!slots.length || !assignmentMetaById) return data;
+
+  const { start, end } = getWeekRangeFromOffset(offset);
+  const filteredSlots = slots.filter(slot => {
+    const assignmentId = slot.assignment_id;
+    if (assignmentId == null) return true;
+    const meta = assignmentMetaById[String(assignmentId)];
+    if (!meta || !meta.deadline) return true;
+
+    const deadline = parseISODateOnly(meta.deadline);
+    if (!deadline) return true;
+
+    if (deadline < start && offset > 0) return false;
+    if (deadline > end && offset < 0) return false;
+    return true;
+  });
+
+  return { ...data, slots: filteredSlots };
 }
 
 /* ── NORMALIZE BACKEND RESPONSE ──────────────────────────── */
@@ -851,64 +812,24 @@ function renderSchedule(data) {
  * Auto-advance: if the current week has no slots on initial load,
  * silently try next week so the page never opens blank.
  */
-async function loadSchedule(offset = 0, options = {}) {
-  const { forceShow = false, silent = false } = options;
-
+async function loadSchedule(offset = 0) {
   weekOffset = offset;
-  const fallbackWeek = getWeekLabelFromOffset(weekOffset);
+  const fallbackWeek = getWeekLabelFromOffset(offset);
   updateWeekNavLabel();
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
 
-  if (!silent) hideWeekBanner();
-
   try {
-    const apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
-    const normalizedData = normalizeScheduleData(apiData);
+    await ensureAssignmentMeta();
+
+    const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
+    let normalizedData = normalizeScheduleData(apiData);
+
+    /* Frontend guard:
+       if the backend leaks a task into the wrong week, remove slots whose
+       assignment deadline is outside the displayed week window. This prevents
+       a current-week task from appearing again in next week's view. */
+    normalizedData = filterSlotsForDisplayedWeek(normalizedData, offset);
     normalizedData.week = fallbackWeek;
-
-    if (weekOffset === 0 && !forceShow && !hasScheduleSlots(normalizedData)) {
-      try {
-        const nextApiData = await CLAP.API.get('/schedule/?week_offset=1');
-        const nextData = normalizeScheduleData(nextApiData);
-        nextData.week = getWeekLabelFromOffset(1);
-
-        if (hasScheduleSlots(nextData)) {
-          const useNextWeekAsCurrent = await shouldTreatNextWeekAsCurrentWeek();
-
-          if (useNextWeekAsCurrent) {
-            nextData.week = fallbackWeek;
-            weekOffset = 0;
-            updateWeekNavLabel();
-            document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
-            renderSchedule(nextData);
-            if (!silent) {
-              showWeekBanner('Current-week schedule was recovered from the next-week payload.', { duration: 4000 });
-            }
-            return;
-          }
-
-          weekOffset = 1;
-          updateWeekNavLabel();
-          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextData.week}`;
-          renderSchedule(nextData);
-          if (!silent) {
-            showWeekBanner(
-              `No schedule for ${fallbackWeek} — showing next week.`,
-              {
-                actionLabel: 'View this week',
-                onAction: () => {
-                  loadSchedule(0, { forceShow: true });
-                },
-                duration: 5000,
-              }
-            );
-          }
-          return;
-        }
-      } catch (nextErr) {
-        console.warn('[CLAP] Next-week fallback failed:', nextErr);
-      }
-    }
 
     renderSchedule(normalizedData);
   } catch (err) {
@@ -993,11 +914,13 @@ window.toggleDone = async function(btn) {
 
 /* ── WEEK NAVIGATION ─────────────────────────────────────── */
 document.getElementById('prev-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset - 1, { forceShow: true });
+  weekOffset--;
+  loadSchedule(weekOffset);
 });
 
 document.getElementById('next-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset + 1, { forceShow: true });
+  weekOffset++;
+  loadSchedule(weekOffset);
 });
 
 /* ── LEGEND POPUP ────────────────────────────────────────── */
@@ -1036,7 +959,7 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
        Rendering that response always produced a blank timetable.
        Instead: fire the regenerate call, then re-fetch the fresh schedule. */
     await CLAP.API.post('/schedule/regenerate/', {});
-    await loadSchedule(weekOffset, { forceShow: false });
+    await loadSchedule(weekOffset);
     CLAP.Toast.success('Schedule regenerated!');
   } catch (err) {
     console.error('REGENERATE ERROR:', err);
@@ -1057,7 +980,7 @@ try {
     const { type } = event.data || {};
     if (type === 'assignment_deleted' || type === 'assignment_updated') {
       /* Re-fetch the schedule so stale task titles / removed slots disappear */
-      loadSchedule(weekOffset, { forceShow: true });
+      loadSchedule(weekOffset);
     }
   });
 } catch { /* BroadcastChannel not supported — silent fail */ }
