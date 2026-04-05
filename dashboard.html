@@ -554,43 +554,17 @@ function renderDeadline(dl) {
   else         {b.textContent=`Due in ${d} Days`; b.className='dl-badge safe';}
 }
 
-/* ── Schedule: user-preference time rows + auto next-week ── */
+/* ── Schedule ── */
 function renderSchedule(schedule) {
-  if (!schedule) { emptySchedule(false); return; }
+  if (!schedule) { emptySchedule(); return; }
 
-  const hasAny = Object.values(schedule).some(t=>Array.isArray(t)&&t.length>0);
+  const hasAny = Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
 
-  /* Which week to label */
-  const now=new Date(); const dow=now.getDay();
-  const toMon=(dow===0)?-6:1-dow;
-  /* When current week is empty, label as next week */
-  const monday=new Date(now); monday.setDate(now.getDate()+toMon+(hasAny?0:7));
-  const weekEnd=new Date(monday); weekEnd.setDate(monday.getDate()+4);
-  const fmt=d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = hasAny ? 'This Week' : `Next Week`;
+  const badge = document.getElementById('plan-week-badge');
+  if (badge) badge.textContent = 'This Week';
 
   if (!hasAny) {
-    /* Show next-week preview message but still try to render next week schedule */
-    const nextSchedule = window._nextWeekScheduleCache;
-    if (nextSchedule && Object.values(nextSchedule).some(t=>Array.isArray(t)&&t.length>0)) {
-      /* Inject hint OUTSIDE the sched-grid (after .sched-wrap) to avoid breaking the CSS grid */
-      let _hint = document.getElementById('next-week-hint');
-      if (!_hint) {
-        _hint = document.createElement('div');
-        _hint.id = 'next-week-hint';
-        _hint.style.cssText = 'text-align:center;padding:6px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;margin-bottom:6px;';
-        _hint.textContent = '📅 Nothing this week — showing next week preview';
-        /* Place hint BEFORE .sched-wrap (outside the grid) */
-        const schedWrap = document.querySelector('.sched-wrap');
-        if (schedWrap) schedWrap.before(_hint);
-        else document.getElementById('plan-empty-msg').appendChild(_hint);
-      }
-      /* Render next week's data as preview */
-      _renderScheduleTable(nextSchedule);
-    } else {
-      emptySchedule(true);
-    }
+    emptySchedule();
     return;
   }
 
@@ -665,15 +639,11 @@ function _renderScheduleTable(schedule) {
   document.getElementById('plan-body').innerHTML = html;
 }
 
-function emptySchedule(isAdvanceHint) {
+function emptySchedule() {
   const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = isAdvanceHint ? 'Next Week' : '';
+  if(badge) badge.textContent = 'This Week';
   document.getElementById('plan-body').innerHTML=
-    `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">${
-      isAdvanceHint
-        ? '📅 Nothing scheduled this week — showing next week.'
-        : '🎉 No study sessions scheduled yet.'
-    }</td></tr>`;
+    `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">No study sessions scheduled yet. Add assignments to generate a schedule.</td></tr>`;
 }
 
 /* ── Calendar: dots from real task_date_meta ── */
@@ -825,23 +795,34 @@ function renderTodo(tasks, upcoming) {
 }
 
 function _deriveUpcoming(schedule) {
-  const today=new Date(); const dow=today.getDay();
-  const result=[];
-  DAYS.forEach(day=>{
-    const tasks=schedule[day]; if(!Array.isArray(tasks)) return;
-    const dayIdx=['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day)+1;
-    const jsDay=dayIdx||7;
-    let ahead=(jsDay-dow+7)%7; if(ahead===0) ahead=7;
-    if(ahead>0&&ahead<=7){
-      const dt=new Date(today); dt.setDate(today.getDate()+ahead);
-      tasks.forEach(t=>{
-        result.push({...t,
-          date:dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}),
-        });
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun,1=Mon,...6=Sat
+  const result = [];
+  DAYS.forEach(day => {
+    const tasks = schedule[day];
+    if (!Array.isArray(tasks) || tasks.length === 0) return;
+    const dayIdx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day) + 1; // 1–5
+    let ahead = (dayIdx - dow + 7) % 7;
+    /* ahead=0 means today — include today's tasks */
+    const dt = new Date(today);
+    dt.setDate(today.getDate() + ahead);
+    const label = ahead === 0
+      ? 'Today'
+      : dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    tasks.forEach(t => {
+      result.push({
+        ...t,
+        date: label,
+        difficulty: (t.difficulty || 'medium').toLowerCase(),
       });
-    }
+    });
   });
-  return result.sort((a,b)=>a.date<b.date?-1:1);
+  /* Sort: today first, then by calendar date */
+  return result.sort((a, b) => {
+    if (a.date === 'Today') return -1;
+    if (b.date === 'Today') return 1;
+    return new Date(a.date) - new Date(b.date);
+  });
 }
 
 window.markTask=async function(id,done){
@@ -937,10 +918,25 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   /* Normalise today_tasks field names */
   if(data.today_tasks){
     data.today_tasks=data.today_tasks.map(t=>({
-      id:t.id, title:t.title,
-      start:t.time||t.start||'', end:t.end||t.end_time||t.time||'',
-      color:t.color||'blue', difficulty:t.difficulty||'medium',
+      id:t.id??t.session_id??Math.random(), title:t.title,
+      start:t.time||t.start||'', end:t.end||t.end_time||'',
+      difficulty:t.difficulty||'medium',
     }));
+  }
+
+  /* If today_tasks is empty or missing, pull today's sessions directly from the schedule */
+  if (!data.today_tasks || data.today_tasks.length === 0) {
+    const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+    const todaySessions = (data.schedule && data.schedule[todayName]) || [];
+    if (todaySessions.length > 0) {
+      data.today_tasks = todaySessions.map((s, i) => ({
+        id: s.session_id ?? s.id ?? (Date.now() + i),
+        title: s.title || s.subject || '',
+        start: s.time || '',
+        end: s.end || '',
+        difficulty: (s.difficulty || 'medium').toLowerCase(),
+      }));
+    }
   }
 
   /* FIX: Apply cumulative time chaining to dashboard schedule data.
@@ -967,48 +963,6 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   }
   window._scheduleCache=data.schedule||{};
 
-  /* Pre-fetch next week's schedule so we can show it as preview when this week is empty */
-  const hasThisWeek = data.schedule && Object.values(data.schedule).some(t=>Array.isArray(t)&&t.length>0);
-  if (!hasThisWeek) {
-    try {
-      const nextData = await CLAP.API.get('/schedule/?week_offset=1');
-      /* Normalise slots array into a day-keyed map matching dashboard format */
-      if (nextData && nextData.slots && nextData.slots.length > 0) {
-        const dayMap={mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'};
-        const nextSched={};
-        /* Group by day first */
-        nextData.slots.forEach(s=>{
-          const day=dayMap[(s.day||'').toLowerCase()]||s.day;
-          if(!nextSched[day]) nextSched[day]=[];
-          nextSched[day].push(s);
-        });
-        /* Apply cumulative time chaining per day (same fix as schedule.html) */
-        Object.keys(nextSched).forEach(day=>{
-          let curMins = null;
-          nextSched[day] = nextSched[day].map(s=>{
-            const [startH, startM] = (s.time||'09:00').split(':').map(Number);
-            if (curMins === null) curMins = startH * 60 + (startM||0);
-            const durationMins = Math.round((s.duration||1) * 60);
-            const endMins = curMins + durationMins;
-            const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
-            const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
-            curMins = endMins;
-            return {
-              time: startLabel,
-              end:  endLabel,
-              title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
-              difficulty: (s.difficulty||'easy').toLowerCase(),
-            };
-          });
-        });
-        window._nextWeekScheduleCache = nextSched;
-      }
-    } catch {
-      /* Use next week from mock for demo */
-      window._nextWeekScheduleCache = getMock().schedule;
-    }
-  }
-
   /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
   let upcomingTasks = data.upcoming_tasks && data.upcoming_tasks.length > 0
     ? data.upcoming_tasks
@@ -1020,14 +974,14 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
       .filter(item => { const d = new Date(item.date); d.setHours(0,0,0,0); return d >= todayMidnight; })
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 4)
-      .map((item) => ({
+      .map(item => ({
         title:      item.title,
-        difficulty: item.difficulty || 'medium',
+        difficulty: (item.difficulty || 'medium').toLowerCase(),
         date:       new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
       }));
   }
 
-  /* Last resort: derive from schedule cache */
+  /* Last resort: derive from schedule — this also includes today if it's a weekday */
   if (!upcomingTasks || upcomingTasks.length === 0) {
     upcomingTasks = _deriveUpcoming(data.schedule || {});
   }
