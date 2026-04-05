@@ -7,307 +7,428 @@
   <link rel="stylesheet" href="css/global.css"/>
   <link rel="stylesheet" href="css/app.css"/>
   <style>
-    /* ── Page header ── */
-    .sch-title   {
-      font-family:var(--font-heading);
-      font-size:1.5rem;
-      font-weight:800;
-      color:var(--clap-teal);
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin-bottom:4px;
-    }
-    .sch-meta    {
-      font-size:0.82rem;
-      color:var(--text-muted);
-      font-weight:600;
-    }
-    .sch-meta b  {
-      color:var(--text-secondary);
-      font-weight:700;
+    /* =========================================================
+       PAGE HEADER
+    ========================================================= */
+    .sch-title {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--clap-teal);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
     }
 
-    /* ===== HEADER FIX ===== */
+    .sch-meta {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .sch-meta b {
+      color: var(--text-secondary);
+      font-weight: 700;
+    }
+
     .sch-header {
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:20px;
-      margin-bottom:8px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
     }
 
     .sch-header-left {
-      display:flex;
-      flex-direction:column;
-      gap:4px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    /* ===== CLEAN WEEK NAV ===== */
-    .week-nav {
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:10px;
-      margin: 10px 0 22px;
+    /* =========================================================
+       NOTICE BANNER
+    ========================================================= */
+    .sch-notice {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin: 0 auto 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #fff4cf;
+      border: 1px solid #f1db87;
+      color: #7a5a00;
+      font-size: 0.86rem;
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(122, 90, 0, 0.08);
+    }
 
-      background: rgba(255,255,255,0.6);
+    .sch-notice.show {
+      display: flex;
+    }
+
+    .sch-notice-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sch-notice-btn,
+    .sch-notice-close {
+      border: none;
+      cursor: pointer;
+      font: inherit;
+      border-radius: 999px;
+      transition: 0.2s ease;
+    }
+
+    .sch-notice-btn {
+      background: #ffffff;
+      color: #7a5a00;
+      padding: 8px 12px;
+      font-weight: 800;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .sch-notice-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .sch-notice-close {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.7);
+      color: #7a5a00;
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .sch-notice-close:hover {
+      background: rgba(255, 255, 255, 1);
+    }
+
+    /* =========================================================
+       WEEK NAV
+    ========================================================= */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.65);
       border-radius: 999px;
       padding: 6px 16px;
       width: fit-content;
       margin: 12px auto 22px;
     }
 
-    /* Date */
     .nav-label {
-      font-weight:800;
-      font-size:1.1rem;
-      color:var(--clap-teal);
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: var(--clap-teal);
     }
 
-    /* Arrows */
     .nav-arrow {
-      cursor:pointer;
-      font-size:1.8rem;
-      font-weight:900;
+      cursor: pointer;
+      font-size: 1.9rem;
+      font-weight: 900;
       color: var(--clap-teal);
       line-height: 1;
       padding: 6px 10px;
-      border-radius: 8px;
-      display:inline-flex;
-      align-items:center;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
       justify-content: center;
-      transition:all 0.2s ease;
-      /* button reset */
+      transition: all 0.2s ease;
       background: none;
       border: none;
       font-family: inherit;
     }
+
     .nav-arrow:hover {
-      background:rgba(75, 191, 191, 0.12);
-      transform: scale(1.1);
+      background: rgba(75, 191, 191, 0.12);
+      transform: scale(1.08);
     }
 
-    @keyframes spin { to { transform:rotate(360deg); } }
-
-    /* ── Timetable card ── */
+    /* =========================================================
+       TIMETABLE CARD
+    ========================================================= */
     .timetable-card {
-      background:var(--white);
-      border-radius:var(--radius-lg);
-      padding:var(--space-lg);
-      box-shadow:var(--shadow-card);
-      overflow-x:auto;
-    }
-    .timetable {
-      min-width:650px;
-      width:100%;
-      border-collapse:separate;
-      border-spacing:4px;
-    }
-    .timetable th {
-      font-family:var(--font-heading);
-      font-size:0.82rem;
-      font-weight:700;
-      color:var(--text-secondary);
-      text-align:center;
-      padding:12px 6px;
-      background:var(--bg-light);
-      border-radius:var(--radius-sm);
-    }
-    .timetable th.time-col {
-      text-align:left;
-      background:transparent;
-      color:var(--text-muted);
-      font-size:0.72rem;
-      min-width:60px;
-      padding-left:4px;
-    }
-    .timetable td {
-      vertical-align:top;
-      padding:2px;
-      min-width:110px;
-    }
-    .timetable td.time-cell {
-      font-size:0.72rem;
-      font-weight:700;
-      color:var(--text-muted);
-      text-align:left;
-      padding-left:4px;
-      padding-top:8px;
-      min-width:60px;
-      white-space:nowrap;
-      vertical-align:top;
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-card);
+      overflow-x: auto;
     }
 
-    /* Task blocks */
-    .task-block {
-      border-radius:var(--radius-md);
-      padding:10px 12px;
-      font-size:0.72rem;
-      font-weight:700;
-      min-height:56px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      cursor:pointer;
-      transition:transform var(--transition), box-shadow var(--transition);
-      position:relative;
+    .gen-label {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      font-style: italic;
+      margin-top: var(--space-md);
     }
-    .task-block:hover {
-      transform:translateY(-2px);
-      box-shadow:0 6px 18px rgba(0,0,0,0.12);
+
+    .schedule-empty {
+      text-align: center;
+      padding: 40px 24px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-weight: 600;
     }
-    .task-block.easy   { background:#c8f0d4; color:#1a5c30; }
-    .task-block.medium { background:#fde9c0; color:#7a4300; }
-    .task-block.hard   { background:#fac8c8; color:#7a1a1a; }
+
+    /* =========================================================
+       PIXEL CALENDAR
+    ========================================================= */
+    .px-calendar {
+      overflow-x: auto;
+    }
+
+    .px-hdr-row {
+      display: grid;
+      grid-template-columns: 64px repeat(5, 1fr);
+      gap: 4px;
+      margin-bottom: 4px;
+      min-width: 640px;
+    }
+
+    .px-hdr-time {
+      background: transparent;
+    }
+
+    .px-hdr-day {
+      font-family: var(--font-heading);
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 12px 6px;
+      background: var(--bg-light);
+      border-radius: var(--radius-sm);
+    }
+
+    .px-body {
+      display: grid;
+      grid-template-columns: 64px repeat(5, 1fr);
+      gap: 4px;
+      min-width: 640px;
+      position: relative;
+    }
+
+    .px-time-col {
+      position: relative;
+    }
+
+    .px-time-lbl {
+      position: absolute;
+      right: 6px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      transform: translateY(-50%);
+      white-space: nowrap;
+    }
+
+    .px-hline {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border);
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .px-day-col {
+      position: relative;
+    }
+
+    .px-block {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+      box-sizing: border-box;
+      transition: transform 0.15s, box-shadow 0.15s;
+      overflow: hidden;
+    }
+
+    .px-block:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .px-block.easy {
+      background: #c8f0d4;
+      color: #1a5c30;
+    }
+
+    .px-block.medium {
+      background: #fde9c0;
+      color: #7a4300;
+    }
+
+    .px-block.hard {
+      background: #fac8c8;
+      color: #7a1a1a;
+    }
+
+    .px-block.done {
+      opacity: 0.5;
+      filter: grayscale(0.4);
+      text-decoration: line-through;
+    }
+
+    .px-block-inner {
+      flex: 1;
+      overflow: hidden;
+      padding-right: 26px;
+    }
 
     .tb-title {
-      font-size:0.78rem;
-      font-weight:800;
-      line-height:1.25;
-      margin-bottom:2px;
-      white-space:pre-line;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 2px;
+      white-space: pre-line;
     }
+
     .tb-time {
-      font-size:0.66rem;
-      font-weight:600;
-      opacity:0.8;
+      font-size: 0.66rem;
+      font-weight: 600;
+      opacity: 0.8;
     }
 
     .tb-check {
-      position:absolute;
-      bottom:8px;
-      right:8px;
-      width:20px;
-      height:20px;
-      border-radius:50%;
-      border:2px solid rgba(255,255,255,0.8);
-      background:rgba(255,255,255,0.5);
-      cursor:pointer;
-      transition:background var(--transition);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:10px;
-      color:transparent;
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.55);
+      cursor: pointer;
+      transition: background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: transparent;
     }
+
     .tb-check:hover {
-      background:rgba(255,255,255,0.85);
-      color:rgba(0,0,0,0.5);
+      background: rgba(255, 255, 255, 0.9);
+      color: rgba(0, 0, 0, 0.55);
     }
-    .tb-check.done {
-      background:rgba(255,255,255,0.9);
-      color:#27AE60;
-      border-color:rgba(255,255,255,1);
-    }
+
     .tb-check::after {
-      content:'✓';
-      font-size:10px;
-      font-weight:800;
+      content: '✓';
+      font-size: 10px;
+      font-weight: 800;
     }
 
-    .empty-cell { height:56px; }
-
-    .gen-label {
-      text-align:center;
-      font-size:0.72rem;
-      color:var(--text-muted);
-      font-style:italic;
-      margin-top:var(--space-md);
-    }
-
-    .task-block.done {
-      opacity:0.5;
-      text-decoration:line-through;
-      filter:grayscale(0.4);
-    }
     .tb-check.done {
-      background:rgba(75, 191, 191, 0.8);
-      border-color:var(--clap-teal);
+      background: rgba(255, 255, 255, 0.95);
+      color: #27AE60;
+      border-color: rgba(255, 255, 255, 1);
     }
 
-    /* ── Legend popup ── */
+    /* =========================================================
+       FLOATING LEGEND
+    ========================================================= */
     .info-fab {
-      position:fixed;
-      bottom:28px;
-      right:28px;
-      width:38px;
-      height:38px;
-      border-radius:50%;
-      background:var(--clap-teal);
-      color:#fff;
-      border:none;
-      cursor:pointer;
-      font-size:1rem;
-      font-weight:800;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      box-shadow:0 4px 14px rgba(75,191,191,0.4);
-      z-index:50;
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: var(--clap-teal);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 14px rgba(75, 191, 191, 0.4);
+      z-index: 50;
     }
+
     .legend-popup {
-      position:fixed;
-      bottom:74px;
-      right:28px;
-      background:#fff;
-      border-radius:var(--radius-md);
-      padding:var(--space-md);
-      box-shadow:var(--shadow-md);
-      display:none;
-      z-index:60;
-      min-width:155px;
+      position: fixed;
+      bottom: 74px;
+      right: 28px;
+      background: #fff;
+      border-radius: var(--radius-md);
+      padding: var(--space-md);
+      box-shadow: var(--shadow-md);
+      display: none;
+      z-index: 60;
+      min-width: 155px;
     }
-    .legend-popup.show { display:block; }
+
+    .legend-popup.show {
+      display: block;
+    }
+
     .leg-row {
-      display:flex;
-      align-items:center;
-      gap:8px;
-      font-size:0.78rem;
-      font-weight:600;
-      color:var(--text-muted);
-      padding:3px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 3px 0;
     }
+
     .leg-sw {
-      width:14px;
-      height:14px;
-      border-radius:4px;
-      flex-shrink:0;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
 
     @media (max-width: 700px) {
       .sch-header {
-        align-items:stretch;
-        gap:12px;
+        align-items: stretch;
+        gap: 12px;
       }
+
       .week-nav {
-        justify-content:center;
         width: 100%;
       }
+
       .regen-btn {
         align-self: flex-start;
       }
-    }
 
-    /* ── Pixel-height proportional calendar (schedule page) ── */
-    .px-calendar   { overflow-x:auto; }
-    .px-hdr-row    { display:grid; grid-template-columns:64px repeat(5,1fr); gap:4px; margin-bottom:4px; }
-    .px-hdr-time   { background:transparent; }
-    .px-hdr-day    { font-family:var(--font-heading); font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:12px 6px; background:var(--bg-light); border-radius:var(--radius-sm); }
-    .px-body       { display:grid; grid-template-columns:64px repeat(5,1fr); gap:4px; min-width:640px; position:relative; }
-    .px-time-col   { position:relative; }
-    .px-time-lbl   { position:absolute; right:6px; font-size:0.65rem; font-weight:700; color:var(--text-muted); transform:translateY(-50%); white-space:nowrap; }
-    .px-hline      { position:absolute; left:0; right:0; height:1px; background:var(--border); opacity:0.4; pointer-events:none; }
-    .px-day-col    { position:relative; }
-    .px-block      { position:absolute; left:2px; right:2px; border-radius:var(--radius-md); padding:8px 10px; display:flex; flex-direction:column; justify-content:space-between; cursor:pointer; box-sizing:border-box; transition:transform 0.15s,box-shadow 0.15s; overflow:hidden; }
-    .px-block:hover{ transform:translateY(-1px); box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-    .px-block.easy  { background:#c8f0d4; color:#1a5c30; }
-    .px-block.medium{ background:#fde9c0; color:#7a4300; }
-    .px-block.hard  { background:#fac8c8; color:#7a1a1a; }
-    .px-block.done  { opacity:0.5; filter:grayscale(0.4); }
-    .px-block-inner { flex:1; overflow:hidden; }
-    /* tb-check, tb-title, tb-time reused from existing CSS */
-    .px-block .tb-check { position:absolute; bottom:6px; right:6px; }
+      .sch-notice {
+        padding: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -317,12 +438,10 @@
 
 <div class="app-layout">
   <aside id="sidebar" class="sidebar"></aside>
+
   <main class="main-content">
-
-    <!-- Page header -->
+    <!-- PAGE HEADER -->
     <div class="sch-header">
-
-      <!-- LEFT -->
       <div class="sch-header-left">
         <div class="sch-title">
           <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
@@ -331,13 +450,11 @@
           </svg>
           Schedule
         </div>
-
         <div class="sch-meta" id="sch-week">
           <b>Week:</b> —
         </div>
       </div>
-      
-      <!-- RIGHT -->
+
       <button class="regen-btn" id="regen-btn">
         <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
           <path d="M23 4v6h-6"/>
@@ -346,47 +463,35 @@
         </svg>
         Regenerate
       </button>
-
     </div>
 
-    <!-- CENTER -->
+    <!-- AUTO-ADVANCE NOTICE -->
+    <div class="sch-notice" id="sch-notice" aria-live="polite">
+      <span id="sch-notice-text">No schedule for this week — showing next week.</span>
+      <div class="sch-notice-actions">
+        <button class="sch-notice-btn" id="sch-notice-view-current" type="button">View this week</button>
+        <button class="sch-notice-close" id="sch-notice-close" type="button" aria-label="Close notice">×</button>
+      </div>
+    </div>
+
+    <!-- WEEK NAV -->
     <div class="week-nav">
       <button id="prev-week-btn" class="nav-arrow" aria-label="Previous week">‹</button>
       <span id="week-nav-label" class="nav-label" aria-live="polite">—</span>
       <button id="next-week-btn" class="nav-arrow" aria-label="Next week">›</button>
     </div>
 
-
-    <!-- Timetable -->
+    <!-- SCHEDULE CARD -->
     <div class="timetable-card">
-      <div style="overflow-x:auto;">
-        <table class="timetable">
-          <thead id="sch-thead">
-            <tr>
-              <th class="time-col">Day /<br>Time</th>
-              <th>Monday</th>
-              <th>Tuesday</th>
-              <th>Wednesday</th>
-              <th>Thursday</th>
-              <th>Friday</th>
-            </tr>
-          </thead>
-          <tbody id="sch-body">
-            <tr>
-              <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">
-                Loading schedule…
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div id="schedule-host">
+        <div class="schedule-empty">Loading schedule…</div>
       </div>
       <div class="gen-label" id="gen-label">Generated by CLAP</div>
     </div>
-
   </main>
 </div>
 
-<!-- Floating legend button -->
+<!-- FLOATING LEGEND -->
 <button class="info-fab" id="info-fab" aria-label="Show legend">i</button>
 <div class="legend-popup" id="legend-popup" role="tooltip">
   <div class="leg-row"><div class="leg-sw" style="background:#c8f0d4"></div>Easy</div>
@@ -394,7 +499,7 @@
   <div class="leg-row"><div class="leg-sw" style="background:#fac8c8"></div>Hard</div>
 </div>
 
-<!-- Regenerate confirmation modal -->
+<!-- REGENERATE MODAL -->
 <div id="regen-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(26,58,92,0.35);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
   <div style="background:var(--white);border-radius:var(--radius-xl);padding:var(--space-xl);max-width:400px;width:90%;text-align:center;animation:modalIn 0.25s ease both;">
     <div style="font-size:2.5rem;margin-bottom:var(--space-md)">🔄</div>
@@ -416,221 +521,39 @@
 
 AppShell.init('schedule.html', { showTopbar: false });
 
+/* =========================================================
+   CONSTANTS / STATE
+========================================================= */
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
 let weekOffset = 0;
+let noticeTimer = null;
 
-
-
-/* ── MOCK DATA ───────────────────────────────────────────── */
-function getMock() {
-  return {
-    week: 'March 10 – 14',
-    slots: [
-      { day:'Monday',    time:'10.00 AM', end:'11.00 AM', title:'Database (FP)', difficulty:'easy' },
-      { day:'Monday',    time:'11.00 AM', end:'12.00 PM', title:'Parallel Computing\nAssignment 1', difficulty:'easy' },
-      { day:'Tuesday',   time:'10.00 AM', end:'12.00 PM', title:'Mobile Application\nDevelopment (FP)', difficulty:'hard' },
-      { day:'Friday',    time:'9.00 AM',  end:'1.00 PM',  title:'CSC123 Yapping', difficulty:'hard' }
-    ]
-  };
+/* =========================================================
+   DATE / WEEK HELPERS
+========================================================= */
+function getStartOfMonday(baseDate = new Date()) {
+  const d = new Date(baseDate);
+  d.setHours(12, 0, 0, 0); /* midday avoids DST edge cases */
+  const day = d.getDay();  /* 0=Sun, 1=Mon */
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
-/* ── TIME HELPERS ────────────────────────────────────────── */
-function buildTimeRows(slots) {
-  const seen = new Set();
-  slots.forEach(s => seen.add(s.time));
-
-  return [...seen].sort((a, b) => {
-    const parse = t => {
-      const [hm, ap] = t.split(' ');
-      let [h, mi] = hm.split('.').map(Number);
-      if (ap === 'PM' && h !== 12) h += 12;
-      if (ap === 'AM' && h === 12) h = 0;
-      return h * 60 + (mi || 0);
-    };
-    return parse(a) - parse(b);
-  });
-}
-
-function buildEndMinutes(time) {
-  const [hm, ap] = time.split(' ');
-  let [h, mi] = hm.split('.').map(Number);
-  if (ap === 'PM' && h !== 12) h += 12;
-  if (ap === 'AM' && h === 12) h = 0;
-  return h * 60 + (mi || 0);
-}
-
-function formatTime(time24) {
-  if (!time24) return '';
-
-  /* If the value is already in "H.MM AM/PM" format (e.g. from mock data), pass through */
-  if (/^\d{1,2}\.\d{2}\s?(AM|PM)$/i.test(time24.trim())) return time24.trim();
-
-  let [hour, minute] = time24.split(':').map(Number);
-  if (isNaN(hour)) return time24; // unrecognised format — return as-is
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-
-  if (hour === 0) hour = 12;
-  else if (hour > 12) hour -= 12;
-
-  return `${hour}.${String(minute).padStart(2, '0')} ${ampm}`;
-}
-
-function addHoursToTime(time24, duration) {
-  if (!time24) return '';
-
-  let [hour, minute] = time24.split(':').map(Number);
-  const startTotal = hour * 60 + minute;
-  const endTotal = startTotal + (duration * 60);
-
-  let endHour = Math.floor(endTotal / 60) % 24;
-  const endMinute = endTotal % 60;
-  const ampm = endHour >= 12 ? 'PM' : 'AM';
-
-  if (endHour === 0) endHour = 12;
-  else if (endHour > 12) endHour -= 12;
-
-  return `${endHour}.${String(endMinute).padStart(2, '0')} ${ampm}`;
-}
-
-function mapDifficulty(duration) {
-  if (duration <= 1) return 'easy';
-  if (duration <= 2) return 'medium';
-  return 'hard';
-}
-
-/* ── NORMALIZE BACKEND RESPONSE ──────────────────────────── */
-function normalizeScheduleData(apiData) {
-  if (!apiData) return { week: '—', slots: [] };
-
-  const dayMap = {
-    mon: 'Monday',
-    tue: 'Tuesday',
-    wed: 'Wednesday',
-    thu: 'Thursday',
-    fri: 'Friday'
-  };
-
-  /*
-   * The backend may return slots under different keys, or as a day-keyed
-   * object ({ Monday: [...], Tuesday: [...] }) rather than a flat array.
-   * Resolve to a flat array before processing.
-   */
-  function extractRawSlots(data) {
-    /* Flat array keys — try each in order of likelihood */
-    for (const key of ['slots', 'sessions', 'schedule_slots', 'data', 'items']) {
-      if (Array.isArray(data[key]) && data[key].length > 0) return data[key];
-    }
-    /* Day-keyed object: { Monday: [...], Tuesday: [...], ... } */
-    const DAY_NAMES = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-    if (DAY_NAMES.some(d => Array.isArray(data[d]))) {
-      return DAY_NAMES.flatMap(d =>
-        (data[d] || []).map(s => ({ ...s, day: s.day || d.slice(0,3).toLowerCase() }))
-      );
-    }
-    /* If the response itself is an array */
-    if (Array.isArray(data)) return data;
-    return [];
-  }
-
-  /* Helper: convert total minutes → formatted "H.MM AM/PM" string */
-  function minsToFormatted(totalMins) {
-    let h = Math.floor(totalMins / 60) % 24;
-    const m = totalMins % 60;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    if (h === 0) h = 12;
-    else if (h > 12) h -= 12;
-    return `${h}.${String(m).padStart(2, '0')} ${ampm}`;
-  }
-
-  /* Helper: parse raw "HH:MM" 24h string → total minutes */
-  function rawTimeToMins(t) {
-    if (!t) return 0;
-    const [h, m] = String(t).split(':').map(Number);
-    return h * 60 + (m || 0);
-  }
-
-  /*
-   * FIX: The backend assigns slot times by index (slot 0 → study_start,
-   * slot 1 → study_start+1h, slot 2 → study_start+2h …) regardless of
-   * each session's actual duration. This causes overlapping/wrong times.
-   *
-   * Correct approach: group slots by day, then recalculate each session's
-   * start time cumulatively — session N starts where session N-1 ends.
-   * We use the backend's time field for session 0 as the anchor, then
-   * chain the rest using their actual durations.
-   */
-
-  /* First pass: build raw slots with duration info, grouped by day */
-  const rawByDay = {};
-  extractRawSlots(apiData).forEach(slot => {
-    const day = dayMap[(slot.day || '').toLowerCase()] || slot.day;
-    if (!rawByDay[day]) rawByDay[day] = [];
-    const sessionDuration = slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1;
-    const rawDiff = slot.difficulty ?? slot.task_difficulty ?? slot.assignment_difficulty ?? null;
-    const difficulty = (rawDiff !== null && rawDiff !== '')
-      ? String(rawDiff).trim().toLowerCase()
-      : mapDifficulty(sessionDuration);
-    rawByDay[day].push({
-      slot_id:       slot.session_id ?? slot.id       ?? slot.slot_id ?? null,
-      assignment_id: slot.task_id    ?? slot.assignment_id ?? null,
-      day,
-      rawTime:       slot.time,       // original "HH:MM" string for anchor
-      hasRealEnd:    !!slot.end,
-      rawEnd:        slot.end || null,
-      title:         slot.title || slot.name || [slot.code, slot.subject].filter(Boolean).join(' '),
-      difficulty,
-      is_completed:  slot.is_completed || false,
-      duration:      sessionDuration,
-    });
-  });
-
-  /* Second pass: for each day, recalculate start/end times cumulatively */
-  const slots = [];
-  Object.values(rawByDay).forEach(daySessions => {
-    /* Anchor: use first session's raw time as the day's study start */
-    let curMins = rawTimeToMins(daySessions[0].rawTime);
-
-    daySessions.forEach(s => {
-      const startMins = curMins;
-      const durationMins = Math.round(s.duration * 60);
-      const endMins = startMins + durationMins;
-
-      slots.push({
-        slot_id:       s.slot_id,
-        assignment_id: s.assignment_id,
-        day:           s.day,
-        time:          minsToFormatted(startMins),
-        end:           s.hasRealEnd ? formatTime(s.rawEnd) : minsToFormatted(endMins),
-        title:         s.title,
-        difficulty:    s.difficulty,
-        is_completed:  s.is_completed,
-        duration:      s.duration,
-      });
-
-      /* Next session starts where this one ends */
-      curMins = endMins;
-    });
-  });
-
-  return {
-    week: (apiData.week && apiData.week.trim && apiData.week.trim() !== '')
-      ? apiData.week
-      : getWeekLabelFromOffset(weekOffset),
-    slots
-  };
-}
-
-/* ── WEEK LABEL ──────────────────────────────────────────── */
-function getWeekLabelFromOffset(offset) {
-  const today = new Date();
-  const day = today.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + mondayOffset + (offset * 7));
+function getWeekRangeFromOffset(offset = 0) {
+  const monday = getStartOfMonday(new Date());
+  monday.setDate(monday.getDate() + (offset * 7));
 
   const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
+  friday.setDate(friday.getDate() + 4);
+
+  return { monday, friday };
+}
+
+function getWeekLabelFromOffset(offset = 0) {
+  const { monday, friday } = getWeekRangeFromOffset(offset);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -649,238 +572,604 @@ function getWeekLabelFromOffset(offset) {
   return `${startMonth} ${startDate} – ${endMonth} ${endDate}`;
 }
 
-function updateWeekNavLabel() {
-  const label = getWeekLabelFromOffset(weekOffset);
+function updateWeekLabelUI(offset) {
+  const label = getWeekLabelFromOffset(offset);
   document.getElementById('week-nav-label').textContent = label;
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${label}`;
 }
 
-/* ── RENDER TIMETABLE — proportional pixel-height calendar ── */
-function renderSchedule(data) {
-  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data.week || '—'}`;
+/* =========================================================
+   NOTICE BANNER
+========================================================= */
+function hideNotice() {
+  const box = document.getElementById('sch-notice');
+  box.classList.remove('show');
 
-  const slots = data.slots || [];
+  if (noticeTimer) {
+    clearTimeout(noticeTimer);
+    noticeTimer = null;
+  }
+}
+
+function showNotice(message, { autoHideMs = 5000 } = {}) {
+  const box = document.getElementById('sch-notice');
+  const text = document.getElementById('sch-notice-text');
+
+  text.textContent = message;
+  box.classList.add('show');
+
+  if (noticeTimer) clearTimeout(noticeTimer);
+  if (autoHideMs > 0) {
+    noticeTimer = setTimeout(() => {
+      hideNotice();
+    }, autoHideMs);
+  }
+}
+
+/* =========================================================
+   TIME HELPERS
+========================================================= */
+function normalizeDayName(rawDay) {
+  if (!rawDay) return '';
+
+  const value = String(rawDay).trim().toLowerCase();
+
+  const map = {
+    mon: 'Monday',
+    monday: 'Monday',
+    tue: 'Tuesday',
+    tues: 'Tuesday',
+    tuesday: 'Tuesday',
+    wed: 'Wednesday',
+    weds: 'Wednesday',
+    wednesday: 'Wednesday',
+    thu: 'Thursday',
+    thur: 'Thursday',
+    thurs: 'Thursday',
+    thursday: 'Thursday',
+    fri: 'Friday',
+    friday: 'Friday'
+  };
+
+  return map[value] || '';
+}
+
+function parseTimeToMinutes(value) {
+  if (!value && value !== 0) return null;
+
+  const raw = String(value).trim();
+
+  /* 24h format: 09:00 */
+  if (/^\d{1,2}:\d{2}$/.test(raw)) {
+    const [h, m] = raw.split(':').map(Number);
+    return (h * 60) + m;
+  }
+
+  /* 12h format with dot: 9.00 AM or 09.00 PM */
+  const dotMatch = raw.match(/^(\d{1,2})\.(\d{2})\s*(AM|PM)$/i);
+  if (dotMatch) {
+    let hour = Number(dotMatch[1]);
+    const minute = Number(dotMatch[2]);
+    const ap = dotMatch[3].toUpperCase();
+
+    if (ap === 'PM' && hour !== 12) hour += 12;
+    if (ap === 'AM' && hour === 12) hour = 0;
+
+    return (hour * 60) + minute;
+  }
+
+  /* 12h format with colon: 9:00 AM */
+  const colonMatch = raw.match(/^(\d{1,2})\:(\d{2})\s*(AM|PM)$/i);
+  if (colonMatch) {
+    let hour = Number(colonMatch[1]);
+    const minute = Number(colonMatch[2]);
+    const ap = colonMatch[3].toUpperCase();
+
+    if (ap === 'PM' && hour !== 12) hour += 12;
+    if (ap === 'AM' && hour === 12) hour = 0;
+
+    return (hour * 60) + minute;
+  }
+
+  return null;
+}
+
+function minutesToDisplay(totalMinutes) {
+  if (typeof totalMinutes !== 'number' || Number.isNaN(totalMinutes)) return '';
+
+  let hour = Math.floor(totalMinutes / 60) % 24;
+  const minute = totalMinutes % 60;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+
+  if (hour === 0) hour = 12;
+  else if (hour > 12) hour -= 12;
+
+  return `${hour}.${String(minute).padStart(2, '0')} ${ampm}`;
+}
+
+function formatTime(value) {
+  const mins = parseTimeToMinutes(value);
+  if (mins === null) return value ? String(value) : '';
+  return minutesToDisplay(mins);
+}
+
+function addHoursToTime(startTime, durationHours) {
+  const mins = parseTimeToMinutes(startTime);
+  if (mins === null) return '';
+  return minutesToDisplay(mins + Math.round((Number(durationHours || 1)) * 60));
+}
+
+function mapDifficulty(duration) {
+  const hours = Number(duration || 1);
+  if (hours <= 1) return 'easy';
+  if (hours <= 2) return 'medium';
+  return 'hard';
+}
+
+/* =========================================================
+   BACKEND NORMALIZATION
+========================================================= */
+function extractRawSlots(data) {
+  if (!data) return [];
+
+  if (Array.isArray(data)) return data;
+
+  for (const key of ['slots', 'sessions', 'schedule_slots', 'items', 'data']) {
+    if (Array.isArray(data[key])) return data[key];
+  }
+
+  const found = [];
+  DAYS.forEach(dayName => {
+    if (Array.isArray(data[dayName])) {
+      data[dayName].forEach(item => {
+        found.push({ ...item, day: item.day || dayName });
+      });
+    }
+  });
+
+  return found;
+}
+
+function normalizeScheduleData(apiData, offsetForWeekLabel) {
+  if (!apiData) {
+    return {
+      week: getWeekLabelFromOffset(offsetForWeekLabel),
+      slots: []
+    };
+  }
+
+  const rawSlots = extractRawSlots(apiData);
+
+  /* Group raw sessions by normalized day */
+  const byDay = {
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: []
+  };
+
+  rawSlots.forEach(slot => {
+    const day = normalizeDayName(
+      slot.day ||
+      slot.day_name ||
+      slot.weekday ||
+      slot.week_day
+    );
+
+    if (!day || !byDay[day]) return;
+
+    const duration =
+      Number(slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? slot.hours ?? 1) || 1;
+
+    const title =
+      slot.title ||
+      slot.name ||
+      slot.assignment_title ||
+      [slot.code, slot.subject].filter(Boolean).join(' ') ||
+      'Untitled Session';
+
+    const rawDiff =
+      slot.difficulty ??
+      slot.task_difficulty ??
+      slot.assignment_difficulty ??
+      '';
+
+    const difficulty = ['easy', 'medium', 'hard'].includes(String(rawDiff).trim().toLowerCase())
+      ? String(rawDiff).trim().toLowerCase()
+      : mapDifficulty(duration);
+
+    byDay[day].push({
+      slot_id: slot.session_id ?? slot.slot_id ?? slot.id ?? null,
+      assignment_id: slot.assignment_id ?? slot.task_id ?? slot.assignment ?? null,
+      day,
+      rawStart: slot.time ?? slot.start ?? slot.start_time ?? null,
+      rawEnd: slot.end ?? slot.end_time ?? null,
+      title,
+      difficulty,
+      is_completed: Boolean(slot.is_completed ?? slot.completed ?? false),
+      duration
+    });
+  });
+
+  const normalizedSlots = [];
+
+  Object.keys(byDay).forEach(day => {
+    const sessions = byDay[day];
+
+    if (!sessions.length) return;
+
+    /* Sort by real provided raw start time first */
+    sessions.sort((a, b) => {
+      const aMins = parseTimeToMinutes(a.rawStart);
+      const bMins = parseTimeToMinutes(b.rawStart);
+      return (aMins ?? 0) - (bMins ?? 0);
+    });
+
+    /* Rebuild cumulative times safely */
+    let currentStart = parseTimeToMinutes(sessions[0].rawStart);
+
+    if (currentStart === null) currentStart = 9 * 60; /* fallback 9.00 AM */
+
+    sessions.forEach((session, index) => {
+      let startMins = parseTimeToMinutes(session.rawStart);
+
+      /* Use cumulative chaining when backend times are missing or unreliable */
+      if (index === 0) {
+        startMins = startMins ?? currentStart;
+      } else {
+        const prev = normalizedSlots[normalizedSlots.length - 1];
+        if (prev && prev.day === day) {
+          startMins = parseTimeToMinutes(session.rawStart);
+          const prevEndMins = parseTimeToMinutes(prev.end);
+
+          if (startMins === null || startMins < prevEndMins) {
+            startMins = prevEndMins;
+          }
+        } else {
+          startMins = startMins ?? currentStart;
+        }
+      }
+
+      let endMins = parseTimeToMinutes(session.rawEnd);
+      if (endMins === null || endMins <= startMins) {
+        endMins = startMins + Math.round(session.duration * 60);
+      }
+
+      normalizedSlots.push({
+        slot_id: session.slot_id,
+        assignment_id: session.assignment_id,
+        day,
+        time: minutesToDisplay(startMins),
+        end: minutesToDisplay(endMins),
+        title: session.title,
+        difficulty: session.difficulty,
+        is_completed: session.is_completed,
+        duration: session.duration
+      });
+    });
+  });
+
+  return {
+    week: getWeekLabelFromOffset(offsetForWeekLabel),
+    slots: normalizedSlots
+  };
+}
+
+/* =========================================================
+   RENDERING
+========================================================= */
+function renderEmptySchedule(message) {
+  const host = document.getElementById('schedule-host');
+  host.innerHTML = `<div class="schedule-empty">${message}</div>`;
+}
+
+function renderSchedule(data) {
+  const host = document.getElementById('schedule-host');
+  const slots = Array.isArray(data?.slots) ? data.slots : [];
+
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${data?.week || '—'}`;
 
   if (!slots.length) {
     const emptyMsg = weekOffset === 0
-      ? 'No sessions scheduled for this week yet. Use › to check next week or tap Regenerate.'
-      : weekOffset > 0
-        ? 'No sessions scheduled for this week.'
-        : 'No sessions for that week.';
-    document.getElementById('sch-body').innerHTML =
-      `<tr><td colspan="6" style="text-align:center;padding:36px 24px;color:var(--text-muted);font-size:0.88rem">${emptyMsg}</td></tr>`;
+      ? 'No sessions scheduled for this week yet.'
+      : 'No sessions scheduled for this week.';
+    renderEmptySchedule(emptyMsg);
     return;
   }
 
-  const PX_PER_MIN = 1.3;  // 1 minute = 1.3px → 1 hour = 78px
+  const PX_PER_MIN = 1.3;
 
-  /* Convert formatted time (H.MM AM/PM) to total minutes */
-  function toMins(t) {
-    if (!t) return 0;
-    t = t.trim();
-    const [hm, ap] = t.split(/\s+/);
-    let [h, m] = hm.split('.').map(Number);
-    if (/PM/i.test(ap) && h !== 12) h += 12;
-    if (/AM/i.test(ap) && h === 12) h = 0;
-    return h * 60 + (m || 0);
-  }
-  function minsToLabel(mins) {
-    let h = Math.floor(mins / 60) % 24;
-    const m = mins % 60;
-    const ap = h >= 12 ? 'PM' : 'AM';
-    if (h === 0) h = 12; else if (h > 12) h -= 12;
-    return `${h}.${String(m).padStart(2,'0')} ${ap}`;
+  function toMins(displayTime) {
+    return parseTimeToMinutes(displayTime) ?? 0;
   }
 
-  /* Group by day, sorted by start time */
-  const daySlots = {};
-  DAYS.forEach(d => { daySlots[d] = []; });
-  slots.forEach(s => { if (daySlots[s.day]) daySlots[s.day].push(s); });
-  DAYS.forEach(d => { daySlots[d].sort((a,b) => toMins(a.time) - toMins(b.time)); });
+  const daySlots = {
+    Monday: [],
+    Tuesday: [],
+    Wednesday: [],
+    Thursday: [],
+    Friday: []
+  };
 
-  /* Time window */
-  const allSlots = slots;
-  const minMins  = Math.floor(Math.min(...allSlots.map(s => toMins(s.time))) / 60) * 60;
-  const maxMins  = Math.ceil( Math.max(...allSlots.map(s => toMins(s.end)))  / 60) * 60;
-  const bodyH    = (maxMins - minMins) * PX_PER_MIN;
+  slots.forEach(slot => {
+    if (daySlots[slot.day]) daySlots[slot.day].push(slot);
+  });
 
-  /* Replace <table> with a CSS-grid based pixel calendar */
-  const card = document.querySelector('.timetable-card');
-  const genLabel = document.getElementById('gen-label');
+  DAYS.forEach(day => {
+    daySlots[day].sort((a, b) => toMins(a.time) - toMins(b.time));
+  });
 
-  /* Build the pixel-calendar container (replaces table) */
-  const DIFF_COLOR = { easy:'easy', medium:'medium', hard:'hard' };
+  const allStarts = slots.map(slot => toMins(slot.time));
+  const allEnds = slots.map(slot => toMins(slot.end));
 
-  /* Time axis + hour lines */
+  let minMins = Math.floor(Math.min(...allStarts) / 60) * 60;
+  let maxMins = Math.ceil(Math.max(...allEnds) / 60) * 60;
+
+  if (maxMins <= minMins) {
+    maxMins = minMins + 60;
+  }
+
+  const bodyHeight = (maxMins - minMins) * PX_PER_MIN;
+
   let timeAxisHTML = '';
-  let hlinesHTML   = '';
-  for (let m = minMins; m <= maxMins; m += 60) {
-    const top = (m - minMins) * PX_PER_MIN;
-    timeAxisHTML += `<div class="px-time-lbl" style="top:${top}px">${minsToLabel(m)}</div>`;
-    hlinesHTML   += `<div class="px-hline"    style="top:${top}px"></div>`;
+  let hLinesHTML = '';
+
+  for (let mins = minMins; mins <= maxMins; mins += 60) {
+    const top = (mins - minMins) * PX_PER_MIN;
+    timeAxisHTML += `<div class="px-time-lbl" style="top:${top}px">${minutesToDisplay(mins)}</div>`;
+    hLinesHTML += `<div class="px-hline" style="top:${top}px"></div>`;
   }
 
-  /* Day columns */
-  const dayCols = DAYS.map(day => {
-    const blocks = daySlots[day].map(slot => {
-      const top    = (toMins(slot.time) - minMins) * PX_PER_MIN;
-      const height = Math.max((toMins(slot.end) - toMins(slot.time)) * PX_PER_MIN - 3, 40);
+  const dayColumnsHTML = DAYS.map(day => {
+    const blocksHTML = daySlots[day].map(slot => {
+      const start = toMins(slot.time);
+      const end = toMins(slot.end);
+      const top = (start - minMins) * PX_PER_MIN;
+      const height = Math.max(((end - start) * PX_PER_MIN) - 3, 40);
       const doneClass = slot.is_completed ? 'done' : '';
-      const checkDoneClass = slot.is_completed ? 'done' : '';
+      const btnDoneClass = slot.is_completed ? 'done' : '';
+
       const dataAttrs = [
-        slot.slot_id       != null ? `data-slot-id="${slot.slot_id}"`             : '',
+        slot.slot_id != null ? `data-slot-id="${slot.slot_id}"` : '',
         slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
+        `data-duration="${Number(slot.duration || 1)}"`
       ].filter(Boolean).join(' ');
 
-      return `<div class="px-block ${slot.difficulty} ${doneClass}" ${dataAttrs}
-                   data-duration="${slot.duration || 1}"
-                   style="top:${top}px;height:${height}px;">
-        <div class="px-block-inner">
-          <div class="tb-title">${slot.title}</div>
-          <div class="tb-time">${slot.time} – ${slot.end}</div>
+      return `
+        <div class="px-block ${slot.difficulty} ${doneClass}" ${dataAttrs} style="top:${top}px;height:${height}px;">
+          <div class="px-block-inner">
+            <div class="tb-title">${slot.title}</div>
+            <div class="tb-time">${slot.time} – ${slot.end}</div>
+          </div>
+          <button class="tb-check ${btnDoneClass}" onclick="toggleDone(this)" title="${slot.is_completed ? 'Mark undone' : 'Mark done'}"></button>
         </div>
-        <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
-      </div>`;
+      `;
     }).join('');
-    return `<div class="px-day-col" style="height:${bodyH}px">${blocks}</div>`;
+
+    return `<div class="px-day-col" style="height:${bodyHeight}px">${blocksHTML}</div>`;
   }).join('');
 
-  /* Day headers row */
-  const hdrs = `<div class="px-hdr-row">
-    <div class="px-hdr-time"></div>
-    ${DAYS.map(d => `<div class="px-hdr-day">${d}</div>`).join('')}
-  </div>`;
+  host.innerHTML = `
+    <div class="px-calendar">
+      <div class="px-hdr-row">
+        <div class="px-hdr-time"></div>
+        ${DAYS.map(day => `<div class="px-hdr-day">${day}</div>`).join('')}
+      </div>
 
-  /* Body — hlines go in an absolute overlay so they span all day columns */
-  const body = `<div class="px-body" style="height:${bodyH}px;">
-    <div class="px-time-col" style="height:${bodyH}px">${timeAxisHTML}</div>
-    <div style="position:absolute;left:68px;right:0;top:0;height:${bodyH}px;pointer-events:none;">${hlinesHTML}</div>
-    ${dayCols}
-  </div>`;
+      <div class="px-body" style="height:${bodyHeight}px;">
+        <div class="px-time-col" style="height:${bodyHeight}px;">
+          ${timeAxisHTML}
+        </div>
 
-  card.innerHTML = `<div class="px-calendar">${hdrs}${body}</div>`;
-  if (genLabel) card.appendChild(genLabel);
+        <div style="position:absolute;left:68px;right:0;top:0;height:${bodyHeight}px;pointer-events:none;">
+          ${hLinesHTML}
+        </div>
+
+        ${dayColumnsHTML}
+      </div>
+    </div>
+  `;
 }
 
-/* ── LOAD SCHEDULE ───────────────────────────────────────── */
+/* =========================================================
+   FETCH / LOAD SCHEDULE
+========================================================= */
+async function fetchScheduleData(offset) {
+  const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
+  if (apiData === null) return null; /* session expired / redirected */
+  return normalizeScheduleData(apiData, offset);
+}
+
 async function loadSchedule(offset = 0, options = {}) {
-  const { silent = false } = options;
+  const {
+    forceShow = false,
+    allowAutoAdvance = true,
+    silent = false
+  } = options;
 
   weekOffset = offset;
-  updateWeekNavLabel();
-  const currentWeekLabel = getWeekLabelFromOffset(weekOffset);
-  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${currentWeekLabel}`;
+  updateWeekLabelUI(weekOffset);
 
-  let apiData;
+  if (!silent) hideNotice();
+
+  let currentData;
+
   try {
-    apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
+    currentData = await fetchScheduleData(weekOffset);
   } catch (err) {
-    console.error('[CLAP] Schedule load error:', err);
+    console.error('[CLAP] Failed to load schedule:', err);
+    renderEmptySchedule('Could not load schedule. Please try again.');
     CLAP.Toast.error('Could not load schedule. Please try again.');
-    renderSchedule({ week: currentWeekLabel, slots: [] });
     return;
   }
 
-  /* null = 401 expired session, core.js is already redirecting to sign-in */
-  if (apiData === null) return;
+  if (currentData === null) return;
 
-  const normalizedData = normalizeScheduleData(apiData);
-  normalizedData.week = currentWeekLabel;
-  renderSchedule(normalizedData);
+  const hasCurrentSlots = currentData.slots.length > 0;
+
+  /*
+    Main rule:
+    - show current week first
+    - if current week empty and this is offset 0 and auto-advance allowed,
+      try next week silently
+    - if next week has sessions, show next week + banner
+    - user can still click "View this week" to force current empty week
+  */
+  if (
+    weekOffset === 0 &&
+    !forceShow &&
+    allowAutoAdvance &&
+    !hasCurrentSlots
+  ) {
+    try {
+      const nextData = await fetchScheduleData(1);
+
+      if (nextData && nextData.slots.length > 0) {
+        weekOffset = 1;
+        updateWeekLabelUI(weekOffset);
+        renderSchedule(nextData);
+        showNotice(`No schedule for ${getWeekLabelFromOffset(0)} — showing next week instead.`, { autoHideMs: 5000 });
+        return;
+      }
+    } catch (err) {
+      console.warn('[CLAP] Auto-advance check failed:', err);
+    }
+  }
+
+  renderSchedule(currentData);
 }
 
-/* ── DONE TOGGLE ─────────────────────────────────────────── */
-/*
- * When a session is ticked:
- *  1. UI updates immediately (optimistic — no spinner)
- *  2. PATCH /schedule/slots/{slot_id}/   → is_completed: true/false
- *  3. Recalculate progress for that assignment from the DOM
- *     (done slots / total slots for this assignment_id) * 100
- *  4. PATCH /assignments/{assignment_id}/ → progress: <number>
- *  5. Broadcast via BroadcastChannel so assignments.html updates live
- */
+/* =========================================================
+   DONE TOGGLE + PROGRESS SYNC
+========================================================= */
 window.toggleDone = async function(btn) {
-  const taskBlock    = btn.closest('.task-block') || btn.closest('.px-block');
-  const isDone       = !taskBlock.classList.contains('done'); // toggling TO this state
-  const slotId       = taskBlock.dataset.slotId       || null;
+  const taskBlock = btn.closest('.px-block');
+  if (!taskBlock) return;
+
+  const goingDone = !taskBlock.classList.contains('done');
+  const slotId = taskBlock.dataset.slotId || null;
   const assignmentId = taskBlock.dataset.assignmentId || null;
 
-  /* Step 1 — update UI immediately, don't wait for API */
-  taskBlock.classList.toggle('done', isDone);
-  btn.classList.toggle('done', isDone);
-  btn.title = isDone ? 'Mark undone' : 'Mark done';
+  /* Optimistic UI */
+  taskBlock.classList.toggle('done', goingDone);
+  btn.classList.toggle('done', goingDone);
+  btn.title = goingDone ? 'Mark undone' : 'Mark done';
 
-  /* Step 2 — persist slot completion */
-  if (slotId) {
-    try {
-      await CLAP.API.patch(`/schedule/sessions/${slotId}/complete/`, { completed: isDone });
-    } catch (err) {
-      /* Revert optimistic UI on server error so state doesn't permanently de-sync */
-      console.warn('[CLAP] Could not sync slot completion to server:', err);
-      taskBlock.classList.toggle('done', !isDone);
-      btn.classList.toggle('done', !isDone);
-      btn.title = !isDone ? 'Mark undone' : 'Mark done';
-      CLAP.Toast.error('Could not save — please try again.');
-      return;
-    }
-  } else {
-    /* No slot ID — can't persist, revert and warn */
-    taskBlock.classList.toggle('done', !isDone);
-    btn.classList.toggle('done', !isDone);
-    btn.title = !isDone ? 'Mark undone' : 'Mark done';
+  if (!slotId) {
+    taskBlock.classList.toggle('done', !goingDone);
+    btn.classList.toggle('done', !goingDone);
+    btn.title = !goingDone ? 'Mark undone' : 'Mark done';
     CLAP.Toast.warning('Session ID missing — try regenerating your schedule.');
     return;
   }
 
-  /* Steps 3 + 5 — recalculate client-side progress and broadcast to assignments.html */
-  if (assignmentId) {
-    /* Progress based on total hours done vs total hours for this assignment */
-    const allBlocksSel  = `[data-assignment-id="${assignmentId}"]`;
-    const allBlocks     = document.querySelectorAll(`.task-block${allBlocksSel}, .px-block${allBlocksSel}`);
-    const doneBlocks    = document.querySelectorAll(`.task-block${allBlocksSel}.done, .px-block${allBlocksSel}.done`);
-
-    /* Use data-duration (hours) if available, else count sessions */
-    let totalHours = 0, doneHours = 0;
-    allBlocks.forEach(b => {
-      const dur = parseFloat(b.dataset.duration || '1');
-      totalHours += dur;
-      if (b.classList.contains('done')) doneHours += dur;
+  /* Save session completion */
+  try {
+    await CLAP.API.patch(`/schedule/sessions/${slotId}/complete/`, {
+      completed: goingDone
     });
-    const newProgress = totalHours > 0 ? Math.round((doneHours / totalHours) * 100) : (doneBlocks.length > 0 ? Math.round((doneBlocks.length / allBlocks.length) * 100) : 0);
+  } catch (err) {
+    console.warn('[CLAP] Could not sync session completion:', err);
+    taskBlock.classList.toggle('done', !goingDone);
+    btn.classList.toggle('done', !goingDone);
+    btn.title = !goingDone ? 'Mark undone' : 'Mark done';
+    CLAP.Toast.error('Could not save. Please try again.');
+    return;
+  }
+
+  /* Recalculate progress by HOURS, not by number of sessions */
+  if (assignmentId) {
+    const blocks = document.querySelectorAll(`.px-block[data-assignment-id="${assignmentId}"]`);
+
+    let totalHours = 0;
+    let doneHours = 0;
+
+    blocks.forEach(block => {
+      const duration = parseFloat(block.dataset.duration || '1') || 1;
+      totalHours += duration;
+      if (block.classList.contains('done')) {
+        doneHours += duration;
+      }
+    });
+
+    const newProgress = totalHours > 0
+      ? Math.round((doneHours / totalHours) * 100)
+      : 0;
+
+    /* Persist progress to assignment if endpoint exists */
+    try {
+      await CLAP.API.patch(`/assignments/${assignmentId}/`, {
+        progress: newProgress
+      });
+    } catch (err) {
+      /* Keep UI success for session complete, but warn in console only */
+      console.warn('[CLAP] Could not patch assignment progress:', err);
+    }
 
     CLAP.Toast.success(`Progress updated: ${newProgress}%`);
 
-    /* Step 5 — notify assignments.html if open in another tab */
+    /* Cross-tab update for assignments page */
     try {
-      const ch = new BroadcastChannel('clap_progress');
-      ch.postMessage({ type: 'progress_update', assignmentId, progress: newProgress });
-      ch.close();
-    } catch { /* BroadcastChannel not supported — silent fail */ }
+      const progressChannel = new BroadcastChannel('clap_progress');
+      progressChannel.postMessage({
+        type: 'progress_update',
+        assignmentId,
+        progress: newProgress
+      });
+      progressChannel.close();
+    } catch (err) {
+      /* no-op */
+    }
   } else {
-    CLAP.Toast.success(isDone ? 'Session marked complete!' : 'Session unmarked.');
+    CLAP.Toast.success(goingDone ? 'Session marked complete!' : 'Session unmarked.');
   }
 };
 
-/* ── WEEK NAVIGATION ─────────────────────────────────────── */
+/* =========================================================
+   WEEK NAV
+========================================================= */
 document.getElementById('prev-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset - 1);
+  loadSchedule(weekOffset - 1, {
+    forceShow: true,
+    allowAutoAdvance: false
+  });
 });
 
 document.getElementById('next-week-btn').addEventListener('click', () => {
-  loadSchedule(weekOffset + 1);
+  loadSchedule(weekOffset + 1, {
+    forceShow: true,
+    allowAutoAdvance: false
+  });
 });
 
-/* ── LEGEND POPUP ────────────────────────────────────────── */
+/* Notice actions */
+document.getElementById('sch-notice-view-current').addEventListener('click', () => {
+  hideNotice();
+  loadSchedule(0, {
+    forceShow: true,
+    allowAutoAdvance: false
+  });
+});
+
+document.getElementById('sch-notice-close').addEventListener('click', hideNotice);
+
+/* =========================================================
+   LEGEND
+========================================================= */
 document.getElementById('info-fab').addEventListener('click', () => {
   document.getElementById('legend-popup').classList.toggle('show');
 });
 
-document.addEventListener('click', e => {
-  if (!e.target.closest('#info-fab') && !e.target.closest('#legend-popup')) {
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('#info-fab') && !event.target.closest('#legend-popup')) {
     document.getElementById('legend-popup').classList.remove('show');
   }
 });
 
-/* ── REGENERATE ──────────────────────────────────────────── */
+/* =========================================================
+   REGENERATE
+========================================================= */
 document.getElementById('regen-btn').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'flex';
 });
@@ -889,8 +1178,10 @@ document.getElementById('regen-cancel').addEventListener('click', () => {
   document.getElementById('regen-modal').style.display = 'none';
 });
 
-document.getElementById('regen-modal').addEventListener('click', function(e) {
-  if (e.target === this) this.style.display = 'none';
+document.getElementById('regen-modal').addEventListener('click', function(event) {
+  if (event.target === this) {
+    this.style.display = 'none';
+  }
 });
 
 document.getElementById('regen-confirm').addEventListener('click', async () => {
@@ -902,17 +1193,26 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
 
   try {
     const response = await CLAP.API.post('/schedule/regenerate/', {});
-    if (response.still_overloaded && response.warning) {
+
+    if (response?.still_overloaded && response?.warning) {
       CLAP.Toast.warning(response.warning);
     } else {
       CLAP.Toast.success('Schedule regenerated!');
     }
 
-    //Reload schedule
-    loadSchedule(weekOffset);
-    
+    /*
+      After regenerate:
+      - reload from current week rule again
+      - do not force current week if empty
+      - allow current->next week fallback
+    */
+    await loadSchedule(0, {
+      forceShow: false,
+      allowAutoAdvance: true
+    });
+
   } catch (err) {
-    console.error('REGENERATE ERROR:', err);
+    console.error('[CLAP] Regenerate error:', err);
     CLAP.Toast.error('Could not regenerate schedule.');
   } finally {
     btn.disabled = false;
@@ -920,20 +1220,38 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
   }
 });
 
-/* ── INIT ────────────────────────────────────────────────── */
-loadSchedule(weekOffset);
+/* =========================================================
+   INIT
+========================================================= */
+loadSchedule(0, {
+  forceShow: false,
+  allowAutoAdvance: true
+});
 
-/* ── CROSS-TAB SYNC: react to assignment changes from assignments.html ── */
+/* =========================================================
+   CROSS-TAB SYNC
+========================================================= */
 try {
   const assignCh = new BroadcastChannel('clap_assignments');
+
   assignCh.addEventListener('message', (event) => {
     const { type } = event.data || {};
-    if (type === 'assignment_deleted' || type === 'assignment_updated') {
-      /* Re-fetch the schedule so stale task titles / removed slots disappear */
-      loadSchedule(weekOffset);
+
+    if (
+      type === 'assignment_deleted' ||
+      type === 'assignment_updated' ||
+      type === 'assignment_created'
+    ) {
+      loadSchedule(weekOffset, {
+        forceShow: true,
+        allowAutoAdvance: false,
+        silent: true
+      });
     }
   });
-} catch { /* BroadcastChannel not supported — silent fail */ }
+} catch (err) {
+  /* BroadcastChannel unsupported - ignore */
+}
 </script>
 </body>
 </html>
