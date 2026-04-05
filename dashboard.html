@@ -54,18 +54,26 @@
     .plan-week-badge { font-size:0.75rem; font-weight:700; color:var(--text-muted); background:var(--bg-light); border-radius:999px; padding:3px 12px; margin-left:8px; }
     .plan-link    { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
     .plan-link:hover { color:var(--clap-teal); }
-    .timetable    { width:100%; border-collapse:separate; border-spacing:3px; }
-    .timetable th { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; }
-    .timetable th:first-child { text-align:right; background:transparent; color:var(--text-muted); font-size:0.68rem; }
-    .timetable td { vertical-align:top; padding:2px; min-width:70px; }
-    .timetable td:first-child { font-size:0.68rem; font-weight:700; color:var(--text-muted); text-align:right; padding-right:8px; vertical-align:middle; min-width:38px; white-space:nowrap; }
-    .t-block      { border-radius:8px; padding:6px 8px; font-size:0.68rem; font-weight:700; color:#fff; min-height:34px; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.2; }
+    .plan-empty   { text-align:center; padding:28px 0; color:var(--text-muted); font-size:0.85rem; }
+    /* Proportional schedule grid */
+    .sched-wrap   { overflow-x:auto; }
+    .sched-grid   { display:grid; grid-template-columns:44px repeat(5,1fr); min-width:460px; }
+    .sched-hdr    { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; margin:0 2px 4px; }
+    .sched-hdr.time-hdr { background:transparent; }
+    .sched-body   { grid-column:1/-1; display:grid; grid-template-columns:44px repeat(5,1fr); position:relative; }
+    .sched-time-col { position:relative; }
+    .sched-time-lbl { position:absolute; right:6px; font-size:0.65rem; font-weight:700; color:var(--text-muted); transform:translateY(-50%); white-space:nowrap; line-height:1; }
+    .sched-hline  { position:absolute; left:44px; right:0; height:1px; background:var(--border); opacity:0.45; pointer-events:none; }
+    .sched-day-col { position:relative; margin:0 2px; }
+    .t-block      { position:absolute; left:1px; right:1px; border-radius:8px; padding:5px 7px; font-size:0.68rem; font-weight:700; display:flex; flex-direction:column; justify-content:center; overflow:hidden; cursor:pointer; box-sizing:border-box; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
+    .t-block:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
     .t-block.green  { background:#c8f0d4; color:#1a5c30; }
     .t-block.orange { background:#fde9c0; color:#7a4300; }
     .t-block.red    { background:#fac8c8; color:#7a1a1a; }
     .t-block.blue   { background:#b8d4f8; color:#1a3a7a; }
-    .t-block.purple { background:#9B59B6; color:#fff; }
-    .plan-empty   { text-align:center; padding:28px 0; color:var(--text-muted); font-size:0.85rem; }
+    .t-block.purple { background:#e8d5f8; color:#5b21b6; }
+    .t-block-name { font-weight:800; font-size:0.70rem; line-height:1.2; }
+    .t-block-time { font-size:0.60rem; opacity:0.75; margin-top:2px; }
 
     /* ── Calendar ── */
     .cal-card     { background:var(--white); border-radius:18px; padding:18px 18px 14px; box-shadow:var(--shadow-card); }
@@ -303,19 +311,22 @@
             </div>
             <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
           </div>
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-            <table class="timetable" aria-label="Weekly study plan">
-              <thead>
-                <tr>
-                  <th>Time / Day</th>
-                  <th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th>
-                </tr>
-              </thead>
-              <tbody id="plan-body">
-                <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">Loading…</td></tr>
-              </tbody>
-            </table>
+          <div class="sched-wrap">
+            <div class="sched-grid" id="plan-grid">
+              <!-- day headers -->
+              <div class="sched-hdr time-hdr"></div>
+              <div class="sched-hdr">Monday</div>
+              <div class="sched-hdr">Tuesday</div>
+              <div class="sched-hdr">Wednesday</div>
+              <div class="sched-hdr">Thursday</div>
+              <div class="sched-hdr">Friday</div>
+              <!-- body injected by JS -->
+              <div class="sched-body" id="plan-body" style="min-height:80px;">
+                <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-muted)">Loading…</div>
+              </div>
+            </div>
           </div>
+          <div id="plan-empty-msg"></div>
         </div>
       </div><!-- /.db-left -->
 
@@ -354,28 +365,47 @@
 
 AppShell.init('dashboard.html', { showTopbar: false });
 
-/* Greeting */
+/* Greeting + avatar — reads from localStorage, then refreshes from API */
+function _renderAvatar(user) {
+  const avEl = document.getElementById('db-av');
+  const pic  = user.profile_picture || user.avatarDataUrl || null;
+  if (pic) {
+    avEl.textContent = '';
+    avEl.style.cssText = 'background:transparent;padding:0;overflow:hidden;';
+    const img = document.createElement('img');
+    img.src   = pic;
+    img.alt   = user.name || 'Profile';
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+    img.onerror = () => {
+      avEl.innerHTML = '';
+      avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
+      avEl.style.cssText = '';
+    };
+    avEl.appendChild(img);
+  } else {
+    avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
+    avEl.style.cssText = '';
+  }
+}
+
 const _u  = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
-const _avEl = document.getElementById('db-av');
-const _pic = _u.profile_picture || _u.avatarDataUrl || null;
-if (_pic) {
-  _avEl.textContent = '';
-  _avEl.style.background = 'transparent';
-  _avEl.style.padding = '0';
-  const _avImg = document.createElement('img');
-  _avImg.src = _pic;
-  _avImg.alt = _u.name || 'Profile';
-  _avImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-  _avImg.onerror = () => {
-    _avEl.textContent = (_u.name || 'S').charAt(0).toUpperCase();
-    _avEl.style.background = '';
-  };
-  _avEl.appendChild(_avImg);
-} else {
-  _avEl.textContent = (_u.name || 'S').charAt(0).toUpperCase();
-}
+_renderAvatar(_u);
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
+
+/* Re-fetch profile from API to get fresh profile_picture URL */
+(async () => {
+  try {
+    const profile = await CLAP.API.get('/auth/profile/');
+    if (profile) {
+      const merged = { ..._u, ...profile };
+      CLAP.Auth.setUser(merged);
+      _renderAvatar(merged);
+      const firstName = (merged.name || _fn).split(' ')[0];
+      document.getElementById('db-greet').textContent = `Welcome Back, ${firstName}!`;
+    }
+  } catch { /* keep localStorage values */ }
+})();
 
 /* ── User preferences ──────────────────────────────────────
    CONNECT: GET /api/users/preferences/
@@ -526,10 +556,11 @@ function renderSchedule(schedule) {
     if (nextSchedule && Object.values(nextSchedule).some(t=>Array.isArray(t)&&t.length>0)) {
       /* Render next week's data as preview */
       _renderScheduleTable(nextSchedule);
-      document.getElementById('plan-body').insertAdjacentHTML('beforebegin',
-        `<tr id="next-week-hint"><td colspan="6" style="text-align:center;padding:8px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;">
-          📅 Nothing this week — showing next week preview
-        </td></tr>`);
+      const _hint = document.createElement('div');
+      _hint.id = 'next-week-hint';
+      _hint.style.cssText = 'text-align:center;padding:6px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;margin-bottom:6px;';
+      _hint.textContent = '📅 Nothing this week — showing next week preview';
+      document.getElementById('plan-body').before(_hint);
     } else {
       emptySchedule(true);
     }
@@ -567,93 +598,69 @@ function _minsToLabel(mins) {
 }
 
 function _renderScheduleTable(schedule) {
-  /* Normalise all task times to HH:MM so row keys are consistent */
-  const normalised = {};
-  DAYS.forEach(d => { normalised[d] = []; });
-  Object.entries(schedule).forEach(([day, tasks]) => {
-    if (!Array.isArray(tasks)) return;
-    tasks.forEach(t => {
+  /* 1. Normalise tasks: compute start/end in minutes */
+  const PX_PER_MIN = 1.2;   // 1 minute = 1.2px  →  1 hour = 72px
+  const tasks = [];
+  DAYS.forEach(day => {
+    (schedule[day] || []).forEach(t => {
       const startMins = _timeToMins(t.time);
       const endMins   = t.end ? _timeToMins(t.end) : startMins + 60;
-      normalised[day].push({
-        ...t,
-        _startMins: startMins,
-        _endMins:   endMins,
-        _timeKey:   _minsToLabel(startMins),
-      });
+      tasks.push({ ...t, day, startMins, endMins });
     });
   });
 
-  /* Build study-window time rows (30-min granularity if any task starts on :30) */
-  const studyStartMins = _timeToMins(userPrefs.study_start || '09:00');
-  const studyEndMins   = _timeToMins(userPrefs.study_end   || '18:00');
+  if (!tasks.length) { emptySchedule(false); return; }
 
-  /* Collect all unique start times */
-  const allStartMins = new Set();
-  Object.values(normalised).forEach(tasks => tasks.forEach(t => allStartMins.add(t._startMins)));
+  /* 2. Determine visible time window: earliest start → latest end, rounded to hour */
+  const minMins  = Math.floor(Math.min(...tasks.map(t => t.startMins)) / 60) * 60;
+  const maxMins  = Math.ceil( Math.max(...tasks.map(t => t.endMins))   / 60) * 60;
+  const totalMins = maxMins - minMins;
+  const bodyH    = totalMins * PX_PER_MIN;
 
-  /* Add hourly slots from study window */
-  const timeSet = new Set();
-  for (let m = studyStartMins; m < studyEndMins && timeSet.size < 12; m += 60) {
-    timeSet.add(m);
+  /* 3. Build time-axis labels (every 30 min if any task starts on :30, else every hour) */
+  const has30 = tasks.some(t => t.startMins % 60 !== 0);
+  const step  = has30 ? 30 : 60;
+  let timeAxisHTML = '';
+  let hlinesHTML   = '';
+  for (let m = minMins; m <= maxMins; m += step) {
+    const top = (m - minMins) * PX_PER_MIN;
+    timeAxisHTML += `<div class="sched-time-lbl" style="top:${top}px">${_minsToLabel(m)}</div>`;
+    hlinesHTML   += `<div class="sched-hline"    style="top:${top}px"></div>`;
   }
-  /* Add any task start times that fall outside the study window */
-  allStartMins.forEach(m => timeSet.add(m));
 
-  const TIMES = Array.from(timeSet).sort((a, b) => a - b);
+  /* 4. Build task blocks per day */
+  const dayColsHTML = DAYS.map(day => {
+    const dayTasks = tasks.filter(t => t.day === day);
+    const blocks = dayTasks.map(t => {
+      const top    = (t.startMins - minMins) * PX_PER_MIN;
+      const height = Math.max((t.endMins - t.startMins) * PX_PER_MIN - 2, 24);
+      const col    = (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color || 'blue');
+      const endLbl = _minsToLabel(t.endMins);
+      const startLbl = _minsToLabel(t.startMins);
+      return `<a href="schedule.html" class="t-block ${col}" style="top:${top}px;height:${height}px;" title="${t.title}">
+        <div class="t-block-name">${t.title}</div>
+        <div class="t-block-time">${startLbl} – ${endLbl}</div>
+      </a>`;
+    }).join('');
+    return `<div class="sched-day-col" style="height:${bodyH}px">${blocks}</div>`;
+  }).join('');
 
-  /* Build a map: day → { timeKey: task } */
-  const map = {};
-  DAYS.forEach(d => { map[d] = {}; });
-  Object.entries(normalised).forEach(([day, tasks]) => {
-    tasks.forEach(t => { if (map[day]) map[day][t._startMins] = t; });
-  });
-
-  const skip = {}; let html = '';
-  TIMES.forEach((timeMins, ti) => {
-    const label = _minsToLabel(timeMins);
-    html += `<tr><td>${label}</td>`;
-    DAYS.forEach(day => {
-      const k = `${day}|${ti}`; if (skip[k]) return;
-      const task = map[day]?.[timeMins];
-      if (task) {
-        /* Calculate rowspan: how many time rows does this task cover? */
-        let span = 1;
-        for (let nxt = ti + 1; nxt < TIMES.length; nxt++) {
-          if (TIMES[nxt] < task._endMins) {
-            span++;
-            skip[`${day}|${nxt}`] = true;
-          } else break;
-        }
-        const col = (task.difficulty && DIFF_COLOR[task.difficulty])
-          ? DIFF_COLOR[task.difficulty] : (task.color || 'blue');
-        const rs = span > 1 ? ` rowspan="${span}"` : '';
-        const endLabel = _minsToLabel(task._endMins);
-        html += `<td${rs} style="vertical-align:top;padding:2px">
-          <a href="schedule.html" style="text-decoration:none;display:block;">
-            <div class="t-block ${col}" style="cursor:pointer;min-height:${span*28}px;" title="${task.title}">
-              <div style="font-weight:800;line-height:1.2;">${task.title}</div>
-              <div style="font-size:0.62rem;opacity:0.75;margin-top:2px;">${label} – ${endLabel}</div>
-            </div>
-          </a></td>`;
-      } else {
-        html += '<td></td>';
-      }
-    });
-    html += '</tr>';
-  });
-  document.getElementById('plan-body').innerHTML = html;
+  /* 5. Inject into #plan-body */
+  document.getElementById('plan-body').innerHTML =
+    `<div class="sched-time-col" style="height:${bodyH}px">${timeAxisHTML}</div>` +
+    hlinesHTML +
+    dayColsHTML;
 }
 
 function emptySchedule(isAdvanceHint) {
   const badge=document.getElementById('plan-week-badge');
   if(badge) badge.textContent = isAdvanceHint ? 'Next Week' : '';
   document.getElementById('plan-body').innerHTML=
-    `<tr><td colspan="6" class="plan-empty">${
+    `<div style="grid-column:1/-1;text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">${
       isAdvanceHint
         ? '📅 Nothing scheduled this week — showing next week.'
         : '🎉 No study sessions scheduled yet.'
-    }</td></tr>`;
+    }</div>`;
 }
 
 /* ── Calendar: dots from real task_date_meta ── */
