@@ -60,6 +60,7 @@ def schedule_view(request):
         # Sort sessions by hours to assign time slots
         sorted_sessions = sorted(day_sessions, key=lambda s: s.scheduled_hours, reverse=True)
         available_times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00']
+        diff_display = {1: 'easy', 2: 'medium', 3: 'hard'}
 
         for i, session in enumerate(sorted_sessions):
             if i >= len(available_times):
@@ -72,6 +73,8 @@ def schedule_view(request):
                 'duration': max(1, round(session.scheduled_hours)),
                 'color': task_colors.get(session.task.task_id, 'blue'),
                 'session_id': session.session_id,
+                'task_id': session.task.task_id,
+                'difficulty': diff_display.get(session.task.difficulty, 'easy'),
                 'is_completed': session.is_completed,
             })
 
@@ -183,9 +186,12 @@ def dashboard_view(request):
         day_name = DAY_FULL.get(day_date.weekday())
         if not day_name:
             continue
+
         day_sessions = sessions_this_week.filter(scheduled_date=day_date)
         available_times = ['09:00', '10:00', '11:00', '12:00', '13:00']
         schedule[day_name] = []
+        diff_display = {1: 'easy', 2: 'medium', 3: 'hard'}
+
         for i, session in enumerate(day_sessions):
             if i >= len(available_times):
                 break
@@ -193,6 +199,7 @@ def dashboard_view(request):
                 'time': available_times[i],
                 'title': session.task.title,
                 'color': task_colors.get(session.task.task_id, 'blue'),
+                'difficulty': diff_display.get(session.task.difficulty, 'easy'),
             })
 
     # Recommendation
