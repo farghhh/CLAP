@@ -642,27 +642,30 @@ function renderSchedule(data) {
     daySlots[d].sort((a, b) => buildEndMinutes(a.time) - buildEndMinutes(b.time));
   });
 
-  /* Single table row — each day column stacks all its sessions vertically */
-  let html = '<tr>';
+  /*
+   * Find the day with the most sessions — use it to drive the time column labels
+   * so every session block has a matching start-time label beside it.
+   */
+  const maxSessions = Math.max(...DAYS.map(d => daySlots[d].length));
+  const anchorDay   = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
+  const anchorSessions = daySlots[anchorDay];
 
-  /* Time column — show earliest start and latest end as a range */
-  const earliest = slots.reduce((best, s) =>
-    buildEndMinutes(s.time) < buildEndMinutes(best.time) ? s : best).time;
-  const latest = slots.reduce((best, s) =>
-    buildEndMinutes(s.end) > buildEndMinutes(best.end) ? s : best).end;
+  /* Build one table row per session (driven by anchorDay session count) */
+  let html = '';
 
-  html += `<td class="time-cell" style="vertical-align:top;padding-top:10px;white-space:nowrap;">
-    ${earliest}<br><span style="opacity:0.3;font-size:0.9em;">│</span><br>${latest}
-  </td>`;
+  anchorSessions.forEach((anchorSlot, rowIdx) => {
+    html += '<tr>';
 
-  DAYS.forEach(day => {
-    const daySessions = daySlots[day];
-    if (!daySessions.length) {
-      html += `<td><div class="empty-cell"></div></td>`;
-      return;
-    }
+    /* Time cell — show this session's start time */
+    html += `<td class="time-cell">${anchorSlot.time}</td>`;
 
-    const blocks = daySessions.map(slot => {
+    DAYS.forEach(day => {
+      const slot = daySlots[day][rowIdx];
+      if (!slot) {
+        html += `<td><div class="empty-cell"></div></td>`;
+        return;
+      }
+
       const doneClass      = slot.is_completed ? 'done' : '';
       const checkDoneClass = slot.is_completed ? 'done' : '';
       const dataAttrs = [
@@ -670,19 +673,19 @@ function renderSchedule(data) {
         slot.assignment_id != null ? `data-assignment-id="${slot.assignment_id}"` : '',
       ].filter(Boolean).join(' ');
 
-      return `<div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs} style="margin-bottom:6px;">
+      html += `<td style="vertical-align:top;padding:2px;">
+        <div class="task-block ${slot.difficulty} ${doneClass}" ${dataAttrs}>
           <div>
             <div class="tb-title">${slot.title}</div>
             <div class="tb-time">${slot.time} – ${slot.end}</div>
           </div>
           <button class="tb-check ${checkDoneClass}" onclick="toggleDone(this)" title="Mark done"></button>
-        </div>`;
-    }).join('');
+        </div>
+      </td>`;
+    });
 
-    html += `<td style="vertical-align:top;padding:4px 2px;">${blocks}</td>`;
+    html += '</tr>';
   });
-
-  html += '</tr>';
 
   document.getElementById('sch-body').innerHTML = html;
 }
