@@ -15,7 +15,8 @@
     /* ── Greeting topbar (search bar removed) ── */
     .db-topbar    { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
     .db-greet-row { display:flex; align-items:center; gap:14px; }
-    .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); }
+    .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); overflow:hidden; position:relative; }
+    .db-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
 
@@ -369,22 +370,18 @@ AppShell.init('dashboard.html', { showTopbar: false });
 function _renderAvatar(user) {
   const avEl = document.getElementById('db-av');
   const pic  = user.profile_picture || user.avatarDataUrl || null;
+  avEl.innerHTML = '';
   if (pic) {
-    avEl.textContent = '';
-    avEl.style.cssText = 'background:transparent;padding:0;overflow:hidden;';
     const img = document.createElement('img');
-    img.src   = pic;
-    img.alt   = user.name || 'Profile';
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;';
+    img.src = pic;
+    img.alt = user.name || 'Profile';
     img.onerror = () => {
       avEl.innerHTML = '';
       avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
-      avEl.style.cssText = '';
     };
     avEl.appendChild(img);
   } else {
     avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
-    avEl.style.cssText = '';
   }
 }
 
@@ -393,19 +390,7 @@ const _fn = (_u.name || 'Student').split(' ')[0];
 _renderAvatar(_u);
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
-/* Re-fetch profile from API to get fresh profile_picture URL */
-(async () => {
-  try {
-    const profile = await CLAP.API.get('/auth/profile/');
-    if (profile) {
-      const merged = { ..._u, ...profile };
-      CLAP.Auth.setUser(merged);
-      _renderAvatar(merged);
-      const firstName = (merged.name || _fn).split(' ')[0];
-      document.getElementById('db-greet').textContent = `Welcome Back, ${firstName}!`;
-    }
-  } catch { /* keep localStorage values */ }
-})();
+/* Profile is now fetched inside init() above */
 
 /* ── User preferences ──────────────────────────────────────
    CONNECT: GET /api/users/preferences/
@@ -554,13 +539,20 @@ function renderSchedule(schedule) {
     /* Show next-week preview message but still try to render next week schedule */
     const nextSchedule = window._nextWeekScheduleCache;
     if (nextSchedule && Object.values(nextSchedule).some(t=>Array.isArray(t)&&t.length>0)) {
+      /* Inject hint OUTSIDE the sched-grid (after .sched-wrap) to avoid breaking the CSS grid */
+      let _hint = document.getElementById('next-week-hint');
+      if (!_hint) {
+        _hint = document.createElement('div');
+        _hint.id = 'next-week-hint';
+        _hint.style.cssText = 'text-align:center;padding:6px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;margin-bottom:6px;';
+        _hint.textContent = '📅 Nothing this week — showing next week preview';
+        /* Place hint BEFORE .sched-wrap (outside the grid) */
+        const schedWrap = document.querySelector('.sched-wrap');
+        if (schedWrap) schedWrap.before(_hint);
+        else document.getElementById('plan-empty-msg').appendChild(_hint);
+      }
       /* Render next week's data as preview */
       _renderScheduleTable(nextSchedule);
-      const _hint = document.createElement('div');
-      _hint.id = 'next-week-hint';
-      _hint.style.cssText = 'text-align:center;padding:6px 0;font-size:0.78rem;color:var(--clap-teal);font-weight:600;font-style:italic;margin-bottom:6px;';
-      _hint.textContent = '📅 Nothing this week — showing next week preview';
-      document.getElementById('plan-body').before(_hint);
     } else {
       emptySchedule(true);
     }
@@ -599,7 +591,7 @@ function _minsToLabel(mins) {
 
 function _renderScheduleTable(schedule) {
   /* 1. Normalise tasks: compute start/end in minutes */
-  const PX_PER_MIN = 1.2;   // 1 minute = 1.2px  →  1 hour = 72px
+  const PX_PER_MIN = 1.0;   // 1 minute = 1px  →  1 hour = 60px (more compact)
   const tasks = [];
   DAYS.forEach(day => {
     (schedule[day] || []).forEach(t => {
@@ -617,9 +609,8 @@ function _renderScheduleTable(schedule) {
   const totalMins = maxMins - minMins;
   const bodyH    = totalMins * PX_PER_MIN;
 
-  /* 3. Build time-axis labels (every 30 min if any task starts on :30, else every hour) */
-  const has30 = tasks.some(t => t.startMins % 60 !== 0);
-  const step  = has30 ? 30 : 60;
+  /* 3. Build time-axis labels — hourly only for compact dashboard view */
+  const step  = 60;
   let timeAxisHTML = '';
   let hlinesHTML   = '';
   for (let m = minMins; m <= maxMins; m += step) {
@@ -851,9 +842,24 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   await loadPrefs();
   let data;
 
-  /* Fire check-missed silently in parallel — backend reschedules yesterday's
-     missed sessions so dashboard_view can then return missed_task correctly. */
+  /* Fire check-missed silently */
   try { await CLAP.API.post('/schedule/check-missed/', {}); } catch { /* silent */ }
+
+  /* FIX (profile picture): Always re-fetch profile from API on load so
+     profile_picture is fresh — don't rely solely on stale localStorage */
+  (async () => {
+    try {
+      const profile = await CLAP.API.get('/auth/profile/');
+      if (profile) {
+        const stored = CLAP.Auth.getUser() || {};
+        const merged = { ...stored, ...profile };
+        CLAP.Auth.setUser(merged);
+        _renderAvatar(merged);
+        const firstName = (merged.name || merged.username || _fn).split(' ')[0];
+        document.getElementById('db-greet').textContent = `Welcome Back, ${firstName}!`;
+      }
+    } catch { /* keep localStorage values */ }
+  })();
 
   try {
     data = await CLAP.API.get('/dashboard/');
@@ -874,6 +880,21 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     };
   }
 
+  /* FIX (calendar dots + upcoming tasks): /dashboard/ does NOT return
+     assignment_due_dates — fetch assignments separately and build it */
+  let assignmentDueDates = [];
+  try {
+    const assignData = await CLAP.API.get('/assignments/');
+    const list = Array.isArray(assignData) ? assignData : (assignData?.results || assignData?.assignments || []);
+    assignmentDueDates = list
+      .filter(a => a && (a.deadline || a.due_date))
+      .map(a => ({
+        date:  a.deadline || a.due_date,
+        title: [a.course_code, a.title].filter(Boolean).join(' '),
+      }));
+    data.assignment_due_dates = assignmentDueDates;
+  } catch { /* silent — calendar just won't have dots */ }
+
   /* Normalise cognitive_load from stress_history if backend sends that format */
   if(data.stress_history){
     const tv=Object.values(data.stress_history);
@@ -890,6 +911,28 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     }));
   }
 
+  /* FIX: Apply cumulative time chaining to dashboard schedule data.
+     The backend assigns times by index (09:00, 10:00...) ignoring actual
+     session duration — chain them so each session starts where the previous ended. */
+  if (data.schedule) {
+    const DAYS_ALL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+    DAYS_ALL.forEach(day => {
+      const sessions = data.schedule[day];
+      if (!Array.isArray(sessions) || sessions.length === 0) return;
+      let curMins = null;
+      data.schedule[day] = sessions.map(s => {
+        const [sh, sm] = (s.time || '09:00').split(':').map(Number);
+        if (curMins === null) curMins = sh * 60 + (sm || 0);
+        /* Duration: use s.duration if present, else default 1h */
+        const durMins = Math.round((s.duration || s.scheduled_hours || 1) * 60);
+        const endMins = curMins + durMins;
+        const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
+        const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
+        curMins = endMins;
+        return { ...s, time: startLabel, end: endLabel };
+      });
+    });
+  }
   window._scheduleCache=data.schedule||{};
 
   /* Pre-fetch next week's schedule so we can show it as preview when this week is empty */
@@ -901,19 +944,29 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
       if (nextData && nextData.slots && nextData.slots.length > 0) {
         const dayMap={mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday'};
         const nextSched={};
+        /* Group by day first */
         nextData.slots.forEach(s=>{
           const day=dayMap[(s.day||'').toLowerCase()]||s.day;
           if(!nextSched[day]) nextSched[day]=[];
-          const [startH, startM] = (s.time||'09:00').split(':').map(Number);
-          const durationMins = Math.round((s.duration||1) * 60);
-          const endTotalMins = startH * 60 + (startM||0) + durationMins;
-          const endH = Math.floor(endTotalMins / 60) % 24;
-          const endM = endTotalMins % 60;
-          nextSched[day].push({
-            time: s.time||'09:00',
-            end:  `${String(endH).padStart(2,'0')}:${String(endM).padStart(2,'0')}`,
-            title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
-            difficulty: (s.difficulty||'easy').toLowerCase(),
+          nextSched[day].push(s);
+        });
+        /* Apply cumulative time chaining per day (same fix as schedule.html) */
+        Object.keys(nextSched).forEach(day=>{
+          let curMins = null;
+          nextSched[day] = nextSched[day].map(s=>{
+            const [startH, startM] = (s.time||'09:00').split(':').map(Number);
+            if (curMins === null) curMins = startH * 60 + (startM||0);
+            const durationMins = Math.round((s.duration||1) * 60);
+            const endMins = curMins + durationMins;
+            const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
+            const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
+            curMins = endMins;
+            return {
+              time: startLabel,
+              end:  endLabel,
+              title: [s.code,s.subject].filter(Boolean).join(' ')||s.title||'Study Session',
+              difficulty: (s.difficulty||'easy').toLowerCase(),
+            };
           });
         });
         window._nextWeekScheduleCache = nextSched;
