@@ -40,7 +40,6 @@ def get_daily_hours_used(user, day, max_focus):
 
 
 # CORE SESSION GENERATION
-
 def generate_study_sessions(task, preference):
     import math
     from schedule.models import StudySession
@@ -48,7 +47,7 @@ def generate_study_sessions(task, preference):
     today = date.today()
     deadline = task.deadline
     total_hours = float(task.hours)
-    max_focus = preference.max_focus_hours
+    max_focus = float(preference.max_focus_hours)
 
     diff_map = {1: 'easy', 2: 'medium', 3: 'hard'}
     difficulty_str = diff_map.get(task.difficulty, 'medium')
@@ -60,29 +59,40 @@ def generate_study_sessions(task, preference):
     num_available = len(available_days)
     days_until_deadline = (deadline - today).days
 
-    # ── Step 1: Ideal session length based on difficulty ──────
-    if task.difficulty == 1:      # easy
-        ideal_session = 2.0
-    elif task.difficulty == 2:    # medium
-        ideal_session = 2.0
-    else:                         # hard
-        ideal_session = 1.5
+    # ── Step 1: How many hours per day do we NEED? ────────────
+    required_per_day = total_hours / num_available
 
-    ideal_session = min(ideal_session, max_focus, total_hours)
-    ideal_session = max(ideal_session, 1.0)
+    # ── Step 2: Determine actual hours per session ─────────────
+    if required_per_day >= max_focus:
+        # Tight deadline — must use max focus every day
+        hours_per_session = max_focus
 
-    # ── Step 2: How many sessions needed ─────────────────────
-    num_sessions = math.ceil(total_hours / ideal_session)
+    elif required_per_day < 1.0:
+        # Far deadline — don't schedule tiny sessions
+        # Use comfortable session size and fewer days
+        if task.difficulty == 3:    # hard
+            hours_per_session = 1.5
+        else:                        # easy/medium
+            hours_per_session = 2.0
+        hours_per_session = min(hours_per_session, max_focus, total_hours)
+
+    else:
+        # Normal case — use required amount but round up to nearest 0.5
+        hours_per_session = math.ceil(required_per_day * 2) / 2
+        hours_per_session = min(hours_per_session, max_focus)
+
+    # ── Step 3: How many sessions do we need? ─────────────────
+    num_sessions = math.ceil(total_hours / hours_per_session)
     num_sessions = min(num_sessions, num_available)
 
-    # Recalculate actual hours per session after capping
-    # This ensures all hours are distributed even with fewer days
-    actual_hours_per_session = min(
-        math.ceil((total_hours / num_sessions) * 2) / 2,  # round up to nearest 0.5
+    # After capping, recalculate to make sure hours_per_session
+    # is enough to cover all hours
+    hours_per_session = min(
+        math.ceil((total_hours / num_sessions) * 2) / 2,
         max_focus
     )
 
-    # ── Step 3: Determine start day based on urgency ──────────
+    # ── Step 4: Pick which days based on urgency ──────────────
     if days_until_deadline > 14:
         start_index = num_available // 3
     elif days_until_deadline > 7:
@@ -94,9 +104,9 @@ def generate_study_sessions(task, preference):
     if not usable_days:
         usable_days = available_days
 
-    # ── Step 4: Space sessions evenly ─────────────────────────
+    # Space sessions evenly across usable days
     if num_sessions >= len(usable_days):
-        selected_days = usable_days
+        selected_days = usable_days[:num_sessions]
     else:
         step = len(usable_days) / num_sessions
         selected_days = [
@@ -114,7 +124,7 @@ def generate_study_sessions(task, preference):
     selected_days = unique_days
     num_selected = len(selected_days)
 
-    # ── Step 5: Assign hours to each session ──────────────────
+    # ── Step 5: Assign hours ensuring total = task.hours ──────
     sessions = []
     remaining_hours = total_hours
 
@@ -126,13 +136,14 @@ def generate_study_sessions(task, preference):
         available_hours = max_focus - existing_hours
 
         if available_hours <= 0:
+            # This day is full — try to find next available day
             continue
 
-        # Last session absorbs all remaining hours
+        # Last session gets ALL remaining hours
         if i == num_selected - 1:
             hours_today = min(remaining_hours, available_hours)
         else:
-            hours_today = min(actual_hours_per_session, available_hours, remaining_hours)
+            hours_today = min(hours_per_session, available_hours, remaining_hours)
 
         if hours_today < 0.5:
             continue
@@ -152,6 +163,51 @@ def generate_study_sessions(task, preference):
         })
 
         remaining_hours = round(remaining_hours - hours_today, 2)
+
+    # ── Step 6: Safety net — if hours still remaining ─────────
+    # This happens if some days were full due to other tasks
+    # Find any day with space and add remaining hours
+    if remaining_hours >= 0.5:
+        for day in available_days:
+            if remaining_hours <= 0:
+                break
+
+            existing_hours = get_daily_hours_used(task.user, day, max_focus)
+            available_hours = max_focus - existing_hours
+
+            if available_hours < 0.5:
+                continue
+
+            hours_today = min(remaining_hours, available_hours)
+
+            # Check if session already exists for this day
+            existing_session = next(
+                (s for s in sessions if s['scheduled_date'] == day), None
+            )
+
+            if existing_session:
+                # Add to existing session
+                existing_session['scheduled_hours'] = round(
+                    existing_session['scheduled_hours'] + hours_today, 2
+                )
+                existing_session['cls_contribution'] = round(
+                    (existing_session['scheduled_hours'] / total_hours) * calculate_cls(
+                        difficulty_str, task.hours, task.deadline
+                    ), 2
+                )
+            else:
+                cls_contribution = round(
+                    (hours_today / total_hours) * calculate_cls(
+                        difficulty_str, task.hours, task.deadline
+                    ), 2
+                )
+                sessions.append({
+                    'scheduled_date': day,
+                    'scheduled_hours': round(hours_today, 2),
+                    'cls_contribution': cls_contribution,
+                })
+
+            remaining_hours = round(remaining_hours - hours_today, 2)
 
     return sessions
 
