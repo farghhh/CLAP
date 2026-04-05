@@ -494,14 +494,11 @@ function normalizeScheduleData(apiData) {
       : mapDifficulty(slot.duration || 1);
 
     return {
-      /* Backend sends session_id on each slot; task_id is not in the slot response.
-         Map task_id from slot.task_id if the backend ever includes it, otherwise null.
-         Progress sync (step 4 in toggleDone) will be skipped when assignment_id is null. */
       slot_id:       slot.session_id ?? slot.id       ?? slot.slot_id ?? null,
       assignment_id: slot.task_id    ?? slot.assignment_id ?? null,
       day:           dayMap[(slot.day || '').toLowerCase()] || slot.day,
       time:          formatTime(slot.time),
-      end:           addHoursToTime(slot.time, slot.duration || 1),
+      end:           slot.end ? formatTime(slot.end) : addHoursToTime(slot.time, slot.duration || 1),
       title:         [slot.code, slot.subject].filter(Boolean).join(' '),
       difficulty,
       is_completed:  slot.is_completed || false,
@@ -714,9 +711,21 @@ window.toggleDone = async function(btn) {
     try {
       await CLAP.API.patch(`/schedule/sessions/${slotId}/complete/`, { completed: isDone });
     } catch (err) {
+      /* Revert optimistic UI on server error so state doesn't permanently de-sync */
       console.warn('[CLAP] Could not sync slot completion to server:', err);
-      /* Keep the optimistic UI state — don't revert */
+      taskBlock.classList.toggle('done', !isDone);
+      btn.classList.toggle('done', !isDone);
+      btn.title = !isDone ? 'Mark undone' : 'Mark done';
+      CLAP.Toast.error('Could not save — please try again.');
+      return;
     }
+  } else {
+    /* No slot ID — can't persist, revert and warn */
+    taskBlock.classList.toggle('done', !isDone);
+    btn.classList.toggle('done', !isDone);
+    btn.title = !isDone ? 'Mark undone' : 'Mark done';
+    CLAP.Toast.warning('Session ID missing — try regenerating your schedule.');
+    return;
   }
 
   /* Steps 3 + 5 — recalculate client-side progress and broadcast to assignments.html.

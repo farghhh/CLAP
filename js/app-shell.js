@@ -144,13 +144,8 @@ const AppShell = {
       const refresh = CLAP.Auth.getRefreshToken();
       if (refresh) {
         try {
-          /* FIX (Bug 4 — backend): POST /auth/logout/ does not exist in users/urls.py.
-             The catch {} below already handles the 404 silently, so local logout always
-             completes. However the refresh token is never blacklisted on the server —
-             anyone who captured it can keep minting new access tokens indefinitely.
-             The backend fix (see CLAP_backend_fixed.txt) adds a logout view that calls
-             RefreshToken(token).blacklist() and registers it at path('logout/', ...).
-             This frontend call is already correct — it only needs the backend endpoint. */
+          /* POST /auth/logout/ blacklists the refresh token on the server so
+             it can no longer mint new access tokens after logout. */
           await CLAP.API.post('/auth/logout/', { refresh });
         } catch {}
       }

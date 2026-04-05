@@ -826,6 +826,11 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
 (async function init(){
   await loadPrefs();
   let data;
+
+  /* Fire check-missed silently in parallel — backend reschedules yesterday's
+     missed sessions so dashboard_view can then return missed_task correctly. */
+  try { await CLAP.API.post('/schedule/check-missed/', {}); } catch { /* silent */ }
+
   try {
     data = await CLAP.API.get('/dashboard/');
   } catch (err) {
@@ -856,7 +861,7 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   if(data.today_tasks){
     data.today_tasks=data.today_tasks.map(t=>({
       id:t.id, title:t.title,
-      start:t.time||t.start||'', end:t.end||t.end_time||'',
+      start:t.time||t.start||'', end:t.end||t.end_time||t.time||'',
       color:t.color||'blue', difficulty:t.difficulty||'medium',
     }));
   }

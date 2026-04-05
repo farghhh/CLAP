@@ -176,13 +176,20 @@ const API = {
 const MockData = {
   user: { id: 1, name: 'Farisha', email: 'farisha@example.com', avatar: null },
 
-  assignments: [
-    { id: 1, course_code: 'CSC2383', title: 'Database Final Project',         deadline: '2026-03-22', hours: 6,  difficulty: 'easy',   progress: 80  },
-    { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System',      deadline: '2026-03-25', hours: 10, difficulty: 'medium', progress: 60  },
-    { id: 3, course_code: 'CSC2434', title: 'Mobile Application Development', deadline: '2026-03-31', hours: 25, difficulty: 'hard',   progress: 20  },
-    { id: 4, course_code: 'CSC2672', title: 'UI/UX Design Prototype',         deadline: '2026-04-25', hours: 20, difficulty: 'hard',   progress: 100 },
-    { id: 5, course_code: 'CSC4832', title: 'AI Research Thesis',             deadline: '2026-03-05', hours: 7,  difficulty: 'easy',   progress: 0   },
-  ],
+  get assignments() {
+    const d = (offset) => {
+      const dt = new Date();
+      dt.setDate(dt.getDate() + offset);
+      return dt.toISOString().slice(0, 10);
+    };
+    return [
+      { id: 1, course_code: 'CSC2383', title: 'Database Final Project',         deadline: d(14), hours: 6,  difficulty: 'easy',   progress: 80  },
+      { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System',      deadline: d(18), hours: 10, difficulty: 'medium', progress: 60  },
+      { id: 3, course_code: 'CSC2434', title: 'Mobile Application Development', deadline: d(25), hours: 25, difficulty: 'hard',   progress: 20  },
+      { id: 4, course_code: 'CSC2672', title: 'UI/UX Design Prototype',         deadline: d(40), hours: 20, difficulty: 'hard',   progress: 100 },
+      { id: 5, course_code: 'CSC4832', title: 'AI Research Thesis',             deadline: d(7),  hours: 7,  difficulty: 'easy',   progress: 0   },
+    ];
+  },
 
   schedule: {
     Monday:    [{ time: '09:00', title: 'Database Project', color: 'orange' }, { time: '11:00', title: 'Parallel Comp.', color: 'blue' }],

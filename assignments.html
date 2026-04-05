@@ -730,9 +730,10 @@
     /* ============================================================
        FALLBACK DATA (used when API is unreachable)
        ============================================================ */
+    const _d = (offset) => { const dt = new Date(); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0,10); };
     const MOCK = [
-      { id: 1, course_code: 'CSC2383', title: 'Database Final Project',    deadline: '2026-03-22', hours: 6,  difficulty: 'easy',   progress: 80 },
-      { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System', deadline: '2026-03-25', hours: 10, difficulty: 'medium', progress: 60 },
+      { id: 1, course_code: 'CSC2383', title: 'Database Final Project',    deadline: _d(14), hours: 6,  difficulty: 'easy',   progress: 80 },
+      { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System', deadline: _d(18), hours: 10, difficulty: 'medium', progress: 60 },
     ];
 
     /* ============================================================
