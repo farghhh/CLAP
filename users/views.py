@@ -263,8 +263,8 @@ def profile(request):
         user.save()
 
         # Save profile picture if provided
-        if profile_picture:
-            user.profile.profile_picture = profile_picture
+        if 'profile_picture' in request.data:
+            user.profile.profile_picture = profile_picture  # saves null too
             user.profile.save()
 
         return Response({
