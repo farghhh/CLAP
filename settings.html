@@ -135,7 +135,11 @@
     .form-input-wrap .pw-toggle:hover { color: var(--clap-teal); }
     .form-input-wrap .form-input { padding-right: 44px; }
 
-    /* Password strength bar (same as auth pages) */
+    /* Compact requirement pill badges */
+    .req-pill { display:flex; align-items:center; gap:5px; font-size:0.72rem; font-weight:700; padding:4px 8px; border-radius:999px; transition:background 0.2s,color 0.2s; }
+    .req-pill.req-fail { background:#fde8e8; color:#c0392b; }
+    .req-pill.req-pass { background:#e8f8ee; color:#1e8449; }
+    .req-dot { font-size:0.8rem; font-weight:800; }
     .pw-strength { margin-top:6px; }
     .pw-strength-bar { height:4px; background:#e0ecec; border-radius:999px; overflow:hidden; margin-bottom:5px; }
     .pw-strength-fill { height:100%; border-radius:999px; transition:width 0.4s, background 0.4s; width:0%; }
@@ -391,52 +395,35 @@ function panelChangePassword() {
       <!-- New Password -->
       <div class="form-group">
         <label class="form-label" for="cp-new">New Password*</label>
-        <div style="position:relative;">
-          <div class="form-input-wrap">
-            <span class="input-icon" aria-hidden="true">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </span>
-            <input class="form-input" type="password" id="cp-new"
-                   placeholder="Enter new password" autocomplete="new-password"
-                   oninput="updatePwStrength(this.value)"
-                   onblur="(function(){var r=document.getElementById('pw-reqs');if(r)r.style.display='none';})()"
-                   onfocus="(function(){var v=document.getElementById('cp-new').value;var r=document.getElementById('pw-reqs');if(r&&v)r.style.display='flex';})()" />
-            <button type="button" class="pw-toggle" id="cp-new-toggle"
-                    onclick="togglePw('cp-new','cp-new-toggle')" aria-label="Toggle password visibility">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
-              </svg>
-            </button>
-          </div>
-          <!-- Requirements checklist pops UP above the input -->
-          <div id="pw-reqs" style="
-            display:none;
-            position:absolute;
-            left:0; right:0;
-            bottom:calc(100% + 6px);
-            z-index:300;
-            background:#fff;
-            border:1px solid #d0eaea;
-            border-radius:10px;
-            box-shadow:0 -4px 20px rgba(26,58,92,0.12);
-            padding:10px 14px;
-            flex-direction:column;
-            gap:5px;
-            pointer-events:none;
-          ">
-            <div style="font-size:0.7rem;font-weight:700;color:#7a9ab5;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Password must have:</div>
-            <div class="pw-req" id="req-len"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least 8 characters</div>
-            <div class="pw-req" id="req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one uppercase letter</div>
-            <div class="pw-req" id="req-num"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one number</div>
-            <div class="pw-req" id="req-sym"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one special character</div>
-          </div>
+        <div class="form-input-wrap">
+          <span class="input-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input class="form-input" type="password" id="cp-new"
+                 placeholder="Enter new password" autocomplete="new-password"
+                 oninput="updatePwStrength(this.value)" />
+          <button type="button" class="pw-toggle" id="cp-new-toggle"
+                  onclick="togglePw('cp-new','cp-new-toggle')" aria-label="Toggle password visibility">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
         </div>
-        <!-- Strength bar below input in normal flow -->
+        <!-- Strength bar -->
         <div class="pw-strength" id="pw-strength-wrap" style="display:none;margin-top:4px;">
           <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
           <span class="pw-strength-label" id="pw-strength-label"></span>
+        </div>
+        <!-- Compact pill badges — shown while typing -->
+        <div id="pw-reqs" style="display:none;margin-top:7px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            <div id="req-len"   class="req-pill req-fail"><span class="req-dot">✗</span>8+ chars</div>
+            <div id="req-upper" class="req-pill req-fail"><span class="req-dot">✗</span>Uppercase</div>
+            <div id="req-num"   class="req-pill req-fail"><span class="req-dot">✗</span>Number</div>
+            <div id="req-sym"   class="req-pill req-fail"><span class="req-dot">✗</span>Symbol</div>
+          </div>
         </div>
       </div>
 
@@ -850,7 +837,7 @@ window.togglePw = function(inputId, btnId) {
     : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
 };
 
-/** Update password-strength indicator and requirements checklist. */
+/** Update password-strength bar and requirement pill badges. */
 window.updatePwStrength = function(val) {
   const wrap  = document.getElementById('pw-strength-wrap');
   const fill  = document.getElementById('pw-strength-fill');
@@ -864,7 +851,7 @@ window.updatePwStrength = function(val) {
     return;
   }
   wrap.style.display = 'block';
-  if (reqs) reqs.style.display = 'flex';
+  if (reqs) reqs.style.display = 'block';
 
   const checks = {
     len:   val.length >= 8,
@@ -874,14 +861,13 @@ window.updatePwStrength = function(val) {
   };
   const score = Object.values(checks).filter(Boolean).length;
 
-  /* Update checklist items with hardcoded colours (CSS vars may not resolve in injected HTML) */
-  const GREEN = '#27AE60', RED = '#E74C3C';
+  /* Update pill badges */
   Object.entries(checks).forEach(([key, ok]) => {
     const el = document.getElementById(`req-${key}`);
     if (!el) return;
-    el.style.color = ok ? GREEN : RED;
-    const icon = el.querySelector('.req-icon');
-    if (icon) icon.textContent = ok ? '✓' : '✗';
+    el.className = `req-pill ${ok ? 'req-pass' : 'req-fail'}`;
+    const dot = el.querySelector('.req-dot');
+    if (dot) dot.textContent = ok ? '✓' : '✗';
   });
 
   const levels = ['', 'weak', 'fair', 'good', 'strong'];

@@ -22,6 +22,26 @@
     .form-input-wrap { margin-bottom: 2px; }
     /* Strength bar sits just below the password input. */
     .pw-strength { padding-top: 4px; }
+    /* Compact requirement pill badges */
+    .req-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      transition: background 0.2s, color 0.2s;
+    }
+    .req-pill.req-fail {
+      background: #fde8e8;
+      color: #c0392b;
+    }
+    .req-pill.req-pass {
+      background: #e8f8ee;
+      color: #1e8449;
+    }
+    .req-dot { font-size: 0.8rem; font-weight: 800; }
   </style>
 </head>
 <body>
@@ -117,58 +137,42 @@
           <!-- Password field + strength meter + visibility toggle -->
           <div class="form-group">
             <label class="form-label sr-only" for="signup-password">Password</label>
-            <!-- Wrapper with position:relative anchors the floating checklist to the input -->
-            <div style="position:relative;">
-              <div class="form-input-wrap">
-                <span class="input-icon" aria-hidden="true">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2"/>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                  </svg>
-                </span>
-                <input
-                  type="password"
-                  id="signup-password"
-                  class="form-input"
-                  placeholder="Password"
-                  autocomplete="new-password"
-                  aria-required="true"
-                  aria-describedby="signup-password-error signup-pw-label"
-                  maxlength="128"
-                />
-                <button type="button" class="pw-toggle" id="signup-pw-toggle" aria-label="Show password">👁</button>
-              </div>
-
-              <!-- Checklist pops UP above the input — never touches button -->
-              <div id="signup-pw-reqs" style="
-                display:none;
-                position:absolute;
-                left:0; right:0;
-                bottom:calc(100% + 6px);
-                z-index:300;
-                background:#fff;
-                border:1px solid #d0eaea;
-                border-radius:10px;
-                box-shadow:0 -4px 20px rgba(26,58,92,0.12);
-                padding:10px 14px;
-                flex-direction:column;
-                gap:5px;
-                pointer-events:none;
-              ">
-                <div style="font-size:0.7rem;font-weight:700;color:#7a9ab5;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">Password must have:</div>
-                <div id="su-req-len"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least 8 characters</div>
-                <div id="su-req-upper" style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one uppercase letter</div>
-                <div id="su-req-num"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one number</div>
-                <div id="su-req-sym"   style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#E74C3C;"><span class="req-icon">✗</span> At least one special character</div>
-              </div>
+            <div class="form-input-wrap">
+              <span class="input-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="signup-password"
+                class="form-input"
+                placeholder="Password"
+                autocomplete="new-password"
+                aria-required="true"
+                aria-describedby="signup-password-error signup-pw-label"
+                maxlength="128"
+              />
+              <button type="button" class="pw-toggle" id="signup-pw-toggle" aria-label="Show password">👁</button>
             </div>
 
-            <!-- Strength bar sits below the input in normal flow -->
+            <!-- Strength bar -->
             <div class="pw-strength" aria-live="polite">
               <div class="pw-strength-bar" role="progressbar" aria-label="Password strength">
                 <div class="pw-strength-fill" id="signup-pw-bar"></div>
               </div>
               <span class="pw-strength-label" id="signup-pw-label"></span>
+            </div>
+
+            <!-- Compact pill badges — 2×2 grid, shown only while typing -->
+            <div id="signup-pw-reqs" style="display:none;margin-top:7px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <div id="su-req-len"   class="req-pill req-fail"><span class="req-dot">✗</span>8+ chars</div>
+                <div id="su-req-upper" class="req-pill req-fail"><span class="req-dot">✗</span>Uppercase</div>
+                <div id="su-req-num"   class="req-pill req-fail"><span class="req-dot">✗</span>Number</div>
+                <div id="su-req-sym"   class="req-pill req-fail"><span class="req-dot">✗</span>Symbol</div>
+              </div>
             </div>
             <span class="field-error" id="signup-password-error" role="alert"></span>
           </div>
@@ -231,37 +235,37 @@
   CLAP.initPwToggle(pwToggle, pwInp);
   CLAP.initPasswordStrength(pwInp, pwBar, pwLabel);
 
-  /* Live password requirements checklist */
+  /* Live password requirements — compact pill badges */
   pwInp.addEventListener('input', function() {
     const val = this.value;
     const reqs = document.getElementById('signup-pw-reqs');
     if (!reqs) return;
-    reqs.style.display = val ? 'flex' : 'none';
+    reqs.style.display = val ? 'block' : 'none';
     const checks = {
       len:   val.length >= 8,
       upper: /[A-Z]/.test(val),
       num:   /[0-9]/.test(val),
       sym:   /[^A-Za-z0-9]/.test(val),
     };
-    const ids = { len:'su-req-len', upper:'su-req-upper', num:'su-req-num', sym:'su-req-sym' };
+    const ids  = { len:'su-req-len', upper:'su-req-upper', num:'su-req-num', sym:'su-req-sym' };
+    const dots = { len:'✗', upper:'✗', num:'✗', sym:'✗' };
     Object.entries(checks).forEach(([key, ok]) => {
       const el = document.getElementById(ids[key]);
       if (!el) return;
-      el.style.color = ok ? '#27AE60' : '#E74C3C';
-      el.querySelector('.req-icon').textContent = ok ? '✓' : '✗';
+      el.className = `req-pill ${ok ? 'req-pass' : 'req-fail'}`;
+      el.querySelector('.req-dot').textContent = ok ? '✓' : '✗';
     });
   });
 
-  /* Hide checklist when password field loses focus */
+  /* Hide when blurring away from the field */
   pwInp.addEventListener('blur', function() {
     const reqs = document.getElementById('signup-pw-reqs');
     if (reqs) reqs.style.display = 'none';
   });
-  /* Re-show checklist when password field is focused and has a value */
   pwInp.addEventListener('focus', function() {
     if (!this.value) return;
     const reqs = document.getElementById('signup-pw-reqs');
-    if (reqs) reqs.style.display = 'flex';
+    if (reqs) reqs.style.display = 'block';
   });
 
   /* Attach live validation: shows errors on blur and clears them when fixed. */
