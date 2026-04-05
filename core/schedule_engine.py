@@ -1,17 +1,14 @@
-from datetime import date, timedelta
+from datetime import timedelta
+from django.utils import timezone
 from .cls_engine import calculate_cls, get_risk_level
 
-
-# ─────────────────────────────────────────────────────────────
-# HELPER FUNCTIONS
-# ─────────────────────────────────────────────────────────────
 
 def get_available_days(start_date, deadline):
     """Returns list of available weekdays between start_date and deadline"""
     days = []
     current = start_date
-    while current < deadline:
-        if current.weekday() < 5:  # Monday=0 to Friday=4 only
+    while current <= deadline:
+        if current.weekday() < 5:
             days.append(current)
         current += timedelta(days=1)
     return days
@@ -33,11 +30,6 @@ def get_daily_cls_percentage(user, day, max_focus):
 
 
 def get_other_tasks_hours(user, task, day):
-    """
-    Returns total hours scheduled on a day from OTHER tasks only.
-    Excludes the current task and completed sessions.
-    This is the key function that prevents double-counting.
-    """
     from schedule.models import StudySession
     other_sessions = StudySession.objects.filter(
         user=user,
@@ -48,7 +40,6 @@ def get_other_tasks_hours(user, task, day):
 
 
 def get_daily_hours_used(user, day, max_focus):
-    """Returns total hours already scheduled for a day (all tasks)"""
     from schedule.models import StudySession
     existing = StudySession.objects.filter(
         user=user,
@@ -58,18 +49,10 @@ def get_daily_hours_used(user, day, max_focus):
     return round(sum(s.scheduled_hours for s in existing), 2)
 
 
-# ─────────────────────────────────────────────────────────────
-# CORE SESSION GENERATION
-# ─────────────────────────────────────────────────────────────
-
 def generate_study_sessions(task, preference):
-    """
-    Generates study sessions guaranteeing total_hours are always scheduled.
-    """
     import math
-    from schedule.models import StudySession
 
-    today = date.today()
+    today = timezone.localdate()
     deadline = task.deadline
     total_hours = round(float(task.hours), 2)
     max_focus = round(float(preference.max_focus_hours), 2)
@@ -81,12 +64,8 @@ def generate_study_sessions(task, preference):
     if not available_days:
         return []
 
-    num_available = len(available_days)
     days_until_deadline = (deadline - today).days
 
-    # ── Step 1: Calculate available hours per day for THIS task ──
-    # Build a map of how many hours each day has available
-    # for this specific task (max_focus minus other tasks)
     day_availability = {}
     for day in available_days:
         other_hours = get_other_tasks_hours(
@@ -99,14 +78,9 @@ def generate_study_sessions(task, preference):
     if not day_availability:
         return []
 
-    # Total capacity across all days
-    total_capacity = round(sum(day_availability.values()), 2)
-
-    # ── Step 2: Minimum days needed ──────────────────────────
     min_days_needed = math.ceil(total_hours / max_focus)
     min_days_needed = max(1, min(min_days_needed, len(day_availability)))
 
-    # ── Step 3: Target days based on urgency ─────────────────
     if days_until_deadline > 14:
         target_days = min(len(day_availability), min_days_needed * 3)
     elif days_until_deadline > 7:
@@ -116,7 +90,6 @@ def generate_study_sessions(task, preference):
 
     target_days = max(1, target_days)
 
-    # ── Step 4: Hours per session ─────────────────────────────
     raw_hours = total_hours / target_days
     hours_per_session = math.ceil(raw_hours * 2) / 2
     hours_per_session = min(hours_per_session, max_focus)
@@ -125,7 +98,6 @@ def generate_study_sessions(task, preference):
     target_days = math.ceil(total_hours / hours_per_session)
     target_days = min(target_days, len(day_availability))
 
-    # ── Step 5: Pick start day based on urgency ───────────────
     all_available = list(day_availability.keys())
 
     if days_until_deadline > 14:
@@ -137,7 +109,6 @@ def generate_study_sessions(task, preference):
 
     usable_days = all_available[start_index:] or all_available
 
-    # Space sessions evenly
     if target_days >= len(usable_days):
         selected_days = list(usable_days)
     else:
@@ -147,7 +118,6 @@ def generate_study_sessions(task, preference):
             for i in range(target_days)
         ]
 
-    # Remove duplicates
     seen = set()
     unique_days = []
     for d in selected_days:
@@ -157,7 +127,6 @@ def generate_study_sessions(task, preference):
     selected_days = unique_days
     num_selected = len(selected_days)
 
-    # ── Step 6: Assign hours ──────────────────────────────────
     sessions = []
     remaining_hours = total_hours
 
@@ -190,14 +159,10 @@ def generate_study_sessions(task, preference):
             'cls_contribution': cls_contribution,
         })
 
-        # Reduce this day's availability
         day_availability[day] = round(day_availability[day] - hours_today, 2)
         remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # ── Step 7: Safety net ────────────────────────────────────
-    # Try ALL days with any remaining capacity
     if remaining_hours >= 0.5:
-        # Sort days by most available hours first
         sorted_days = sorted(
             all_available,
             key=lambda d: day_availability.get(d, 0),
@@ -243,11 +208,7 @@ def generate_study_sessions(task, preference):
             day_availability[day] = round(day_availability[day] - hours_today, 2)
             remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # ── Step 8: Last resort ───────────────────────────────────
-    # If still remaining hours, add to session with most hours
-    # This guarantees total_hours is always fully scheduled
     if remaining_hours >= 0.5 and sessions:
-        # Find session with most available capacity on its day
         best_session = max(sessions, key=lambda s: s['scheduled_hours'])
         best_session['scheduled_hours'] = round(
             best_session['scheduled_hours'] + remaining_hours, 2
@@ -257,35 +218,22 @@ def generate_study_sessions(task, preference):
                 difficulty_str, task.hours, task.deadline
             ), 2
         )
-        remaining_hours = 0
 
     return sessions
 
 
-# ─────────────────────────────────────────────────────────────
-# AUTO RESCHEDULING ENGINE
-# ─────────────────────────────────────────────────────────────
-
 def check_and_redistribute(user, preference):
-    """
-    Scans next 14 weekdays for overloaded days (CLS > 80%).
-    Finds the most moveable session and suggests moving it
-    to the lightest available day.
-    Returns recommendation dict or None.
-    """
     from schedule.models import StudySession
 
     max_focus = preference.max_focus_hours
-    today = date.today()
+    today = timezone.localdate()
 
-    # Check next 14 weekdays
     days_to_check = [
         today + timedelta(days=i)
         for i in range(14)
         if (today + timedelta(days=i)).weekday() < 5
     ]
 
-    # Find the most overloaded day
     overloaded_day = None
     overloaded_pct = 0
 
@@ -298,7 +246,6 @@ def check_and_redistribute(user, preference):
     if not overloaded_day:
         return None
 
-    # Find sessions on overloaded day sorted by lowest CLS first
     overloaded_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=overloaded_day,
@@ -308,8 +255,6 @@ def check_and_redistribute(user, preference):
     if not overloaded_sessions.exists():
         return None
 
-    # Find most moveable session
-    # (lowest CLS contribution + has more than 1 day until deadline)
     moveable_session = None
     for session in overloaded_sessions:
         days_until_deadline = (session.task.deadline - today).days
@@ -320,7 +265,6 @@ def check_and_redistribute(user, preference):
     if not moveable_session:
         return None
 
-    # Find the best day to move it to
     best_day = None
     best_pct = 100
 
@@ -341,7 +285,6 @@ def check_and_redistribute(user, preference):
     if not best_day:
         return None
 
-    # Calculate stress reduction
     new_overloaded_pct = overloaded_pct - round(
         (moveable_session.cls_contribution / (max_focus * 1.5)) * 100
     )
@@ -359,27 +302,14 @@ def check_and_redistribute(user, preference):
 
 
 def apply_recommendation(session, new_date):
-    """
-    Moves a session to a new date when user accepts recommendation.
-    """
     session.scheduled_date = new_date
     session.save()
 
 
-# ─────────────────────────────────────────────────────────────
-# PROCRASTINATION DETECTION
-# ─────────────────────────────────────────────────────────────
-
 def handle_missed_sessions(user, preference):
-    """
-    Situation 3 — Procrastination Detection.
-    Checks yesterday's incomplete sessions.
-    Marks them missed and reschedules to next available day.
-    Returns count of rescheduled sessions.
-    """
     from schedule.models import StudySession
 
-    yesterday = date.today() - timedelta(days=1)
+    yesterday = timezone.localdate() - timedelta(days=1)
     max_focus = preference.max_focus_hours
 
     missed = StudySession.objects.filter(
@@ -395,16 +325,13 @@ def handle_missed_sessions(user, preference):
     rescheduled_count = 0
 
     for session in missed:
-        # Mark as missed
         session.is_missed = True
         session.save()
 
-        # Find next available weekday with enough space
-        next_day = date.today()
+        next_day = timezone.localdate()
         deadline = session.task.deadline
 
         while next_day < deadline:
-            # Skip weekends
             if next_day.weekday() >= 5:
                 next_day += timedelta(days=1)
                 continue
@@ -424,15 +351,7 @@ def handle_missed_sessions(user, preference):
     return rescheduled_count
 
 
-# ─────────────────────────────────────────────────────────────
-# PROGRESS TRACKER
-# ─────────────────────────────────────────────────────────────
-
 def calculate_progress(task):
-    """
-    Returns progress percentage for a task
-    based on completed vs total study sessions.
-    """
     from schedule.models import StudySession
 
     total_sessions = StudySession.objects.filter(task=task)
