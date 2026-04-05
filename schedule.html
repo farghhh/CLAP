@@ -487,25 +487,84 @@ function normalizeScheduleData(apiData) {
     fri: 'Friday'
   };
 
-  const slots = (apiData.slots || []).map(slot => {
+  /* Helper: convert total minutes → formatted "H.MM AM/PM" string */
+  function minsToFormatted(totalMins) {
+    let h = Math.floor(totalMins / 60) % 24;
+    const m = totalMins % 60;
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    if (h === 0) h = 12;
+    else if (h > 12) h -= 12;
+    return `${h}.${String(m).padStart(2, '0')} ${ampm}`;
+  }
+
+  /* Helper: parse raw "HH:MM" 24h string → total minutes */
+  function rawTimeToMins(t) {
+    if (!t) return 0;
+    const [h, m] = String(t).split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+
+  /*
+   * FIX: The backend assigns slot times by index (slot 0 → study_start,
+   * slot 1 → study_start+1h, slot 2 → study_start+2h …) regardless of
+   * each session's actual duration. This causes overlapping/wrong times.
+   *
+   * Correct approach: group slots by day, then recalculate each session's
+   * start time cumulatively — session N starts where session N-1 ends.
+   * We use the backend's time field for session 0 as the anchor, then
+   * chain the rest using their actual durations.
+   */
+
+  /* First pass: build raw slots with duration info, grouped by day */
+  const rawByDay = {};
+  (apiData.slots || []).forEach(slot => {
+    const day = dayMap[(slot.day || '').toLowerCase()] || slot.day;
+    if (!rawByDay[day]) rawByDay[day] = [];
+    const sessionDuration = slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1;
     const rawDiff = slot.difficulty ?? slot.task_difficulty ?? slot.assignment_difficulty ?? null;
     const difficulty = (rawDiff !== null && rawDiff !== '')
       ? String(rawDiff).trim().toLowerCase()
-      : mapDifficulty(slot.duration || 1);
-
-    const sessionDuration = slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1;
-    return {
+      : mapDifficulty(sessionDuration);
+    rawByDay[day].push({
       slot_id:       slot.session_id ?? slot.id       ?? slot.slot_id ?? null,
       assignment_id: slot.task_id    ?? slot.assignment_id ?? null,
-      day:           dayMap[(slot.day || '').toLowerCase()] || slot.day,
-      time:          formatTime(slot.time),
-      end:           slot.end ? formatTime(slot.end) : addHoursToTime(slot.time, sessionDuration),
+      day,
+      rawTime:       slot.time,       // original "HH:MM" string for anchor
+      hasRealEnd:    !!slot.end,
+      rawEnd:        slot.end || null,
       title:         [slot.code, slot.subject].filter(Boolean).join(' '),
       difficulty,
       is_completed:  slot.is_completed || false,
-      session_hours: sessionDuration,
-      total_hours:   slot.total_hours ?? slot.task_hours ?? null,
-    };
+      duration:      sessionDuration,
+    });
+  });
+
+  /* Second pass: for each day, recalculate start/end times cumulatively */
+  const slots = [];
+  Object.values(rawByDay).forEach(daySessions => {
+    /* Anchor: use first session's raw time as the day's study start */
+    let curMins = rawTimeToMins(daySessions[0].rawTime);
+
+    daySessions.forEach(s => {
+      const startMins = curMins;
+      const durationMins = Math.round(s.duration * 60);
+      const endMins = startMins + durationMins;
+
+      slots.push({
+        slot_id:       s.slot_id,
+        assignment_id: s.assignment_id,
+        day:           s.day,
+        time:          minsToFormatted(startMins),
+        end:           s.hasRealEnd ? formatTime(s.rawEnd) : minsToFormatted(endMins),
+        title:         s.title,
+        difficulty:    s.difficulty,
+        is_completed:  s.is_completed,
+        duration:      s.duration,
+      });
+
+      /* Next session starts where this one ends */
+      curMins = endMins;
+    });
   });
 
   return {
