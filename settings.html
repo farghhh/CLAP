@@ -219,13 +219,16 @@ async function loadPreferences() {
     if (stored) prefs = JSON.parse(stored);
   } catch {}
 
+  /* Fetch fresh profile first so user.name / user.email are correct
+     before the panel renders. Without this, the panel shows whatever
+     was last in localStorage — which may be stale or empty. */
   try {
     const profileData = await CLAP.API.get('/auth/profile/');
     if (profileData) {
-        user.name  = profileData.name;
-        user.email = profileData.email;
-        user.profile_picture = profileData.profile_picture || '';
-        localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
+      user.name            = profileData.name;
+      user.email           = profileData.email;
+      user.profile_picture = profileData.profile_picture || '';
+      localStorage.setItem(CLAP.CONFIG.USER_KEY, JSON.stringify(user));
     }
   } catch {}
 
@@ -654,9 +657,26 @@ window.commitInlineEdit = function(field) {
   const newVal = input.value.trim();
   if (!newVal) { CLAP.Toast.error('Field cannot be empty.'); return; }
 
+  /* Basic email format check */
+  if (field === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newVal)) {
+    CLAP.Toast.error('Please enter a valid email address.');
+    return;
+  }
+
   user[field] = newVal;
-  document.getElementById('val-' + field).textContent = newVal;
-  CLAP.Toast.success(`${field.charAt(0).toUpperCase() + field.slice(1)} updated. Click Save Changes to persist.`);
+
+  /* Collapse the inline input back to plain display text */
+  const valEl = document.getElementById('val-' + field);
+  if (valEl) valEl.textContent = newVal;
+
+  /* Reset the Edit button label */
+  const row = document.getElementById('row-' + field);
+  if (row) {
+    const editBtn = row.querySelector('.edit-btn');
+    if (editBtn) editBtn.textContent = 'Edit';
+  }
+
+  CLAP.Toast.info(`${field.charAt(0).toUpperCase() + field.slice(1)} updated — click Save Changes to persist.`);
 };
 
 window.cancelInlineEdit = function(field, originalVal) {
@@ -696,26 +716,56 @@ function attachAvatarHandlers() {
 
 window.saveProfile = async function() {
   const userKey = CLAP.CONFIG.USER_KEY || 'clap_user';
+  const btn = document.querySelector('.save-changes-btn');
+
+  /* Read the latest values directly from the DOM in case the user
+     typed in an inline input but didn't click its inner "Save" button. */
+  const nameInput  = document.getElementById('edit-input-name');
+  const emailInput = document.getElementById('edit-input-email');
+  if (nameInput  && nameInput.value.trim())  user.name  = nameInput.value.trim();
+  if (emailInput && emailInput.value.trim()) user.email = emailInput.value.trim();
+
+  if (!user.name || !user.email) {
+    CLAP.Toast.error('Name and email cannot be empty.');
+    return;
+  }
+
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  /* Only send profile_picture when it was explicitly changed this session.
+     avatarDataUrl is set by the file picker (new photo) or set to null by
+     the Remove button. It is undefined when never touched — in that case
+     we send the existing server value so nothing gets wiped. */
+  const picturePayload = user.avatarDataUrl !== undefined
+    ? user.avatarDataUrl   // may be a data-URL string (new photo) or null (removed)
+    : user.profile_picture; // unchanged — send existing value back
 
   try {
     const data = await CLAP.API.put('/auth/profile/', {
-      name:  user.name,
-      email: user.email,
-      profile_picture: user.avatarDataUrl !== undefined ? user.avatarDataUrl : user.profile_picture,
+      name:            user.name,
+      email:           user.email,
+      profile_picture: picturePayload,
     });
     if (data) {
-      user.name  = data.name  || user.name;
-      user.email = data.email || user.email;
+      user.name            = data.name            || user.name;
+      user.email           = data.email           || user.email;
+      user.profile_picture = data.profile_picture ?? user.profile_picture;
     }
+    /* Clear the pending avatar change now that it's persisted */
+    delete user.avatarDataUrl;
     localStorage.setItem(userKey, JSON.stringify(user));
     CLAP.Toast.success('Profile saved!');
   } catch (err) {
+    /* Save locally so changes aren't lost, but surface the real server error */
     localStorage.setItem(userKey, JSON.stringify(user));
-    if (err && err.data && err.data.error) {
-      CLAP.Toast.error(err.data.error);
+    const msg = err?.data?.error || err?.message;
+    if (msg) {
+      CLAP.Toast.error(msg);
     } else {
       CLAP.Toast.success('Profile saved locally!');
     }
+  } finally {
+    if (btn) { btn.textContent = 'Save Changes'; btn.disabled = false; }
   }
 };
 
@@ -971,7 +1021,10 @@ window.saveStudyPrefs = async function() {
   CLAP.Toast.success('Study preferences saved!');
 };
 
-loadPreferences();
+loadPreferences().then(() => {
+  /* Open General > Profile by default so the panel is never blank on load */
+  setSection('general-menu');
+});
 </script>
 </body>
 </html>
