@@ -371,7 +371,11 @@ async function confirmRegenerate() {
 
   try {
     await CLAP.API.post('/schedule/regenerate/', {});
-    CLAP.Toast.success('New schedule generated successfully!');
+    if (response.still_overloaded && response.warning) {
+      CLAP.Toast.warning(response.warning);
+    } else {
+      CLAP.Toast.success('New schedule generated successfully!');
+    }
     loadAnalytics(+document.getElementById('period-select').value);
   } catch (err) {
     CLAP.Toast.error(err.message || 'Failed to regenerate schedule.');

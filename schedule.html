@@ -901,12 +901,16 @@ document.getElementById('regen-confirm').addEventListener('click', async () => {
   btn.style.opacity = '0.7';
 
   try {
-    /* FIX (Bug 4): POST /schedule/regenerate/ returns only { message } — no slots.
-       Rendering that response always produced a blank timetable.
-       Instead: fire the regenerate call, then re-fetch the fresh schedule. */
-    await CLAP.API.post('/schedule/regenerate/', {});
-    await loadSchedule(weekOffset);
-    CLAP.Toast.success('Schedule regenerated!');
+    const response = await CLAP.API.post('/schedule/regenerate/', {});
+    if (response.still_overloaded && response.warning) {
+      CLAP.Toast.warning(response.warning);
+    } else {
+      CLAP.Toast.success('Schedule regenerated!');
+    }
+
+    //Reload schedule
+    loadSchedule(weekOffset);
+    
   } catch (err) {
     console.error('REGENERATE ERROR:', err);
     CLAP.Toast.error('Could not regenerate schedule.');
