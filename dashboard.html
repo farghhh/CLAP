@@ -357,7 +357,19 @@ AppShell.init('dashboard.html', { showTopbar: false });
 /* Greeting */
 const _u  = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
-document.getElementById('db-av').textContent    = (_u.name || 'S').charAt(0).toUpperCase();
+const _avEl = document.getElementById('db-av');
+if (_u.profile_picture) {
+  _avEl.textContent = '';
+  _avEl.style.background = 'transparent';
+  _avEl.style.padding = '0';
+  const _avImg = document.createElement('img');
+  _avImg.src = _u.profile_picture;
+  _avImg.alt = _u.name || 'Profile';
+  _avImg.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+  _avEl.appendChild(_avImg);
+} else {
+  _avEl.textContent = (_u.name || 'S').charAt(0).toUpperCase();
+}
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
 /* ── User preferences ──────────────────────────────────────

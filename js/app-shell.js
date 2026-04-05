@@ -96,23 +96,29 @@ const AppShell = {
   },
 
   _injectTopbar(opts = {}) {
-    /* Respect explicit opt-out — don't rely on #topbar being absent */
-    if (opts.showTopbar === false) return;
+    /* Topbar is opt-in: only inject when showTopbar is explicitly true.
+       Dashboard uses its own custom .db-topbar — no other page needs this. */
+    if (opts.showTopbar !== true) return;
     const el = document.getElementById('topbar');
     if (!el) return;
     const user = CLAP.Auth.getUser() || {};
     const name = user.name || 'Student';
     const first = name.split(' ')[0];
+    const avatarContent = user.profile_picture
+      ? `<img src="${user.profile_picture}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+      : name.charAt(0).toUpperCase();
+    const avatarBg = user.profile_picture
+      ? 'background:transparent;'
+      : 'background:var(--bg-light);font-family:var(--font-heading);font-weight:800;font-size:1.3rem;color:var(--clap-teal);';
 
     el.innerHTML = `
       <div class="topbar-user">
         <div class="topbar-avatar" aria-hidden="true"
              style="width:52px;height:52px;border-radius:50%;overflow:hidden;
-                    background:var(--bg-light);display:flex;align-items:center;
-                    justify-content:center;font-family:var(--font-heading);
-                    font-weight:800;font-size:1.3rem;color:var(--clap-teal);
+                    ${avatarBg}display:flex;align-items:center;
+                    justify-content:center;
                     border:3px solid var(--clap-teal-light);flex-shrink:0;">
-          ${name.charAt(0).toUpperCase()}
+          ${avatarContent}
         </div>
         <div class="topbar-greeting">
           <h2>Welcome Back, ${first}!</h2>
