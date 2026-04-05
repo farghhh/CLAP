@@ -839,7 +839,18 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   /* Calendar: always use assignment_due_dates (the canonical field) */
   renderCalendar(data.assignment_due_dates || null);
   renderTodo(data.today_tasks, upcomingTasks);
-  showMissedModal(data.missed_task);
+  const DEMO_MODE = true;
+  const DEMO_MISSED_TASK = {
+    task_title: 'Data Structures Revision',
+    task_day: 'Yesterday',
+    task_start: '2:00 PM',
+    task_end: '3:00 PM',
+    reschedule_day: 'Today',
+    reschedule_start: '8:00 PM',
+    reschedule_end: '9:00 PM'
+  };
+
+  showMissedModal(DEMO_MODE ? DEMO_MISSED_TASK : data.missed_task);
 })();
 </script>
 </body>
