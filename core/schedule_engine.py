@@ -165,8 +165,9 @@ def generate_study_sessions(task, preference):
 
         remaining_hours = round(remaining_hours - hours_today, 2)
 
-    # ── Step 6: Safety net for any remaining hours ────────────
+    # ── Step 6: Safety net — look beyond selected days ────────
     if remaining_hours >= 0.5:
+        # Try ALL available days not just selected ones
         for day in available_days:
             if remaining_hours <= 0:
                 break
