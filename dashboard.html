@@ -559,6 +559,49 @@ function hasAnySchedule(schedule) {
   return !!schedule && Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
 }
 
+async function shouldTreatNextWeekAsCurrentWeek() {
+  try {
+    const items = await CLAP.API.get('/assignments/');
+    if (!Array.isArray(items) || items.length === 0) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const monday = new Date(today);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+    monday.setHours(0, 0, 0, 0);
+
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+
+    return items.some(item => {
+      const raw = item?.deadline ?? item?.due_date ?? null;
+      if (!raw) return false;
+      const dl = new Date(raw);
+      if (isNaN(dl)) return false;
+      dl.setHours(12, 0, 0, 0);
+      return dl >= monday && dl <= friday;
+    });
+  } catch (err) {
+    console.warn('[CLAP] Could not inspect assignments for dashboard week alignment:', err);
+    return false;
+  }
+}
+
+function buildTodayTasksFromSchedule(schedule) {
+  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const todaySessions = (schedule && schedule[todayName]) || [];
+  return todaySessions.map((s, i) => ({
+    id: s.session_id ?? s.id ?? (Date.now() + i),
+    title: s.title || s.subject || '',
+    start: s.time || '',
+    end: s.end || '',
+    difficulty: (s.difficulty || 'medium').toLowerCase(),
+  })).filter(t => t.title);
+}
+
 function normalizeScheduleApiToDashboard(apiData) {
   const dayMap = { mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday' };
   const out = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[] };
@@ -995,11 +1038,16 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
       const nextWeekApi = await CLAP.API.get('/schedule/?week_offset=1');
       const nextWeekSchedule = normalizeScheduleApiToDashboard(nextWeekApi);
       if (hasAnySchedule(nextWeekSchedule)) {
+        const useNextWeekAsCurrent = await shouldTreatNextWeekAsCurrentWeek();
         data.schedule = nextWeekSchedule;
         window._scheduleCache = nextWeekSchedule;
-        dashboardPlanLabel = 'Next Week';
+        dashboardPlanLabel = useNextWeekAsCurrent ? 'This Week' : 'Next Week';
       }
     } catch { /* keep current-week empty state */ }
+  }
+
+  if (!data.today_tasks || data.today_tasks.length === 0) {
+    data.today_tasks = buildTodayTasksFromSchedule(data.schedule || {});
   }
 
   /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
