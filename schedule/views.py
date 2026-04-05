@@ -5,13 +5,15 @@ from rest_framework import status
 from .models import StudySession
 from tasks.models import Task
 from sleep.models import SleepStudyPreference
-from datetime import date, timedelta
+from datetime import date, timedelta, time
 from core.schedule_engine import generate_study_sessions, calculate_progress
 
 # Day name helpers
 DAY_MAP = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
 DAY_FULL = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday'}
 COLORS = ['orange', 'blue', 'red', 'purple', 'green']
+DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
+
 
 def get_week_dates(week_offset=0):
     today = date.today()
@@ -19,13 +21,54 @@ def get_week_dates(week_offset=0):
     monday = monday + timedelta(weeks=week_offset)
     return [monday + timedelta(days=i) for i in range(5)]
 
-# for schedule generation in both schedule.html and dashboard.html
+
+def build_time_slots(start_time, max_hours):
+    """Build list of hourly time slots starting from study start time"""
+    slots = []
+    current_hour = start_time.hour
+    current_minute = start_time.minute
+    for _ in range(int(max_hours)):
+        slots.append(f'{str(current_hour).zfill(2)}:{str(current_minute).zfill(2)}')
+        current_hour += 1
+        if current_hour >= 24:
+            break
+    return slots
+
+
+def get_user_preference(user):
+    """Get user preference or return defaults"""
+    try:
+        preference = SleepStudyPreference.objects.get(user=user)
+        return {
+            'max_focus': preference.max_focus_hours,
+            'max_cls': preference.max_focus_hours * 1.5,
+            'study_start': preference.active_study_start,
+            'preference': preference,
+        }
+    except SleepStudyPreference.DoesNotExist:
+        return {
+            'max_focus': 6.0,
+            'max_cls': 9.0,
+            'study_start': time(9, 0),
+            'preference': None,
+        }
+
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def schedule_view(request):
     user = request.user
     week_offset = int(request.GET.get('week_offset', 0))
     week_dates = get_week_dates(week_offset)
+
+    # Get user preference once
+    pref_data = get_user_preference(user)
+    max_cls = pref_data['max_cls']
+    max_focus = pref_data['max_focus']
+    study_start = pref_data['study_start']
+
+    # Build time slots from user's study start time
+    available_times = build_time_slots(study_start, max_focus)
 
     # Get all sessions for this week
     sessions = StudySession.objects.filter(
@@ -39,7 +82,6 @@ def schedule_view(request):
     for i, task in enumerate(tasks):
         task_colors[task.task_id] = COLORS[i % len(COLORS)]
 
-    # Build slots list
     slots = []
     daily_load = {}
 
@@ -47,20 +89,13 @@ def schedule_view(request):
         day_key = DAY_MAP[day_date.weekday()]
         day_sessions = sessions.filter(scheduled_date=day_date)
 
+        # Calculate daily CLS percentage
         total_cls = sum(s.cls_contribution for s in day_sessions)
-        try:
-            preference = SleepStudyPreference.objects.get(user=user)
-            max_cls = preference.max_focus_hours * 1.5
-        except SleepStudyPreference.DoesNotExist:
-            max_cls = 9.0
-
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
         daily_load[day_key] = cls_pct
 
-        # Sort sessions by hours to assign time slots
+        # Sort sessions by hours descending
         sorted_sessions = sorted(day_sessions, key=lambda s: s.scheduled_hours, reverse=True)
-        available_times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00']
-        diff_display = {1: 'easy', 2: 'medium', 3: 'hard'}
 
         for i, session in enumerate(sorted_sessions):
             if i >= len(available_times):
@@ -74,7 +109,7 @@ def schedule_view(request):
                 'color': task_colors.get(session.task.task_id, 'blue'),
                 'session_id': session.session_id,
                 'task_id': session.task.task_id,
-                'difficulty': diff_display.get(session.task.difficulty, 'easy'),
+                'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
                 'is_completed': session.is_completed,
             })
 
@@ -83,7 +118,10 @@ def schedule_view(request):
     overloaded_days = {k: v for k, v in daily_load.items() if v >= 80}
     if overloaded_days:
         worst_day = max(overloaded_days, key=overloaded_days.get)
-        day_names = {'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday', 'thu': 'Thursday', 'fri': 'Friday'}
+        day_names = {
+            'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
+            'thu': 'Thursday', 'fri': 'Friday'
+        }
         recommendation = {
             'alert': f'{day_names.get(worst_day, worst_day)} exceeds safe cognitive load at {overloaded_days[worst_day]}%.',
             'suggestion': f'Consider moving a task from {day_names.get(worst_day, worst_day)} to a less loaded day.',
@@ -96,7 +134,7 @@ def schedule_view(request):
         'recommendation': recommendation,
     }, status=status.HTTP_200_OK)
 
-# schedule display in dashboard.html
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_view(request):
@@ -104,7 +142,12 @@ def dashboard_view(request):
     today = date.today()
     week_dates = get_week_dates()
 
-    # Total tasks
+    # Get user preference once
+    pref_data = get_user_preference(user)
+    max_focus = pref_data['max_focus']
+    max_cls = pref_data['max_cls']
+
+    # Total incomplete tasks
     tasks = Task.objects.filter(user=user, is_completed=False)
     total_tasks = tasks.count()
 
@@ -119,6 +162,12 @@ def dashboard_view(request):
             'days_left': days_left
         }
 
+    # Build color map per task
+    all_tasks = Task.objects.filter(user=user)
+    task_colors = {}
+    for i, task in enumerate(all_tasks):
+        task_colors[task.task_id] = COLORS[i % len(COLORS)]
+
     # Today's sessions
     today_sessions = StudySession.objects.filter(
         user=user,
@@ -126,13 +175,8 @@ def dashboard_view(request):
         is_completed=False
     ).select_related('task')
 
-    task_colors = {}
-    all_tasks = Task.objects.filter(user=user)
-    for i, task in enumerate(all_tasks):
-        task_colors[task.task_id] = COLORS[i % len(COLORS)]
-
-    today_tasks = []
     times = ['09:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM']
+    today_tasks = []
     for i, session in enumerate(today_sessions):
         if i >= len(times):
             break
@@ -144,16 +188,9 @@ def dashboard_view(request):
             'done': session.is_completed,
         })
 
-    # Today's focus hours
-    try:
-        preference = SleepStudyPreference.objects.get(user=user)
-        max_focus = preference.max_focus_hours
-    except SleepStudyPreference.DoesNotExist:
-        max_focus = 6.0
-
     used_hours = sum(s.scheduled_hours for s in today_sessions)
 
-    # Stress history (last 5 days)
+    # Stress history for this week
     stress_history = {}
     day_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
     for i, day_date in enumerate(week_dates):
@@ -162,12 +199,13 @@ def dashboard_view(request):
             scheduled_date=day_date
         )
         total_cls = sum(s.cls_contribution for s in day_sessions)
-        max_cls = max_focus * 1.5
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
         stress_history[day_labels[i]] = cls_pct
 
-    # Current cognitive load (today)
-    today_cls = stress_history.get(day_labels[today.weekday()] if today.weekday() < 5 else 'Mon', 0)
+    # Current cognitive load
+    today_cls = stress_history.get(
+        day_labels[today.weekday()] if today.weekday() < 5 else 'Mon', 0
+    )
     if today_cls >= 80:
         cog_level = 'high'
     elif today_cls >= 50:
@@ -175,7 +213,7 @@ def dashboard_view(request):
     else:
         cog_level = 'low'
 
-    # Schedule for dashboard timetable (same as schedule view)
+    # Schedule for dashboard timetable
     sessions_this_week = StudySession.objects.filter(
         user=user,
         scheduled_date__range=[week_dates[0], week_dates[4]]
@@ -186,12 +224,9 @@ def dashboard_view(request):
         day_name = DAY_FULL.get(day_date.weekday())
         if not day_name:
             continue
-
         day_sessions = sessions_this_week.filter(scheduled_date=day_date)
         available_times = ['09:00', '10:00', '11:00', '12:00', '13:00']
         schedule[day_name] = []
-        diff_display = {1: 'easy', 2: 'medium', 3: 'hard'}
-
         for i, session in enumerate(day_sessions):
             if i >= len(available_times):
                 break
@@ -199,7 +234,7 @@ def dashboard_view(request):
                 'time': available_times[i],
                 'title': session.task.title,
                 'color': task_colors.get(session.task.task_id, 'blue'),
-                'difficulty': diff_display.get(session.task.difficulty, 'easy'),
+                'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
             })
 
     # Recommendation
@@ -237,7 +272,10 @@ def complete_session(request, session_id):
     try:
         session = StudySession.objects.get(session_id=session_id, user=request.user)
     except StudySession.DoesNotExist:
-        return Response({'error': 'Session not found'}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {'error': 'Session not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
 
     completed = request.data.get('completed', True)
     session.is_completed = completed
@@ -255,6 +293,7 @@ def complete_session(request, session_id):
         'is_completed': session.is_completed,
     }, status=status.HTTP_200_OK)
 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def regenerate_schedule(request):
@@ -262,9 +301,6 @@ def regenerate_schedule(request):
 
     # Delete all incomplete sessions
     StudySession.objects.filter(user=user, is_completed=False).delete()
-
-    # Regenerate for all incomplete tasks
-    tasks = Task.objects.filter(user=user, is_completed=False).order_by('deadline')
 
     try:
         preference = SleepStudyPreference.objects.get(user=user)
@@ -274,6 +310,8 @@ def regenerate_schedule(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    # Regenerate for all incomplete tasks sorted by deadline
+    tasks = Task.objects.filter(user=user, is_completed=False).order_by('deadline')
     for task in tasks:
         sessions = generate_study_sessions(task, preference)
         for session in sessions:
@@ -285,12 +323,10 @@ def regenerate_schedule(request):
                 cls_contribution=session['cls_contribution'],
             )
 
-    # Return success message
     return Response({
         'message': 'Schedule regenerated successfully!',
     }, status=status.HTTP_200_OK)
 
-#accept recommendatison function
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -313,7 +349,6 @@ def accept_recommendation(request, session_id):
         )
 
     try:
-        from datetime import date
         new_date = date.fromisoformat(suggested_date)
     except ValueError:
         return Response(
@@ -321,16 +356,13 @@ def accept_recommendation(request, session_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Apply the recommendation
     from core.schedule_engine import apply_recommendation, check_and_redistribute
     apply_recommendation(session, new_date)
 
-    # Check if there's still overload after moving
-    try:
-        preference = SleepStudyPreference.objects.get(user=user)
-        new_recommendation = check_and_redistribute(user, preference)
-    except SleepStudyPreference.DoesNotExist:
-        new_recommendation = None
+    pref_data = get_user_preference(user)
+    new_recommendation = None
+    if pref_data['preference']:
+        new_recommendation = check_and_redistribute(user, pref_data['preference'])
 
     response_data = {
         'message': 'Session rescheduled successfully!',
@@ -349,25 +381,22 @@ def accept_recommendation(request, session_id):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
-# PROCRASTINATION CHECK ENDPOINT
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def check_missed(request):
     user = request.user
 
-    try:
-        preference = SleepStudyPreference.objects.get(user=user)
-    except SleepStudyPreference.DoesNotExist:
+    pref_data = get_user_preference(user)
+    if not pref_data['preference']:
         return Response(
             {'error': 'Preferences not set'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     from core.schedule_engine import handle_missed_sessions, check_and_redistribute
-    rescheduled = handle_missed_sessions(user, preference)
-
-    recommendation = check_and_redistribute(user, preference)
+    rescheduled = handle_missed_sessions(user, pref_data['preference'])
+    recommendation = check_and_redistribute(user, pref_data['preference'])
 
     response_data = {
         'message': f'{rescheduled} missed session(s) rescheduled.',
