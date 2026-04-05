@@ -842,6 +842,7 @@ function renderSchedule(data) {
 /*
  * Auto-advance: if the current week has no slots on initial load,
  * silently try next week so the page never opens blank.
+ * If both weeks are empty, stay on current week and show empty state.
  */
 async function loadSchedule(offset = 0, options = {}) {
   const { forceShow = false, silent = false } = options;
@@ -853,54 +854,62 @@ async function loadSchedule(offset = 0, options = {}) {
 
   if (!silent) hideWeekBanner();
 
+  /* ── Fetch current week ── */
+  let apiData;
   try {
-    const apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
-    const normalizedData = normalizeScheduleData(apiData);
-    normalizedData.week = currentWeekLabel;
-
-    /* Auto-advance: if THIS is an initial load of the current week and it's empty,
-       silently check next week and jump there so the page never opens blank. */
-    if (weekOffset === 0 && !forceShow && !hasScheduleSlots(normalizedData)) {
-      try {
-        const nextApiData = await CLAP.API.get('/schedule/?week_offset=1');
-        const nextData = normalizeScheduleData(nextApiData);
-
-        if (hasScheduleSlots(nextData)) {
-          /* Update offset and all labels to correctly reflect next week */
-          weekOffset = 1;
-          updateWeekNavLabel();
-          const nextWeekLabel = getWeekLabelFromOffset(weekOffset);
-          nextData.week = nextWeekLabel;
-          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextWeekLabel}`;
-
-          renderSchedule(nextData);
-
-          if (!silent) {
-            showWeekBanner(
-              `No schedule for ${currentWeekLabel} — showing next week.`,
-              {
-                actionLabel: 'View this week',
-                onAction: () => {
-                  loadSchedule(0, { forceShow: true });
-                },
-                duration: 5000,
-              }
-            );
-          }
-          return;
-        }
-      } catch (nextErr) {
-        console.warn('[CLAP] Next-week fallback failed:', nextErr);
-      }
-    }
-
-    renderSchedule(normalizedData);
+    apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
   } catch (err) {
     console.error('[CLAP] Schedule load error:', err);
-    const mockData = { ...getMock(), week: currentWeekLabel };
-    renderSchedule(mockData);
-    CLAP.Toast.error('Could not load schedule. Showing fallback data.');
+    CLAP.Toast.error('Could not load schedule. Please try again.');
+    renderSchedule({ week: currentWeekLabel, slots: [] });
+    return;
   }
+
+  /* null = 401 expired session, API is already redirecting to sign-in */
+  if (apiData === null) return;
+
+  const normalizedData = normalizeScheduleData(apiData);
+  normalizedData.week = currentWeekLabel;
+
+  /* ── Auto-advance: current week empty → try next week ── */
+  if (weekOffset === 0 && !forceShow && !hasScheduleSlots(normalizedData)) {
+    let nextApiData = null;
+    try {
+      nextApiData = await CLAP.API.get('/schedule/?week_offset=1');
+    } catch (nextErr) {
+      console.warn('[CLAP] Next-week check failed:', nextErr);
+    }
+
+    /* Only advance if we got a real response that actually has slots */
+    if (nextApiData !== null && nextApiData !== undefined) {
+      const nextData = normalizeScheduleData(nextApiData);
+
+      if (hasScheduleSlots(nextData)) {
+        weekOffset = 1;
+        updateWeekNavLabel();
+        const nextWeekLabel = getWeekLabelFromOffset(weekOffset);
+        nextData.week = nextWeekLabel;
+        document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextWeekLabel}`;
+
+        renderSchedule(nextData);
+
+        if (!silent) {
+          showWeekBanner(
+            `No schedule for ${currentWeekLabel} — showing next week.`,
+            {
+              actionLabel: 'View this week',
+              onAction: () => { loadSchedule(0, { forceShow: true }); },
+              duration: 5000,
+            }
+          );
+        }
+        return;
+      }
+    }
+    /* Both weeks empty (or next-week fetch failed/null) — fall through to render current week empty */
+  }
+
+  renderSchedule(normalizedData);
 }
 
 /* ── DONE TOGGLE ─────────────────────────────────────────── */
