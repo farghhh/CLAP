@@ -227,33 +227,31 @@ def reset_password(request):
         'message': 'Password reset successfully!'
     }, status=status.HTTP_200_OK)
 
-#change email and password function
+#change email, password and profile picture function
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def profile(request):
     user = request.user
 
-    #return profile info
     if request.method == 'GET':
         return Response({
             'name': user.username,
             'email': user.email,
             'onboarding_complete': user.profile.onboarding_complete,
+            'profile_picture': user.profile.profile_picture or '',
         }, status=status.HTTP_200_OK)
 
-    #update profile info
     if request.method == 'PUT':
         name = request.data.get('name', user.username)
         email = request.data.get('email', user.email)
+        profile_picture = request.data.get('profile_picture', None)
 
-        #check if new email is taken by another user
         if email != user.email and User.objects.filter(email=email).exists():
             return Response(
                 {'error': 'Email already in use'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Check if new name is taken by another user
         if name != user.username and User.objects.filter(username=name).exists():
             return Response(
                 {'error': 'Username already taken'},
@@ -264,10 +262,16 @@ def profile(request):
         user.email = email
         user.save()
 
+        # Save profile picture if provided
+        if profile_picture:
+            user.profile.profile_picture = profile_picture
+            user.profile.save()
+
         return Response({
             'message': 'Profile updated successfully!',
             'name': user.username,
             'email': user.email,
+            'profile_picture': user.profile.profile_picture or '',
         }, status=status.HTTP_200_OK)
 
 
