@@ -42,12 +42,6 @@ def get_daily_hours_used(user, day, max_focus):
 # CORE SESSION GENERATION
 
 def generate_study_sessions(task, preference):
-    """
-    Smart session generation based on:
-    - Difficulty-based session length
-    - Urgency-based start timing
-    - Fair daily distribution
-    """
     import math
     from schedule.models import StudySession
 
@@ -74,33 +68,33 @@ def generate_study_sessions(task, preference):
     else:                         # hard
         ideal_session = 1.5
 
-    # Cap session at max_focus and at total_hours
     ideal_session = min(ideal_session, max_focus, total_hours)
-    ideal_session = max(ideal_session, 1.0)  # minimum 1 hour
+    ideal_session = max(ideal_session, 1.0)
 
     # ── Step 2: How many sessions needed ─────────────────────
     num_sessions = math.ceil(total_hours / ideal_session)
-    num_sessions = min(num_sessions, num_available)  # can't exceed available days
+    num_sessions = min(num_sessions, num_available)
+
+    # Recalculate actual hours per session after capping
+    # This ensures all hours are distributed even with fewer days
+    actual_hours_per_session = min(
+        math.ceil((total_hours / num_sessions) * 2) / 2,  # round up to nearest 0.5
+        max_focus
+    )
 
     # ── Step 3: Determine start day based on urgency ──────────
     if days_until_deadline > 14:
-        # Far deadline — start from middle of available days
-        # Give student breathing room early
         start_index = num_available // 3
     elif days_until_deadline > 7:
-        # Medium deadline — start from first quarter
         start_index = num_available // 5
     else:
-        # Urgent — start immediately
         start_index = 0
 
-    # Get the days we'll actually use
     usable_days = available_days[start_index:]
-
     if not usable_days:
-        usable_days = available_days  # fallback to all days
+        usable_days = available_days
 
-    # ── Step 4: Space sessions evenly across usable days ──────
+    # ── Step 4: Space sessions evenly ─────────────────────────
     if num_sessions >= len(usable_days):
         selected_days = usable_days
     else:
@@ -110,7 +104,7 @@ def generate_study_sessions(task, preference):
             for i in range(num_sessions)
         ]
 
-    # Remove duplicates while preserving order
+    # Remove duplicates
     seen = set()
     unique_days = []
     for d in selected_days:
@@ -118,31 +112,27 @@ def generate_study_sessions(task, preference):
             seen.add(d)
             unique_days.append(d)
     selected_days = unique_days
+    num_selected = len(selected_days)
 
     # ── Step 5: Assign hours to each session ──────────────────
     sessions = []
     remaining_hours = total_hours
-    num_selected = len(selected_days)
 
     for i, day in enumerate(selected_days):
         if remaining_hours <= 0:
             break
 
-        # Check existing load on this day
         existing_hours = get_daily_hours_used(task.user, day, max_focus)
         available_hours = max_focus - existing_hours
-
-        # Cap per task per day at 3 hours to allow room for other tasks
-        max_per_task_per_day = min(3.0, available_hours, max_focus)
 
         if available_hours <= 0:
             continue
 
-        # Last session gets all remaining hours
+        # Last session absorbs all remaining hours
         if i == num_selected - 1:
             hours_today = min(remaining_hours, available_hours)
         else:
-            hours_today = min(ideal_session, max_per_task_per_day, remaining_hours)
+            hours_today = min(actual_hours_per_session, available_hours, remaining_hours)
 
         if hours_today < 0.5:
             continue
