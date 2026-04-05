@@ -81,11 +81,43 @@
     .cal-d:hover  { background:var(--bg-light); }
     .cal-d.today  { background:var(--clap-teal); color:#fff; border-radius:50%; font-weight:800; }
     .cal-d.om     { color:var(--border); }
-    .cal-d::after { content:''; display:block; width:4px; height:4px; border-radius:50%; margin:1px auto 0; }
-    .dot-teal::after   { background:var(--clap-teal); }
-    .dot-red::after    { background:#E74C3C; }
-    .dot-green::after  { background:#27AE60; }
-    .dot-orange::after { background:#F5A623; }
+    /* Calendar dots — assignment due dates only, always red */
+    .cal-d { position:relative; }
+    .cal-d::after { content:''; display:block; width:5px; height:5px; border-radius:50%; margin:1px auto 0; }
+    .has-due::after { background:#E74C3C; }
+
+    /* Hover tooltip for due-date days */
+    .cal-d[data-due]:hover .cal-tooltip,
+    .cal-d[data-due]:focus .cal-tooltip { display:block; }
+    .cal-tooltip {
+      display:none;
+      position:absolute;
+      bottom:calc(100% + 6px);
+      left:50%;
+      transform:translateX(-50%);
+      background:#1a3a5c;
+      color:#fff;
+      font-size:0.68rem;
+      font-weight:600;
+      white-space:nowrap;
+      padding:5px 9px;
+      border-radius:8px;
+      pointer-events:none;
+      z-index:100;
+      line-height:1.4;
+      max-width:160px;
+      white-space:normal;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.18);
+    }
+    .cal-tooltip::after {
+      content:'';
+      position:absolute;
+      top:100%; left:50%;
+      transform:translateX(-50%);
+      border:5px solid transparent;
+      border-top-color:#1a3a5c;
+    }
 
     /* ── Today Must-Do / Upcoming ── */
     .todo-section-hdr { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); margin-bottom:14px; }
@@ -398,7 +430,15 @@ function getMock() {
       reschedule_start: '10:00 AM',
       reschedule_end:   '12:00 PM',
     },
-    task_date_meta: taskDateMeta,
+    task_date_meta: taskDateMeta,  // kept for backwards-compat
+    /* CONNECT: replace with real API data. assignment_due_dates is the canonical field. */
+    assignment_due_dates: [
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); })(), title: 'CSC2383 Database Project' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+5); return d.toISOString().slice(0,10); })(), title: 'MPU123 Speaking' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+7); return d.toISOString().slice(0,10); })(), title: 'CSC123 DB Assignment' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+10); return d.toISOString().slice(0,10); })(), title: 'ISL123 Islamic Studies' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10); })(), title: 'MPU123 Final Report' },
+    ],
   };
 }
 
@@ -536,8 +576,37 @@ function emptySchedule(isAdvanceHint) {
 /* ── Calendar: dots from real task_date_meta ── */
 let calDate=new Date(), _dotMap={};
 
-function renderCalendar(taskDateMeta) {
-  if(taskDateMeta) _dotMap={...taskDateMeta};
+/*
+ * renderCalendar: accepts assignment_due_dates from the API.
+ * CONNECT: GET /api/dashboard/ should return:
+ *   assignment_due_dates: [
+ *     { date: "2025-04-10", title: "CSC2383 Database Project" },
+ *     { date: "2025-04-15", title: "MPU123 Speaking" },
+ *     ...
+ *   ]
+ * Each date gets a red dot; hovering shows the assignment title.
+ * Multiple assignments on the same day are joined with a newline.
+ */
+function renderCalendar(dueDates) {
+  _dotMap = {};
+  if (Array.isArray(dueDates)) {
+    dueDates.forEach(item => {
+      if (!item || !item.date) return;
+      const iso   = item.date;           // "YYYY-MM-DD"
+      const title = item.title || '';
+      if (_dotMap[iso]) {
+        // Multiple assignments on same day — append
+        _dotMap[iso].label += (title ? ' · ' + title : '');
+      } else {
+        _dotMap[iso] = { label: title };
+      }
+    });
+  } else if (dueDates && typeof dueDates === 'object') {
+    // Backwards-compat: old task_date_meta map passed in
+    Object.entries(dueDates).forEach(([iso, val]) => {
+      _dotMap[iso] = { label: '' };
+    });
+  }
   _drawCal();
 }
 
@@ -555,8 +624,16 @@ function _drawCal() {
   for(let d=1;d<=days;d++){
     const isT=isCur&&d===td;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dot=(!isT&&_dotMap[iso])?_dotMap[iso]:'';
-    html+=`<div class="cal-d ${isT?'today':''} ${dot}">${d}</div>`;
+    /* _dotMap now stores { label } or string — only assignment due dates */
+    const entry = _dotMap[iso];
+    if(entry && !isT){
+      const label = (typeof entry==='object' && entry.label) ? entry.label : (typeof entry==='string' && entry!=='') ? entry : '';
+      const dataAttr = label ? ` data-due="1"` : '';
+      const tooltip  = label ? `<span class="cal-tooltip">${label}</span>` : '';
+      html+=`<div class="cal-d has-due"${dataAttr} tabindex="0">${d}${tooltip}</div>`;
+    } else {
+      html+=`<div class="cal-d ${isT?'today':''}">${d}</div>`;
+    }
   }
   document.getElementById('cal-grid').innerHTML=html;
 }
@@ -694,7 +771,7 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
   renderDeadline(data.next_deadline);
   renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
   renderSchedule(data.schedule);
-  renderCalendar(data.task_date_meta||data.task_dates_meta||null);
+  renderCalendar(data.assignment_due_dates || data.task_date_meta || null);
   renderTodo(data.today_tasks, data.upcoming_tasks);
   showMissedModal(data.missed_task);
 })();

@@ -558,8 +558,11 @@ function renderSchedule(data) {
   const times = buildTimeRows(slots);
 
   if (!times.length) {
+    const emptyMsg = (weekOffset === 0)
+      ? '📅 Nothing scheduled this week — navigating to next week, or tap Regenerate.'
+      : '🎉 No sessions scheduled for this week.';
     document.getElementById('sch-body').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No schedule generated yet.</td></tr>';
+      `<tr><td colspan="6" style="text-align:center;padding:36px 24px;color:var(--text-muted);font-size:0.88rem">${emptyMsg}</td></tr>`;
     return;
   }
 
@@ -626,27 +629,39 @@ function renderSchedule(data) {
 }
 
 /* ── LOAD SCHEDULE ───────────────────────────────────────── */
+/*
+ * Auto-advance: if the current week has no slots on initial load,
+ * silently try next week so the page never opens blank.
+ */
 async function loadSchedule(offset = 0) {
   const fallbackWeek = getWeekLabelFromOffset(offset);
-
   updateWeekNavLabel();
   document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
 
   try {
-    const apiData = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
+    const apiData      = await CLAP.API.get(`/schedule/?week_offset=${offset}`);
+    let normalizedData = normalizeScheduleData(apiData);
 
-    const normalizedData = normalizeScheduleData(apiData);
+    /* Auto-advance on initial load if current week is empty */
+    if (normalizedData.slots.length === 0 && offset === 0 && weekOffset === 0) {
+      try {
+        const nextApiData = await CLAP.API.get(`/schedule/?week_offset=1`);
+        const nextData    = normalizeScheduleData(nextApiData);
+        if (nextData.slots.length > 0) {
+          weekOffset = 1;
+          updateWeekNavLabel();
+          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${getWeekLabelFromOffset(1)}`;
+          renderSchedule(nextData);
+          return;
+        }
+      } catch { /* fall through to empty state */ }
+    }
 
     renderSchedule(normalizedData);
   } catch (err) {
     console.error('[CLAP] Schedule load error:', err);
-
-    const mockData = {
-      ...getMock(),
-      week: fallbackWeek
-    };
+    const mockData = { ...getMock(), week: fallbackWeek };
     renderSchedule(mockData);
-
     CLAP.Toast.error('Could not load schedule. Showing fallback data.');
   }
 }
