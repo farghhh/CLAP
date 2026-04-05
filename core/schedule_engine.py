@@ -43,10 +43,8 @@ def get_daily_hours_used(user, day, max_focus):
 
 def generate_study_sessions(task, preference):
     """
-    Generates study sessions for a task based on:
-    - Task details (hours, deadline, difficulty)
-    - User preferences (max focus hours, active study hours)
-    Returns list of session dictionaries
+    Generates study sessions for a task distributed evenly across available days.
+    Respects max_focus_hours per day but shares daily hours with other tasks.
     """
     from schedule.models import StudySession
 
@@ -67,6 +65,11 @@ def generate_study_sessions(task, preference):
 
     sessions = []
     remaining_hours = total_hours
+    num_days = len(available_days)
+
+    # Calculate ideal hours per day for this task
+    # Split total hours evenly across available days
+    ideal_hours_per_day = round(total_hours / num_days, 2)
 
     for day in available_days:
         if remaining_hours <= 0:
@@ -79,8 +82,11 @@ def generate_study_sessions(task, preference):
         if available_hours <= 0:
             continue
 
-        # Schedule as many hours as possible for this day
-        hours_today = min(available_hours, remaining_hours)
+        # Use ideal hours per day but cap at available hours and remaining
+        hours_today = min(ideal_hours_per_day, available_hours, remaining_hours)
+
+        if hours_today <= 0:
+            continue
 
         # Calculate CLS contribution for this session
         cls_contribution = round(
@@ -97,7 +103,60 @@ def generate_study_sessions(task, preference):
             'cls_contribution': cls_contribution,
         })
 
-        remaining_hours -= hours_today
+        remaining_hours = round(remaining_hours - hours_today, 2)
+
+    # If there are remaining hours (because some days were full),
+    # try to fit them in days that still have space
+    if remaining_hours > 0:
+        for day in available_days:
+            if remaining_hours <= 0:
+                break
+
+            existing_hours = get_daily_hours_used(task.user, day, max_focus)
+            
+            # Also count what we already scheduled for this task today
+            already_scheduled = sum(
+                s['scheduled_hours'] for s in sessions
+                if s['scheduled_date'] == day
+            )
+            
+            available_hours = max_focus - existing_hours - already_scheduled
+
+            if available_hours <= 0:
+                continue
+
+            extra_hours = min(available_hours, remaining_hours)
+
+            if extra_hours <= 0:
+                continue
+
+            # Add to existing session for this day if exists
+            existing_session = next(
+                (s for s in sessions if s['scheduled_date'] == day), None
+            )
+
+            if existing_session:
+                existing_session['scheduled_hours'] = round(
+                    existing_session['scheduled_hours'] + extra_hours, 2
+                )
+                existing_session['cls_contribution'] = round(
+                    (existing_session['scheduled_hours'] / total_hours) * calculate_cls(
+                        difficulty_str, task.hours, task.deadline
+                    ), 2
+                )
+            else:
+                cls_contribution = round(
+                    (extra_hours / total_hours) * calculate_cls(
+                        difficulty_str, task.hours, task.deadline
+                    ), 2
+                )
+                sessions.append({
+                    'scheduled_date': day,
+                    'scheduled_hours': round(extra_hours, 2),
+                    'cls_contribution': cls_contribution,
+                })
+
+            remaining_hours = round(remaining_hours - extra_hours, 2)
 
     return sessions
 
