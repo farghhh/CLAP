@@ -123,44 +123,40 @@ def forgot_password(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Always return success even if email doesn't exist
-    # This prevents attackers from knowing which emails are registered
     try:
         user = User.objects.get(email=email)
 
-        # Generate reset token
         token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-
-        # Build reset link
         reset_link = f"{settings.FRONTEND_URL}/reset-password.html?uid={uid}&token={token}"
 
-        # Send email
-        send_mail(
-            subject='Reset Your CLAP Password',
-            message=f'''
+        try:
+            send_mail(
+                subject='Reset Your CLAP Password',
+                message=f'''
 Hi {user.username},
-
-You requested to reset your CLAP password.
 
 Click the link below to reset your password:
 {reset_link}
 
 This link will expire in 24 hours.
 
-If you did not request this, please ignore this email.
-
 CLAP Team
-            ''',
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+                ''',
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            # Return the actual email error so we can see it
+            return Response(
+                {'error': f'Email sending failed: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     except User.DoesNotExist:
-        pass  # Silently ignore if email doesn't exist
+        pass
 
-    # Always return success
     return Response({
         'message': 'If an account exists for this email, a reset link has been sent.'
     }, status=status.HTTP_200_OK)
