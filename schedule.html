@@ -709,6 +709,46 @@ function normalizeScheduleData(apiData, offsetForWeekLabel) {
 }
 
 /* =========================================================
+   DASHBOARD WEEK-ALIGNMENT COMPATIBILITY
+========================================================= */
+function hasAnyScheduleSlots(data) {
+  return Array.isArray(data?.slots) && data.slots.length > 0;
+}
+
+async function shouldTreatNextWeekAsCurrentWeek() {
+  try {
+    const items = await CLAP.API.get('/assignments/');
+    if (!Array.isArray(items) || items.length === 0) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const monday = new Date(today);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+    monday.setHours(0, 0, 0, 0);
+
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+
+    return items.some(item => {
+      const raw = item?.deadline ?? item?.due_date ?? null;
+      if (!raw) return false;
+
+      const dl = new Date(raw);
+      if (isNaN(dl)) return false;
+
+      dl.setHours(12, 0, 0, 0);
+      return dl >= monday && dl <= friday;
+    });
+  } catch (err) {
+    console.warn('[CLAP] Could not inspect assignments for week alignment:', err);
+    return false;
+  }
+}
+
+/* =========================================================
    RENDER
 ========================================================= */
 function renderEmptySchedule(message) {
@@ -832,7 +872,37 @@ async function loadSchedule(offset = 0) {
     const apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
     if (apiData === null) return;
 
-    const normalizedData = normalizeScheduleData(apiData, weekOffset);
+    let normalizedData = normalizeScheduleData(apiData, weekOffset);
+
+    /*
+      Compatibility fix:
+      Dashboard may show next week's generated slot as current week
+      when the assignment deadline belongs to the current week.
+      Keep schedule page visually consistent with dashboard only for
+      the initial current-week view.
+    */
+    if (offset === 0 && !hasAnyScheduleSlots(normalizedData)) {
+      try {
+        const nextWeekApi = await CLAP.API.get('/schedule/?week_offset=1');
+        if (nextWeekApi !== null) {
+          const nextWeekData = normalizeScheduleData(nextWeekApi, 1);
+
+          if (hasAnyScheduleSlots(nextWeekData)) {
+            const useNextWeekAsCurrent = await shouldTreatNextWeekAsCurrentWeek();
+
+            if (useNextWeekAsCurrent) {
+              normalizedData = {
+                ...nextWeekData,
+                week: getWeekLabelFromOffset(0)
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[CLAP] Next-week alignment check failed:', err);
+      }
+    }
+
     renderSchedule(normalizedData);
   } catch (err) {
     console.error('[CLAP] Failed to load schedule:', err);
