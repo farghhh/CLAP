@@ -418,6 +418,7 @@ AppShell.init('schedule.html', { showTopbar: false });
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 let weekOffset = 0;
+let _firstLoad = true; // used once to find the first week with sessions
 
 
 
@@ -762,8 +763,28 @@ function renderSchedule(data) {
 }
 
 /* ── LOAD SCHEDULE ───────────────────────────────────────── */
-async function loadSchedule(offset = 0, options = {}) {
-  const { silent = false } = options;
+async function loadSchedule(offset = 0) {
+  /* On the very first call only: scan ahead to find the first week that has
+     sessions (backend may schedule into next week). After that, _firstLoad
+     is false and arrows work freely — no intercept, no loops. */
+  if (_firstLoad) {
+    _firstLoad = false;
+    for (let probe = offset; probe <= offset + 8; probe++) {
+      let probeData;
+      try { probeData = await CLAP.API.get(`/schedule/?week_offset=${probe}`); } catch { break; }
+      if (!probeData) break;
+      const norm = normalizeScheduleData(probeData);
+      if (norm.slots && norm.slots.length > 0) {
+        weekOffset = probe;
+        updateWeekNavLabel();
+        norm.week = getWeekLabelFromOffset(weekOffset);
+        document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${norm.week}`;
+        renderSchedule(norm);
+        return;
+      }
+    }
+    /* Nothing found — fall through and render current week empty */
+  }
 
   weekOffset = offset;
   updateWeekNavLabel();
@@ -780,8 +801,7 @@ async function loadSchedule(offset = 0, options = {}) {
     return;
   }
 
-  /* null = 401 expired session, core.js is already redirecting to sign-in */
-  if (apiData === null) return;
+  if (apiData === null) return; /* 401 — core.js is redirecting */
 
   const normalizedData = normalizeScheduleData(apiData);
   normalizedData.week = currentWeekLabel;
