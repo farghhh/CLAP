@@ -722,39 +722,16 @@
   <script>
     'use strict';
 
-    /* ============================================================
-       APP SHELL
-       ============================================================ */
     AppShell.init('assignments.html', { showTopbar: false });
 
-    /* ============================================================
-       FALLBACK DATA (used when API is unreachable)
-       ============================================================ */
-    const _d = (offset) => { const dt = new Date(); dt.setDate(dt.getDate() + offset); return dt.toISOString().slice(0,10); };
-    const MOCK = [
-      { id: 1, course_code: 'CSC2383', title: 'Database Final Project',    deadline: _d(14), hours: 6,  difficulty: 'easy',   progress: 80 },
-      { id: 2, course_code: 'CSC2613', title: 'Parallel Computing System', deadline: _d(18), hours: 10, difficulty: 'medium', progress: 60 },
-    ];
-
-    /* ============================================================
-       GLOBAL STATE
-       ============================================================ */
+    const MOCK = [];
     let assignments = [];
-    let editingId   = null;
-    let deleteId    = null;
-    let activeTab   = 'progress';
-
-    /* ============================================================
-       HELPERS
-       ============================================================ */
-    function isNumericId(value) {
-      return value !== null && value !== '' && !isNaN(Number(value));
-    }
+    let editingId = null;
+    let deleteId = null;
+    let activeTab = 'progress';
 
     function sortAssignmentsForDisplay(list) {
       const items = [...list];
-      /* Backend always returns created_at; prefer that for stable ordering.
-         Fall back to lexicographic id sort (handles string PKs like "T001"). */
       if (items.length && items.every(a => a.created_at)) {
         return items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       }
@@ -764,14 +741,14 @@
     function normalizeAssignment(a) {
       if (!a) return null;
       return {
-        id:          a.id ?? Date.now(),
+        id: a.id ?? Date.now(),
         course_code: a.course_code ?? a.code ?? '',
-        title:       a.title ?? a.assignment_title ?? a.name ?? '',
-        deadline:    a.deadline ?? a.due_date ?? '',
-        hours:       Number(a.hours ?? a.estimated_hours ?? 0),
-        difficulty:  (a.difficulty ?? 'easy').toLowerCase(),
-        progress:    Number(a.progress ?? a.progress_percentage ?? 0),
-        created_at:  a.created_at ?? a.createdAt ?? null,
+        title: a.title ?? a.assignment_title ?? a.name ?? '',
+        deadline: a.deadline ?? a.due_date ?? '',
+        hours: Number(a.hours ?? a.estimated_hours ?? 0),
+        difficulty: String(a.difficulty ?? 'easy').toLowerCase(),
+        progress: Number(a.progress ?? a.progress_percentage ?? 0),
+        created_at: a.created_at ?? a.createdAt ?? null,
       };
     }
 
@@ -784,7 +761,7 @@
     function formatDateDDMMYYYY(value) {
       const date = new Date(value);
       if (isNaN(date)) return '—';
-      const day   = String(date.getDate()).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       return `${day}/${month}/${date.getFullYear()}`;
     }
@@ -794,49 +771,41 @@
       return el ? el.value.toLowerCase() : '';
     }
 
-    /* ============================================================
-       MODAL HELPERS — centralise open/close so nothing is missed
-       ============================================================ */
     function openDeleteModal() {
       const modal = document.getElementById('del-modal');
       if (modal) modal.style.display = 'flex';
     }
 
     function closeDeleteModal() {
-      const modal       = document.getElementById('del-modal');
-      const confirmBtn  = document.getElementById('del-confirm');
+      const modal = document.getElementById('del-modal');
+      const confirmBtn = document.getElementById('del-confirm');
 
-      if (modal)      modal.style.display = 'none';
+      if (modal) modal.style.display = 'none';
 
-      /* FIX: always reset button state when modal closes */
       if (confirmBtn) {
-        confirmBtn.disabled    = false;
+        confirmBtn.disabled = false;
         confirmBtn.textContent = 'Delete';
       }
 
       deleteId = null;
     }
 
-    /* ============================================================
-       DATA LOADING
-       ============================================================ */
     async function loadAssignments() {
       try {
         const data = await CLAP.API.get('/assignments/');
         assignments = Array.isArray(data)
           ? sortAssignmentsForDisplay(data.map(normalizeAssignment))
           : sortAssignmentsForDisplay(MOCK.map(normalizeAssignment));
-      } catch {
+      } catch (err) {
+        console.error('[CLAP] Failed to load assignments:', err);
         assignments = sortAssignmentsForDisplay(MOCK.map(normalizeAssignment));
+        CLAP.Toast.error('Could not load assignments.');
       }
 
       renderProgress();
       renderTable();
     }
 
-    /* ============================================================
-       RENDER: PROGRESS VIEW
-       ============================================================ */
     function renderProgress() {
       const list = document.getElementById('progress-list');
 
@@ -845,16 +814,17 @@
         return;
       }
 
-    list.innerHTML = assignments.map(a => {
-        const pct          = Math.max(0, Math.min(100, Number(a.progress ?? 0)));
-        const isComplete   = pct === 100;
+      list.innerHTML = assignments.map(a => {
+        const pct = Math.max(0, Math.min(100, Number(a.progress ?? 0)));
+        const isComplete = pct === 100;
         const isNotStarted = pct === 0;
-        const badgeBg      = isComplete ? 'var(--success)' : isNotStarted ? '#222' : 'var(--clap-teal)';
-        const labelTxt     = isComplete ? 'C O M P L E T E D' : '';
-        /* Hours done based on progress percentage × total hours */
-        const totalHrs     = a.hours || 0;
-        const doneHrs      = pct > 0 ? (pct / 100 * totalHrs).toFixed(1) : 0;
-        const hrsSub       = totalHrs > 0 ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${doneHrs} / ${totalHrs} hrs completed</div>` : '';
+        const badgeBg = isComplete ? 'var(--success)' : isNotStarted ? '#222' : 'var(--clap-teal)';
+        const labelTxt = isComplete ? 'C O M P L E T E D' : '';
+        const totalHrs = a.hours || 0;
+        const doneHrs = pct > 0 ? (pct / 100 * totalHrs).toFixed(1) : 0;
+        const hrsSub = totalHrs > 0
+          ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${doneHrs} / ${totalHrs} hrs completed</div>`
+          : '';
 
         return `
           <div class="progress-item">
@@ -876,9 +846,6 @@
       }).join('');
     }
 
-    /* ============================================================
-       RENDER: TABLE VIEW
-       ============================================================ */
     function renderTable() {
       const tbody = document.getElementById('assign-tbody');
       const query = getTableSearchValue();
@@ -901,10 +868,10 @@
       today.setHours(0, 0, 0, 0);
 
       tbody.innerHTML = filtered.map((a, index) => {
-        const dl       = new Date(a.deadline);
+        const dl = new Date(a.deadline);
         const isOverdue = !isNaN(dl) && dl < today;
-        const diff     = (a.difficulty || 'easy').toLowerCase();
-        const safeId   = String(a.id).replace(/"/g, '&quot;');
+        const diff = (a.difficulty || 'easy').toLowerCase();
+        const safeId = String(a.id).replace(/"/g, '&quot;');
 
         return `
           <tr class="${isOverdue ? 'overdue' : ''}">
@@ -915,12 +882,12 @@
             <td>${a.hours || 0}</td>
             <td><span class="diff-badge ${diff}">${diff.charAt(0).toUpperCase() + diff.slice(1)}</span></td>
             <td class="tbl-action-cell">
-              <button class="tbl-action-btn edit" data-action="edit"   data-id="${safeId}" title="Edit"   aria-label="Edit assignment"   type="button">
+              <button class="tbl-action-btn edit" data-action="edit" data-id="${safeId}" title="Edit" aria-label="Edit assignment" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
                 </svg>
               </button>
-              <button class="tbl-action-btn del"  data-action="delete" data-id="${safeId}" title="Delete" aria-label="Delete assignment" type="button">
+              <button class="tbl-action-btn del" data-action="delete" data-id="${safeId}" title="Delete" aria-label="Delete assignment" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
                   <path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
@@ -931,9 +898,6 @@
       }).join('');
     }
 
-    /* ============================================================
-       TABLE ACTION CLICKS
-       ============================================================ */
     document.getElementById('assign-tbody').addEventListener('click', (event) => {
       const btn = event.target.closest('button[data-action]');
       if (!btn) return;
@@ -941,28 +905,25 @@
       const { action, id } = btn.dataset;
       if (!id) return;
 
-      if (action === 'edit')   startEdit(id);
+      if (action === 'edit') startEdit(id);
       if (action === 'delete') startDelete(id);
     });
 
-    /* ============================================================
-       VIEW CONTROL
-       ============================================================ */
     function showView(name) {
       const header = document.querySelector('.assign-page-header');
-      const tabs   = document.querySelector('.tab-bar');
+      const tabs = document.querySelector('.tab-bar');
 
       if (name === 'form') {
         header.style.display = 'none';
-        tabs.style.display   = 'none';
+        tabs.style.display = 'none';
       } else {
         header.style.display = '';
-        tabs.style.display   = '';
+        tabs.style.display = '';
       }
 
       document.getElementById('view-progress').style.display = name === 'progress' ? '' : 'none';
-      document.getElementById('view-all').style.display      = name === 'all'      ? '' : 'none';
-      document.getElementById('view-form').style.display     = name === 'form'     ? '' : 'none';
+      document.getElementById('view-all').style.display = name === 'all' ? '' : 'none';
+      document.getElementById('view-form').style.display = name === 'form' ? '' : 'none';
 
       ['tab-progress', 'tab-all'].forEach(id => {
         document.getElementById(id).classList.remove('active');
@@ -979,9 +940,6 @@
       }
     }
 
-    /* ============================================================
-       TAB SWITCHING
-       ============================================================ */
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         activeTab = btn.dataset.tab;
@@ -989,23 +947,17 @@
       });
     });
 
-    /* ============================================================
-       SEARCH
-       ============================================================ */
     const tableSearchInput = document.getElementById('table-search-input');
     if (tableSearchInput) tableSearchInput.addEventListener('input', renderTable);
 
-    /* ============================================================
-       OPEN FORM: ADD
-       ============================================================ */
     document.getElementById('add-btn').addEventListener('click', () => {
       editingId = null;
 
       document.getElementById('form-title').textContent = 'Add Assignment';
-      document.getElementById('f-code').value      = '';
-      document.getElementById('f-title').value     = '';
-      document.getElementById('f-deadline').value  = '';
-      document.getElementById('f-hours').value     = '';
+      document.getElementById('f-code').value = '';
+      document.getElementById('f-title').value = '';
+      document.getElementById('f-deadline').value = '';
+      document.getElementById('f-hours').value = '';
       document.getElementById('f-difficulty').value = 'easy';
 
       ['f-code', 'f-title', 'f-deadline', 'f-hours', 'f-difficulty'].forEach(id => {
@@ -1015,23 +967,19 @@
       showView('form');
     });
 
-    /* ============================================================
-       OPEN FORM: EDIT
-       ============================================================ */
     window.startEdit = function(id) {
       const item = assignments.find(a => String(a.id) === String(id));
       if (!item) return;
 
       editingId = item.id;
 
-      document.getElementById('form-title').textContent  = 'Edit Assignment';
-      document.getElementById('f-code').value            = item.course_code;
-      document.getElementById('f-title').value           = item.title;
-      document.getElementById('f-deadline').value        = item.deadline;
-      document.getElementById('f-hours').value           = item.hours;
-      document.getElementById('f-difficulty').value      = item.difficulty;
+      document.getElementById('form-title').textContent = 'Edit Assignment';
+      document.getElementById('f-code').value = item.course_code;
+      document.getElementById('f-title').value = item.title;
+      document.getElementById('f-deadline').value = item.deadline;
+      document.getElementById('f-hours').value = item.hours;
+      document.getElementById('f-difficulty').value = item.difficulty;
 
-      /* Clear any validation error state left from a previous form session */
       ['f-code', 'f-title', 'f-deadline', 'f-hours', 'f-difficulty'].forEach(fid => {
         document.getElementById(fid).classList.remove('error');
       });
@@ -1039,178 +987,135 @@
       showView('form');
     };
 
-    /* ============================================================
-       BACK BUTTON
-       ============================================================ */
     document.getElementById('back-btn').addEventListener('click', () => {
       showView(activeTab);
     });
 
-    /* ============================================================
-       DELETE — open modal
-       ============================================================ */
     window.startDelete = function(id) {
       if (!id) return;
       deleteId = id;
       openDeleteModal();
     };
 
-    /* Cancel: close modal, reset state */
     document.getElementById('del-cancel').addEventListener('click', closeDeleteModal);
 
-    /* Close modal when clicking the backdrop */
     document.getElementById('del-modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeDeleteModal();
     });
 
-    /* ============================================================
-       DELETE — confirm
-       FIX: modal always closes; button always re-enabled;
-            204 / network errors don't block local removal;
-            deleteId always cleared regardless of outcome.
-       ============================================================ */
     document.getElementById('del-confirm').addEventListener('click', async () => {
       if (deleteId == null) return;
 
       const confirmBtn = document.getElementById('del-confirm');
-
-      /* Prevent accidental double-clicks */
-      confirmBtn.disabled    = true;
+      confirmBtn.disabled = true;
       confirmBtn.textContent = 'Deleting…';
 
-      const idToDelete = deleteId; // capture before any async gap
+      const idToDelete = deleteId;
 
       try {
-        /* FIX: use bracket notation so 'delete' reserved word is never
-           misread by the JS engine in strict mode */
         await CLAP.API['delete'](`/assignments/${idToDelete}/`);
-
       } catch (err) {
         const status = err?.status ?? 0;
 
-        /* FIX: 404 means "already gone on the server" — treat as success.
-           Network errors (status 0) still allow local removal so the UI
-           stays consistent. Only real 4xx/5xx server errors (except 404)
-           abort the operation. */
         if (status >= 400 && status !== 404) {
           CLAP.Toast.error(err.message || 'Failed to delete assignment.');
           closeDeleteModal();
           return;
         }
-        /* Fall through for 404 / network errors — remove locally */
       }
 
-      /* Remove from local state */
       assignments = assignments.filter(a => String(a.id) !== String(idToDelete));
       assignments = sortAssignmentsForDisplay(assignments);
 
       renderProgress();
       renderTable();
-
-      /* FIX: close modal & reset button AFTER local state is updated */
       closeDeleteModal();
 
-      /* Notify schedule.html (if open) that this assignment no longer exists */
       broadcastAssignmentChange('assignment_deleted', idToDelete);
 
       CLAP.Toast.success('Assignment deleted.');
     });
 
-    /* ============================================================
-       SAVE (ADD OR EDIT)
-       ============================================================ */
     document.getElementById('save-btn').addEventListener('click', async () => {
-      const codeEl     = document.getElementById('f-code');
-      const titleEl    = document.getElementById('f-title');
+      const codeEl = document.getElementById('f-code');
+      const titleEl = document.getElementById('f-title');
       const deadlineEl = document.getElementById('f-deadline');
-      const hoursEl    = document.getElementById('f-hours');
-      const diffEl     = document.getElementById('f-difficulty');
-      const saveBtn    = document.getElementById('save-btn');
+      const hoursEl = document.getElementById('f-hours');
+      const diffEl = document.getElementById('f-difficulty');
+      const saveBtn = document.getElementById('save-btn');
 
       const payload = {
         course_code: codeEl.value.trim(),
-        title:       titleEl.value.trim(),
-        deadline:    deadlineEl.value,
-        hours:       Number(hoursEl.value),
-        difficulty:  diffEl.value,
+        title: titleEl.value.trim(),
+        deadline: deadlineEl.value,
+        hours: Number(hoursEl.value),
+        difficulty: diffEl.value,
       };
 
       [codeEl, titleEl, deadlineEl, hoursEl, diffEl].forEach(el => el.classList.remove('error'));
 
       let hasError = false;
-      if (!payload.course_code)          { codeEl.classList.add('error');     hasError = true; }
-      if (!payload.title)                { titleEl.classList.add('error');    hasError = true; }
+
+      if (!payload.course_code) {
+        codeEl.classList.add('error');
+        hasError = true;
+      }
+      if (!payload.title) {
+        titleEl.classList.add('error');
+        hasError = true;
+      }
       if (!payload.deadline) {
-        deadlineEl.classList.add('error'); hasError = true;
+        deadlineEl.classList.add('error');
+        hasError = true;
       } else {
-      /* FIX (Bug 2): Was `dl <= today` which rejected today, but core.js futureDate
-         uses `>= today` which allows today. The backend also rejects deadline <= today.
-         All three must agree: reject only dates strictly in the past (< today). */
-        const today = new Date(); today.setHours(0,0,0,0);
-        const dl    = new Date(payload.deadline);
-        if (dl < today) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dl = new Date(payload.deadline);
+        dl.setHours(0, 0, 0, 0);
+
+        /* Match Django backend: deadline must be strictly future */
+        if (dl <= today) {
           deadlineEl.classList.add('error');
-          CLAP.Toast.error('Deadline must be today or in the future.');
+          CLAP.Toast.error('Deadline must be in the future.');
           hasError = true;
         }
       }
-      if (!payload.hours || payload.hours < 1) { hoursEl.classList.add('error'); hasError = true; }
+      if (!payload.hours || payload.hours < 1) {
+        hoursEl.classList.add('error');
+        hasError = true;
+      }
 
       if (hasError) {
-        CLAP.Toast.error('Please fill all required fields.');
+        CLAP.Toast.error('Please fill all required fields correctly.');
         return;
       }
 
-      saveBtn.disabled    = true;
+      saveBtn.disabled = true;
       saveBtn.textContent = editingId ? 'Saving…' : 'Adding…';
 
       try {
         if (editingId) {
-          const updated = await CLAP.API.put(`/assignments/${editingId}/`, payload);
-          const index   = assignments.findIndex(a => String(a.id) === String(editingId));
-          if (index !== -1) {
-            assignments[index] = normalizeAssignment({ ...assignments[index], ...payload, ...(updated || {}) });
-          }
+          await CLAP.API.put(`/assignments/${editingId}/`, payload);
+          await loadAssignments();
           broadcastAssignmentChange('assignment_updated', editingId, { title: payload.title });
           CLAP.Toast.success('Assignment updated!');
         } else {
-          const created = await CLAP.API.post('/assignments/', payload);
-          assignments.push(normalizeAssignment({
-            id:       created?.id ?? Date.now(),
-            ...payload,
-            ...(created || {}),
-            progress: created?.progress ?? created?.progress_percentage ?? 0,
-          }));
+          await CLAP.API.post('/assignments/', payload);
+          await loadAssignments();
           CLAP.Toast.success('Assignment added!');
         }
-      } catch {
-        /* FIX: fall back to local update so the UI never silently breaks */
-        if (editingId) {
-          const index = assignments.findIndex(a => String(a.id) === String(editingId));
-          if (index !== -1) {
-            assignments[index] = normalizeAssignment({ ...assignments[index], ...payload });
-          }
-        } else {
-          assignments.push(normalizeAssignment({ id: Date.now(), ...payload, progress: 0 }));
-        }
-        CLAP.Toast.success(editingId ? 'Assignment updated!' : 'Assignment added!');
+
+        showView(activeTab);
+      } catch (err) {
+        console.error('[CLAP] Save assignment failed:', err);
+        CLAP.Toast.error(err?.message || 'Could not save assignment.');
       } finally {
-        saveBtn.disabled    = false;
+        saveBtn.disabled = false;
         saveBtn.textContent = 'Save';
       }
-
-      assignments = sortAssignmentsForDisplay(assignments);
-      renderProgress();
-      renderTable();
-      showView(activeTab);
     });
 
-    /* ============================================================
-       LIVE PROGRESS SYNC FROM SCHEDULE PAGE
-       Listens for BroadcastChannel messages sent by toggleDone()
-       in schedule.html and updates the local assignment progress
-       + re-renders the progress bar without a full reload.
-       ============================================================ */
     try {
       const progressChannel = new BroadcastChannel('clap_progress');
       progressChannel.addEventListener('message', (event) => {
@@ -1221,32 +1126,19 @@
         if (index !== -1) {
           assignments[index] = { ...assignments[index], progress: Number(progress) };
           renderProgress();
-          /* If the table is currently visible, refresh it too */
           if (activeTab === 'all') renderTable();
         }
       });
-    } catch {
-      /* BroadcastChannel not supported (very old browsers) — silent fail */
-    }
+    } catch {}
 
-    /**
-     * Broadcast an assignment change (rename, delete) to any other tab
-     * running schedule.html so it can re-fetch or show stale indicators.
-     * @param {'assignment_updated'|'assignment_deleted'} type
-     * @param {string|number} id  Assignment ID
-     * @param {object} [patch]    Changed fields (for 'assignment_updated')
-     */
     function broadcastAssignmentChange(type, id, patch = {}) {
       try {
         const ch = new BroadcastChannel('clap_assignments');
         ch.postMessage({ type, assignmentId: id, ...patch });
         ch.close();
-      } catch { /* silent */ }
+      } catch {}
     }
 
-    /* ============================================================
-       INITIAL LOAD
-       ============================================================ */
     loadAssignments();
   </script>
 </body>
