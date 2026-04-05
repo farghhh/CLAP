@@ -8,137 +8,6 @@
   <link rel="stylesheet" href="css/app.css" />
   <!-- Chart.js for the cognitive load trend graph -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
-<style>
-  /* ── TEMP DEMO: Missed Task Popup ───────────────────────── */
-  .missed-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(26, 58, 92, 0.38);
-    backdrop-filter: blur(4px);
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .missed-overlay.active { display: flex; }
-
-  .missed-modal {
-    width: 100%;
-    max-width: 520px;
-    background: #fff;
-    border-radius: 24px;
-    padding: 34px 28px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(26,58,92,0.2);
-    animation: modalIn 0.25s ease both;
-  }
-
-  .missed-icon {
-    font-size: 2.4rem;
-    margin-bottom: 10px;
-  }
-  .missed-title {
-    font-family: var(--font-heading);
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #E74C3C;
-    margin-bottom: 10px;
-  }
-  .missed-desc {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    line-height: 1.6;
-    margin-bottom: 22px;
-  }
-
-  .missed-cards {
-    display: flex;
-    align-items: stretch;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .missed-card {
-    flex: 1;
-    border-radius: 16px;
-    padding: 14px;
-    text-align: left;
-  }
-
-  .missed-card.from { background: #fdecec; }
-  .missed-card.to   { background: #e8f8f8; }
-
-  .missed-card-lbl {
-    font-size: 0.72rem;
-    font-weight: 800;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    color: var(--text-secondary);
-  }
-
-  .missed-card-title {
-    font-size: 0.92rem;
-    font-weight: 800;
-    color: var(--text-primary);
-  }
-
-  .missed-card-time {
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin-top: 4px;
-  }
-
-  .missed-arrow {
-    display: flex;
-    align-items: center;
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: var(--clap-teal);
-  }
-
-  .missed-btns {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  .missed-btn-primary,
-  .missed-btn-secondary {
-    min-width: 140px;
-    padding: 12px 18px;
-    border-radius: 999px;
-    font-family: var(--font-heading);
-    font-weight: 700;
-    cursor: pointer;
-  }
-
-  .missed-btn-primary {
-    border: none;
-    background: var(--grad-primary);
-    color: #fff;
-  }
-
-  .missed-btn-secondary {
-    background: #fff;
-    color: var(--clap-teal);
-    border: 2px solid var(--clap-teal);
-  }
-
-  @media (max-width: 640px) {
-    .missed-cards {
-      flex-direction: column;
-    }
-    .missed-arrow {
-      justify-content: center;
-      transform: rotate(90deg);
-    }
-  }
-</style>
-
 </head>
 <body>
 <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
@@ -240,39 +109,6 @@
       </div>
     </div>
 
-
-    <!-- ── TEMP DEMO: Missed Task Popup ───────────────────────── -->
-    <div class="missed-overlay" id="stress-missed-overlay" role="dialog" aria-modal="true" aria-labelledby="stress-missed-title">
-      <div class="missed-modal">
-        <div class="missed-icon">⚠️</div>
-        <div class="missed-title" id="stress-missed-title">Missed Task Detected</div>
-        <p class="missed-desc">
-          You missed a scheduled task. This may increase your cognitive load.
-        </p>
-
-        <div class="missed-cards">
-          <div class="missed-card from">
-            <div class="missed-card-lbl">Missed Task</div>
-            <div class="missed-card-title" id="sa-mm-task-title">—</div>
-            <div class="missed-card-time" id="sa-mm-task-time">—</div>
-          </div>
-
-          <div class="missed-arrow">→</div>
-
-          <div class="missed-card to">
-            <div class="missed-card-lbl">Suggested New Slot</div>
-            <div class="missed-card-title" id="sa-mm-resched-title">—</div>
-            <div class="missed-card-time" id="sa-mm-resched-time">—</div>
-          </div>
-        </div>
-
-        <div class="missed-btns">
-          <button class="missed-btn-primary" onclick="location.href='schedule.html'">View Schedule</button>
-          <button class="missed-btn-secondary" onclick="closeStressMissedModal()">OK</button>
-        </div>
-      </div>
-    </div>
-
   </main>
 </div>
 
@@ -297,48 +133,34 @@ AppShell.init('stress-analytics.html', { showTopbar: false });
 /* Active Chart.js instance; stored so it can be destroyed before re-render. */
 let trendChart = null;
 
-/* Prevent stale async loads from overwriting newer results */
+/* FIX (Bug 2): Monotonically incrementing counter — each loadAnalytics() call
+   captures its own ID. If a newer call has started by the time an older response
+   arrives, the older response is silently discarded, preventing stale data from
+   overwriting the UI when the user rapidly switches the period dropdown. */
 let analyticsLoadId = 0;
 
-/* ── TEMP DEMO FLAGS ─────────────────────────────────────── */
-const DEMO_MODE = true;
-const DEMO_FORCE_POPUP = true;
-const DEMO_FORCE_GRAPH = true;
-
-/* ── TEMP DEMO MISSED TASK ───────────────────────────────── */
-const DEMO_MISSED_TASK = {
-  task_title: 'Database Study',
-  task_day: 'Yesterday',
-  task_start: '3:00 PM',
-  task_end: '4:00 PM',
-  reschedule_title: 'Database Study',
-  reschedule_day: 'Today',
-  reschedule_start: '9:00 PM',
-  reschedule_end: '10:00 PM'
-};
-
-/* ── TEMP DEMO GRAPH DATA ────────────────────────────────── */
-function buildDemoStressData() {
-  return {
-    labels: ['Mar 07', 'Mar 08', 'Mar 09', 'Mar 10', 'Mar 11', 'Mar 12', 'Mar 13'],
-    values: [42, 55, 61, 74, 83, 88, 67],
-    stats: {
-      avg_load: 67,
-      peak_load: 88,
-      overload_days: 2,
-      safe_days: 5,
-    },
-    burnout_risk: true,
-    burnout_msg: 'Your cognitive load exceeded the burnout threshold during the selected period.',
-    recommendation: {
-      alert: 'High Stress Detected',
-      suggestion: 'Consider regenerating your schedule to reduce overload and rebalance your study hours.',
-      reduction: 20,
-    },
-  };
-}
-
-/* ── ORIGINAL MOCK FALLBACK ──────────────────────────────── */
+/* ── MOCK DATA ──────────────────────────────────────────────
+   Generates plausible cognitive load data for a given number
+   of days. Called when the API is not yet available.
+   CONNECT: GET /api/stress-analytics/?days={n}
+   Expected response shape:
+   {
+     labels:          ["Mon Apr 01", …],   ← one entry per day
+     values:          [72, 65, …],          ← cognitive load % per day
+     stats: {
+       avg_load:      65,
+       peak_load:     92,
+       overload_days: 4,
+       safe_days:     18,
+     },
+     burnout_risk:    true,
+     recommendation: {
+       alert:      "High Stress Detected",
+       suggestion: "Reduce workload & take breaks",
+       reduction:  20,
+     }
+   }
+   ─────────────────────────────────────────────────────────── */
 function buildMock(days) {
   const labels = [];
   const values = [];
@@ -349,132 +171,113 @@ function buildMock(days) {
     d.setDate(today.getDate() - i);
     labels.push(d.toDateString().slice(0, 10));
 
+    /* Combine sine wave, random noise, and periodic spikes. */
     const value = Math.round(
       40 + Math.sin(i) * 20 + Math.random() * 20 + (i % 7 === 0 ? 25 : 0)
     );
     values.push(Math.min(100, Math.max(10, value)));
   }
 
-  const avg      = Math.round(values.reduce((a, b) => a + b) / values.length);
-  const peak     = Math.max(...values);
-  const over     = values.filter(v => v >= 80).length;
-  const safe     = values.filter(v => v < 60).length;
+  const avg     = Math.round(values.reduce((a, b) => a + b) / values.length);
+  const peak    = Math.max(...values);
+  const over    = values.filter(v => v >= 80).length;
+  const safe    = values.filter(v => v < 60).length;
   const highRisk = over >= 3;
 
   return {
     labels,
     values,
-    stats: {
-      avg_load: avg,
-      peak_load: peak,
-      overload_days: over,
-      safe_days: safe
-    },
+    stats: { avg_load: avg, peak_load: peak, overload_days: over, safe_days: safe },
     burnout_risk: highRisk,
     recommendation: {
-      alert: highRisk ? 'High Stress Detected' : 'Stress Stable',
+      alert:      highRisk ? 'High Stress Detected' : 'Stress Stable',
       suggestion: highRisk ? 'Reduce workload & take breaks' : 'Maintain balance',
-      reduction: highRisk ? 20 : 10,
+      reduction:  highRisk ? 20 : 10,
     },
   };
 }
 
-/* ── MISSED TASK POPUP ───────────────────────────────────── */
-function showStressMissedModal(data) {
-  if (!data) return;
-
-  document.getElementById('sa-mm-task-title').textContent = data.task_title || '—';
-  document.getElementById('sa-mm-task-time').textContent =
-    `${data.task_day || ''}, ${data.task_start || ''} - ${data.task_end || ''}`;
-
-  document.getElementById('sa-mm-resched-title').textContent =
-    data.reschedule_title || data.task_title || '—';
-
-  document.getElementById('sa-mm-resched-time').textContent =
-    `${data.reschedule_day || ''}, ${data.reschedule_start || ''} - ${data.reschedule_end || ''}`;
-
-  document.getElementById('stress-missed-overlay').classList.add('active');
-}
-
-function closeStressMissedModal() {
-  document.getElementById('stress-missed-overlay').classList.remove('active');
-}
-
-/* ── LOAD ANALYTICS ──────────────────────────────────────── */
+/* ── LOAD ANALYTICS ─────────────────────────────────────────
+   Fetches data for the selected period and updates the UI.
+   Falls back to mock data when the API is not available.
+   @param {number} days  Number of days to query.
+   ─────────────────────────────────────────────────────────── */
 async function loadAnalytics(days) {
+  /* FIX (Bug 2): Capture this call's generation ID before any await point.
+     If analyticsLoadId has incremented by the time we get data back, a newer
+     call has already started and we must not overwrite its results. */
   const thisLoad = ++analyticsLoadId;
 
   let data;
-
-  if (DEMO_MODE && DEMO_FORCE_GRAPH) {
-    data = buildDemoStressData();
-  } else {
-    try {
-      data = await CLAP.API.get(`/stress-analytics/?days=${days}`);
-    } catch {
-      data = buildMock(days);
-    }
+  try {
+    data = await CLAP.API.get(`/stress-analytics/?days=${days}`);
+  } catch {
+    /* Use generated mock so the page is never blank. */
+    data = buildMock(days);
   }
 
+  /* FIX (Bug 2): Discard stale response if a newer loadAnalytics() call fired. */
   if (thisLoad !== analyticsLoadId) return;
 
+  /* ── Populate stat cards ── */
   const s = data.stats || {};
+  document.getElementById('s-avg').textContent  = s.avg_load      != null ? s.avg_load  + '%' : '—';
 
-  document.getElementById('s-avg').textContent =
-    s.avg_load != null ? s.avg_load + '%' : '—';
-
+  /* FIX (Bug 3): Peak load colour was hardcoded as var(--danger) in the HTML,
+     making it always red even for low values (e.g. 20%). Now the colour is set
+     dynamically to match the actual severity of the peak load reading. */
   const peakEl = document.getElementById('s-peak');
-  peakEl.textContent =
-    s.peak_load != null ? s.peak_load + '%' : '—';
-
-  peakEl.style.color =
-    s.peak_load == null ? '' :
-    s.peak_load >= 80 ? 'var(--danger)' :
-    s.peak_load >= 60 ? 'var(--warning)' :
-    'var(--success)';
+  peakEl.textContent = s.peak_load != null ? s.peak_load + '%' : '—';
+  peakEl.style.color = s.peak_load == null  ? ''
+                     : s.peak_load >= 80    ? 'var(--danger)'
+                     : s.peak_load >= 60    ? 'var(--warning)'
+                     :                        'var(--success)';
 
   document.getElementById('s-over').textContent = s.overload_days ?? '—';
-  document.getElementById('s-safe').textContent = s.safe_days ?? '—';
+  document.getElementById('s-safe').textContent = s.safe_days     ?? '—';
 
-  const burnoutBox = document.getElementById('burnout-summary');
+  /* ── Burnout alert ── */
+  const burnoutBox    = document.getElementById('burnout-summary');
   const burnoutDetail = document.getElementById('burnout-detail');
-
   burnoutBox.classList.toggle('hidden', !data.burnout_risk);
   if (data.burnout_risk && burnoutDetail) {
-    burnoutDetail.textContent =
-      data.burnout_msg ||
+    burnoutDetail.textContent = data.burnout_msg ||
       'Your cognitive load has been critically high. Consider redistributing tasks.';
   }
 
+  /* ── Trend chart ── */
   renderTrendChart(data.labels, data.values || data.series?.map(d => d.load));
 
+  /* ── Recommendation ── */
   const recBox = document.getElementById('clap-rec');
   if (data.recommendation) {
     recBox.classList.remove('hidden');
-    document.getElementById('clap-rec-text').textContent =
-      data.recommendation.suggestion;
+    document.getElementById('clap-rec-text').textContent = data.recommendation.suggestion;
   } else {
     recBox.classList.add('hidden');
   }
 }
 
-/* ── CHART ───────────────────────────────────────────────── */
+/* ── CHART ──────────────────────────────────────────────────
+   Destroys any existing Chart.js instance, then renders a new
+   line chart with a custom burnout-threshold annotation plugin.
+   ─────────────────────────────────────────────────────────── */
 function renderTrendChart(labels, values) {
-  if (trendChart) {
-    trendChart.destroy();
-    trendChart = null;
-  }
-
+  /* Destroy previous instance to avoid canvas reuse errors. */
+  if (trendChart) { trendChart.destroy(); trendChart = null; }
   if (!labels || !values) return;
 
+  /* FIX (Bug 1): If Chart.js CDN failed to load, `Chart` is undefined.
+     Without this guard the ReferenceError propagates out of renderTrendChart,
+     crashes loadAnalytics, and prevents stat cards + recommendation from rendering.
+     Instead we degrade gracefully and show a plain message in the canvas wrapper. */
   if (typeof Chart === 'undefined') {
     console.warn('[CLAP] Chart.js did not load — trend chart unavailable.');
     const wrap = document.querySelector('.graph-canvas-wrap');
     if (wrap) {
-      wrap.innerHTML =
-        '<p style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:0.85rem;">' +
-        'Chart unavailable — Chart.js failed to load. Check your internet connection.' +
-        '</p>';
+      wrap.innerHTML = '<p style="text-align:center;color:var(--text-muted);' +
+        'padding:60px 0;font-size:0.85rem;">Chart unavailable — ' +
+        'Chart.js failed to load. Check your internet connection.</p>';
     }
     return;
   }
@@ -486,50 +289,44 @@ function renderTrendChart(labels, values) {
     data: {
       labels,
       datasets: [{
-        label: 'Cognitive Load (%)',
-        data: values,
-        borderColor: '#4BBFBF',
-        backgroundColor: 'rgba(75,191,191,0.08)',
+        label:              'Cognitive Load (%)',
+        data:               values,
+        borderColor:        '#4BBFBF',
+        backgroundColor:    'rgba(75,191,191,0.08)',
+        /* Points above 80% are highlighted red. */
         pointBackgroundColor: values.map(v => v >= 80 ? '#E74C3C' : '#4BBFBF'),
-        pointBorderColor: '#fff',
-        pointRadius: 5,
-        borderWidth: 2.5,
-        tension: 0.35,
-        fill: true,
+        pointBorderColor:   '#fff',
+        pointRadius:        5,
+        borderWidth:        2.5,
+        tension:            0.35,
+        fill:               true,
       }],
     },
     options: {
-      responsive: true,
+      responsive:          true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
           labels: {
-            font: { family: 'Nunito, sans-serif', size: 12, weight: '700' },
+            font:  { family: 'Nunito, sans-serif', size: 12, weight: '700' },
             color: '#4A7A90',
           },
         },
       },
       scales: {
         x: {
-          grid: { color: 'rgba(215,235,242,0.6)' },
-          ticks: {
-            color: '#4A7A90',
-            font: { family: 'Nunito, sans-serif', size: 11 },
-            maxRotation: 45
-          },
+          grid:  { color: 'rgba(215,235,242,0.6)' },
+          ticks: { color: '#4A7A90', font: { family: 'Nunito, sans-serif', size: 11 }, maxRotation: 45 },
         },
         y: {
-          min: 0,
-          max: 105,
-          grid: { color: 'rgba(215,235,242,0.6)' },
-          ticks: {
-            color: '#4A7A90',
-            callback: v => `${v}%`,
-            stepSize: 20
-          },
+          min:   0,
+          max:   105,
+          grid:  { color: 'rgba(215,235,242,0.6)' },
+          ticks: { color: '#4A7A90', callback: v => `${v}%`, stepSize: 20 },
         },
       },
     },
+    /* Inline plugin: draws the red dashed 80% burnout threshold line. */
     plugins: [{
       id: 'burnoutLine',
       afterDraw(chart) {
@@ -538,7 +335,7 @@ function renderTrendChart(labels, values) {
         ctx.save();
         ctx.setLineDash([8, 4]);
         ctx.strokeStyle = 'rgba(231,76,60,0.6)';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth   = 1.5;
         ctx.beginPath();
         ctx.moveTo(chartArea.left, y);
         ctx.lineTo(chartArea.right, y);
@@ -549,22 +346,27 @@ function renderTrendChart(labels, values) {
   });
 }
 
-/* ── REGENERATE MODAL ────────────────────────────────────── */
+/* ── REGENERATE MODAL ───────────────────────────────────────
+   CONNECT: POST /api/schedule/regenerate/
+   ─────────────────────────────────────────────────────────── */
+
+/** Open the confirmation modal. */
 function regenerateSchedule() {
   document.getElementById('confirm-modal').classList.remove('hidden');
 }
 
+/** Close the confirmation modal without taking action. */
 function closeModal() {
   document.getElementById('confirm-modal').classList.add('hidden');
 }
 
+/**
+ * Confirmed — call the regenerate endpoint.
+ * Button is disabled for the duration to prevent double-clicks.
+ */
 async function confirmRegenerate() {
   const confirmBtn = document.querySelector('#confirm-modal .btn-confirm');
-  if (confirmBtn) {
-    confirmBtn.disabled = true;
-    confirmBtn.textContent = 'Regenerating…';
-  }
-
+  if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.textContent = 'Regenerating…'; }
   closeModal();
 
   try {
@@ -574,35 +376,24 @@ async function confirmRegenerate() {
   } catch (err) {
     CLAP.Toast.error(err.message || 'Failed to regenerate schedule.');
   } finally {
-    if (confirmBtn) {
-      confirmBtn.disabled = false;
-      confirmBtn.textContent = 'Yes, Regenerate';
-    }
+    if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.textContent = 'Yes, Regenerate'; }
   }
 }
 
-/* ── EVENTS ──────────────────────────────────────────────── */
+/* ── EVENTS ─────────────────────────────────────────────────── */
+
+/* Re-load analytics when the period dropdown changes. */
 document.getElementById('period-select').addEventListener('change', e => {
   loadAnalytics(+e.target.value);
 });
 
+/* Close the modal when clicking the backdrop. */
 document.getElementById('confirm-modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 
-document.getElementById('stress-missed-overlay').addEventListener('click', function(e) {
-  if (e.target === this) closeStressMissedModal();
-});
-
-/* ── INIT ────────────────────────────────────────────────── */
-loadAnalytics(30);
-
-if (DEMO_MODE && DEMO_FORCE_POPUP) {
-  setTimeout(() => {
-    showStressMissedModal(DEMO_MISSED_TASK);
-  }, 400);
-}
-
+/* ── INIT ───────────────────────────────────────────────────── */
+loadAnalytics(30); // load with the default "Last 30 Days" selection
 </script>
 </body>
 </html>
