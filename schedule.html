@@ -458,36 +458,6 @@ function hasScheduleSlots(data) {
   return Array.isArray(data?.slots) && data.slots.length > 0;
 }
 
-async function shouldTreatNextWeekAsCurrentWeek() {
-  try {
-    const items = await CLAP.API.get('/assignments/');
-    if (!Array.isArray(items) || items.length === 0) return false;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const monday = new Date(today);
-    const day = monday.getDay();
-    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
-    monday.setHours(0, 0, 0, 0);
-
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-    friday.setHours(23, 59, 59, 999);
-
-    return items.some(item => {
-      const raw = item?.deadline ?? item?.due_date ?? null;
-      if (!raw) return false;
-      const dl = new Date(raw);
-      if (isNaN(dl)) return false;
-      dl.setHours(12, 0, 0, 0);
-      return dl >= monday && dl <= friday;
-    });
-  } catch (err) {
-    console.warn('[CLAP] Could not inspect assignments for week alignment:', err);
-    return false;
-  }
-}
 
 function hideWeekBanner() {
   const banner = document.getElementById('week-info-banner');
@@ -855,45 +825,37 @@ async function loadSchedule(offset = 0, options = {}) {
   const { forceShow = false, silent = false } = options;
 
   weekOffset = offset;
-  const fallbackWeek = getWeekLabelFromOffset(weekOffset);
   updateWeekNavLabel();
-  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
+  const currentWeekLabel = getWeekLabelFromOffset(weekOffset);
+  document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${currentWeekLabel}`;
 
   if (!silent) hideWeekBanner();
 
   try {
     const apiData = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
     const normalizedData = normalizeScheduleData(apiData);
-    normalizedData.week = fallbackWeek;
+    normalizedData.week = currentWeekLabel;
 
+    /* Auto-advance: if THIS is an initial load of the current week and it's empty,
+       silently check next week and jump there so the page never opens blank. */
     if (weekOffset === 0 && !forceShow && !hasScheduleSlots(normalizedData)) {
       try {
         const nextApiData = await CLAP.API.get('/schedule/?week_offset=1');
         const nextData = normalizeScheduleData(nextApiData);
-        nextData.week = getWeekLabelFromOffset(1);
 
         if (hasScheduleSlots(nextData)) {
-          const useNextWeekAsCurrent = await shouldTreatNextWeekAsCurrentWeek();
-
-          if (useNextWeekAsCurrent) {
-            nextData.week = fallbackWeek;
-            weekOffset = 0;
-            updateWeekNavLabel();
-            document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${fallbackWeek}`;
-            renderSchedule(nextData);
-            if (!silent) {
-              showWeekBanner('Current-week schedule was recovered from the next-week payload.', { duration: 4000 });
-            }
-            return;
-          }
-
+          /* Update offset and all labels to correctly reflect next week */
           weekOffset = 1;
           updateWeekNavLabel();
-          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextData.week}`;
+          const nextWeekLabel = getWeekLabelFromOffset(weekOffset);
+          nextData.week = nextWeekLabel;
+          document.getElementById('sch-week').innerHTML = `<b>Week:</b> ${nextWeekLabel}`;
+
           renderSchedule(nextData);
+
           if (!silent) {
             showWeekBanner(
-              `No schedule for ${fallbackWeek} — showing next week.`,
+              `No schedule for ${currentWeekLabel} — showing next week.`,
               {
                 actionLabel: 'View this week',
                 onAction: () => {
@@ -913,7 +875,7 @@ async function loadSchedule(offset = 0, options = {}) {
     renderSchedule(normalizedData);
   } catch (err) {
     console.error('[CLAP] Schedule load error:', err);
-    const mockData = { ...getMock(), week: fallbackWeek };
+    const mockData = { ...getMock(), week: currentWeekLabel };
     renderSchedule(mockData);
     CLAP.Toast.error('Could not load schedule. Showing fallback data.');
   }
