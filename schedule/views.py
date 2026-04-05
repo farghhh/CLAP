@@ -31,9 +31,13 @@ DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
 
 def get_week_dates(week_offset=0):
     """Returns list of 5 weekday dates for a given week offset"""
-    today  = date.today()
-    monday = today - timedelta(days=today.weekday())
-    monday = monday + timedelta(weeks=week_offset)
+    today   = date.today()
+    weekday = today.weekday()
+    if weekday >= 5:
+        days_to_monday = 7 - weekday
+    else:
+        days_to_monday = -weekday
+    monday = today + timedelta(days=days_to_monday) + timedelta(weeks=week_offset)
     return [monday + timedelta(days=i) for i in range(5)]
 
 
