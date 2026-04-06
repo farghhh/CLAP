@@ -12,157 +12,162 @@
     .db-left      { display:flex; flex-direction:column; gap:20px; min-width:0; }
     .db-right     { display:flex; flex-direction:column; gap:20px; }
 
-    /* ── Greeting topbar ── */
-    .db-topbar    { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:24px; flex-wrap:wrap; }
+    /* ── Greeting topbar (search bar removed) ── */
+    .db-topbar    { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
     .db-greet-row { display:flex; align-items:center; gap:14px; }
     .db-avatar    { width:52px; height:52px; border-radius:50%; background:var(--grad-primary); display:flex; align-items:center; justify-content:center; font-family:var(--font-heading); font-weight:800; font-size:1.3rem; color:#fff; flex-shrink:0; box-shadow:0 4px 14px rgba(75,191,191,0.4); overflow:hidden; position:relative; }
     .db-avatar img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border-radius:50%; display:block; }
     .db-name      { font-family:var(--font-heading); font-size:1.2rem; font-weight:800; color:var(--clap-teal); line-height:1.2; }
     .db-sub       { font-size:0.82rem; color:var(--text-muted); }
 
-    /* ── Quick-nav action buttons ── */
-    .db-quick-nav { display:flex; gap:10px; flex-wrap:wrap; }
-    .qnav-btn {
-      display:inline-flex; align-items:center; gap:7px;
-      padding:8px 16px; border-radius:var(--radius-pill);
-      border:1.5px solid var(--border); background:var(--white);
-      font-family:var(--font-heading); font-size:0.78rem; font-weight:700;
-      color:var(--text-secondary); cursor:pointer;
-      transition:all var(--transition); white-space:nowrap;
-      box-shadow:var(--shadow-sm);
-    }
-    .qnav-btn:hover { border-color:var(--clap-teal); color:var(--clap-teal); background:var(--bg-light); transform:translateY(-1px); }
-    .qnav-btn svg { flex-shrink:0; }
-
     /* ── Stats grid ── */
-    .stats-grid { display:grid; grid-template-columns:1fr 1fr minmax(180px,240px); grid-template-rows:auto auto; gap:16px; }
-    .stat-box   { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
-    .stat-lbl   { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
-    .stat-num   { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
-
-    /* ── Clickable stat boxes ── */
-    .stat-box-link { cursor:pointer; transition:transform var(--transition),box-shadow var(--transition); text-decoration:none; display:block; }
-    .stat-box-link:hover { transform:translateY(-2px); box-shadow:0 8px 28px rgba(26,58,92,0.12); }
-
-    .cog-row    { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
-    .cog-pct    { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; }
-    .cog-badge  { display:inline-block; padding:4px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; margin-top:6px; }
+    .stats-grid   { display:grid; grid-template-columns:1fr 1fr minmax(180px,240px); grid-template-rows:auto auto; gap:16px; }
+    .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
+    .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
+    .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
+    .cog-row      { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
+    .cog-pct      { font-family:var(--font-heading); font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1; }
+    .cog-badge    { display:inline-block; padding:4px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; margin-top:6px; }
     .cog-badge.moderate { background:#F5A623; color:#fff; }
     .cog-badge.low      { background:#27AE60; color:#fff; }
     .cog-badge.high     { background:#E74C3C; color:#fff; }
     .cog-badge.critical { background:#E74C3C; color:#fff; animation:pulseBadge 1s ease-in-out infinite; }
-    @keyframes pulseBadge { 0%,100%{opacity:1} 50%{opacity:0.6} }
-    .cog-spark  { width:90px; height:48px; }
-
-    .dl-box     { grid-column:1/3; background:var(--white); border-radius:18px; padding:18px 24px; box-shadow:var(--shadow-card); display:flex; align-items:center; gap:14px; }
-    .dl-lbl     { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
+    .cog-spark    { width:90px; height:48px; }
+    .dl-box       { grid-column:1/3; background:var(--white); border-radius:18px; padding:18px 24px; box-shadow:var(--shadow-card); display:flex; align-items:center; gap:14px; }
+    .dl-lbl       { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
     .dl-icon-wrap { width:42px; height:42px; border-radius:50%; background:#1a1a2e; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .dl-course  { font-family:var(--font-heading); font-size:1rem; font-weight:800; color:var(--text-primary); }
-    .dl-name    { font-size:0.78rem; color:var(--text-muted); }
-    .dl-badge   { margin-left:auto; padding:7px 18px; border-radius:999px; font-size:0.78rem; font-weight:800; white-space:nowrap; flex-shrink:0; }
+    .dl-course    { font-family:var(--font-heading); font-size:1rem; font-weight:800; color:var(--text-primary); }
+    .dl-name      { font-size:0.78rem; color:var(--text-muted); }
+    .dl-badge     { margin-left:auto; padding:7px 18px; border-radius:999px; font-size:0.78rem; font-weight:800; white-space:nowrap; flex-shrink:0; }
     .dl-badge.urgent { background:#E74C3C; color:#fff; }
     .dl-badge.warn   { background:#FFF3CD; color:#856404; }
     .dl-badge.safe   { background:var(--bg-light); color:var(--clap-teal); }
-    /* Deadline box also clickable → assignments.html */
-    .dl-box-link { cursor:pointer; transition:box-shadow var(--transition); }
-    .dl-box-link:hover { box-shadow:0 6px 22px rgba(26,58,92,0.1); }
-
-    .focus-box  { grid-column:3; grid-row:1/3; background:linear-gradient(160deg,#4BBFBF 0%,#3DA8C8 60%,#5BB8D4 100%); border-radius:20px; padding:24px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; box-shadow:0 8px 24px rgba(75,191,191,0.4); color:#fff; cursor:pointer; transition:transform var(--transition); text-decoration:none; }
-    .focus-box:hover { transform:translateY(-2px); }
-    .focus-title { font-size:0.9rem; font-weight:700; text-align:center; line-height:1.3; }
-    .focus-clock { width:90px; height:90px; border-radius:50%; border:3px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; }
+    .focus-box    { grid-column:3; grid-row:1/3; background:linear-gradient(160deg,#4BBFBF 0%,#3DA8C8 60%,#5BB8D4 100%); border-radius:20px; padding:24px 16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; box-shadow:0 8px 24px rgba(75,191,191,0.4); color:#fff; }
+    .focus-title  { font-size:0.9rem; font-weight:700; text-align:center; line-height:1.3; }
+    .focus-clock  { width:90px; height:90px; border-radius:50%; border:3px solid rgba(255,255,255,0.55); display:flex; align-items:center; justify-content:center; }
     .focus-clock svg { width:52px; height:52px; stroke:#fff; }
-    .focus-hrs  { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; }
-
-    /* ── Progress bar for focus ── */
-    .focus-progress-track { width:80%; height:5px; background:rgba(255,255,255,0.25); border-radius:999px; overflow:hidden; }
-    .focus-progress-fill  { height:100%; background:rgba(255,255,255,0.85); border-radius:999px; transition:width 0.6s var(--ease); }
+    .focus-hrs    { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; }
 
     /* ── Study plan ── */
-    .plan-card  { background:var(--white); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow-card); }
-    .plan-hdr   { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
-    .plan-ttl   { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); }
+    .plan-card    { background:var(--white); border-radius:18px; padding:20px 22px; box-shadow:var(--shadow-card); }
+    .plan-hdr     { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .plan-ttl     { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); }
     .plan-week-badge { font-size:0.75rem; font-weight:700; color:var(--text-muted); background:var(--bg-light); border-radius:999px; padding:3px 12px; margin-left:8px; }
-    .plan-link  { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
+    .plan-link    { font-size:0.8rem; font-weight:600; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
     .plan-link:hover { color:var(--clap-teal); }
-
+    .plan-empty   { text-align:center; padding:28px 0; color:var(--text-muted); font-size:0.85rem; }
     /* Proportional schedule grid */
-    .sched-wrap { overflow-x:auto; }
-    .db-timetable { width:100%; min-width:460px; border-collapse:separate; border-spacing:4px; }
-    .db-th-time { width:62px; text-align:left; font-size:0.68rem; font-weight:700; color:var(--text-muted); padding:8px 4px; background:transparent; }
-    .db-th      { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:8px 4px; background:var(--bg-light); border-radius:6px; }
-
-    /* Highlight today's column header */
-    .db-th.today-col { background:var(--clap-teal); color:#fff; border-radius:6px; }
-
-    .db-time-cell  { font-size:0.63rem; font-weight:700; color:#fff; white-space:nowrap; padding:3px 6px; vertical-align:middle; min-width:58px; text-align:center; background:var(--clap-teal); border-radius:8px; box-shadow:0 2px 6px rgba(75,191,191,0.25); line-height:1.4; }
-    .db-empty-cell { height:48px; }
-    .db-task-block { display:flex; flex-direction:column; justify-content:center; border-radius:8px; padding:7px 9px; font-size:0.68rem; font-weight:700; min-height:48px; cursor:pointer; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
-    .db-task-block:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
-    .db-task-block.green  { background:#c8f0d4; color:#1a5c30; }
-    .db-task-block.orange { background:#fde9c0; color:#7a4300; }
-    .db-task-block.red    { background:#fac8c8; color:#7a1a1a; }
-    .db-task-block.blue   { background:#b8d4f8; color:#1a3a7a; }
-    .db-task-block.purple { background:#e8d5f8; color:#5b21b6; }
+    .sched-wrap   { overflow-x:auto; }
+    .sched-grid   { display:grid; grid-template-columns:44px repeat(5,1fr); min-width:460px; }
+    .sched-hdr    { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:7px 4px; background:var(--bg-light); border-radius:6px; margin:0 2px 4px; }
+    .sched-hdr.time-hdr { background:transparent; }
+    .sched-body   { grid-column:1/-1; display:grid; grid-template-columns:44px repeat(5,1fr); position:relative; }
+    .sched-time-col { position:relative; }
+    .sched-time-lbl { position:absolute; right:6px; font-size:0.65rem; font-weight:700; color:var(--text-muted); transform:translateY(-50%); white-space:nowrap; line-height:1; }
+    .sched-hline  { position:absolute; left:44px; right:0; height:1px; background:var(--border); opacity:0.45; pointer-events:none; }
+    .sched-day-col { position:relative; margin:0 2px; }
+    .t-block      { position:absolute; left:1px; right:1px; border-radius:8px; padding:5px 7px; font-size:0.68rem; font-weight:700; display:flex; flex-direction:column; justify-content:center; overflow:hidden; cursor:pointer; box-sizing:border-box; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
+    .t-block:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+    .t-block.green  { background:#c8f0d4; color:#1a5c30; }
+    .t-block.orange { background:#fde9c0; color:#7a4300; }
+    .t-block.red    { background:#fac8c8; color:#7a1a1a; }
+    .t-block.blue   { background:#b8d4f8; color:#1a3a7a; }
+    .t-block.purple { background:#e8d5f8; color:#5b21b6; }
     .t-block-name { font-weight:800; font-size:0.70rem; line-height:1.2; }
     .t-block-time { font-size:0.60rem; opacity:0.75; margin-top:2px; }
 
     /* ── Calendar ── */
-    .cal-card   { background:var(--white); border-radius:18px; padding:18px 18px 14px; box-shadow:var(--shadow-card); }
-    .cal-hdr    { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .cal-card     { background:var(--white); border-radius:18px; padding:18px 18px 14px; box-shadow:var(--shadow-card); }
+    .cal-hdr      { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
     .cal-date-big { font-family:var(--font-heading); font-size:1.3rem; font-weight:800; color:var(--clap-teal); }
     .cal-day-name { font-size:0.95rem; font-weight:600; color:var(--text-secondary); margin-left:6px; }
-    .cal-navs   { display:flex; gap:2px; }
-    .cal-btn    { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.1rem; padding:3px 7px; border-radius:6px; }
+    .cal-navs     { display:flex; gap:2px; }
+    .cal-btn      { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:1.1rem; padding:3px 7px; border-radius:6px; }
     .cal-btn:hover { color:var(--clap-teal); }
-    .cal-grid   { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; text-align:center; }
-    .cal-dn     { font-size:0.62rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; padding:4px 0; }
-    .cal-d      { padding:4px 1px; border-radius:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); cursor:pointer; position:relative; }
-    .cal-d:hover { background:var(--bg-light); }
-    .cal-d.today { background:var(--clap-teal); color:#fff; border-radius:50%; font-weight:800; }
-    .cal-d.om   { color:var(--border); }
+    .cal-grid     { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; text-align:center; }
+    .cal-dn       { font-size:0.62rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; padding:4px 0; }
+    .cal-d        { padding:4px 1px; border-radius:6px; font-size:0.75rem; font-weight:600; color:var(--text-secondary); cursor:pointer; position:relative; }
+    .cal-d:hover  { background:var(--bg-light); }
+    .cal-d.today  { background:var(--clap-teal); color:#fff; border-radius:50%; font-weight:800; }
+    .cal-d.om     { color:var(--border); }
+    /* Calendar dots — assignment due dates only, always red */
+    .cal-d { position:relative; }
     .cal-d::after { content:''; display:block; width:5px; height:5px; border-radius:50%; margin:1px auto 0; }
     .has-due::after { background:#E74C3C; }
+
+    /* Hover tooltip for due-date days */
     .cal-d[data-due]:hover .cal-tooltip,
     .cal-d[data-due]:focus .cal-tooltip { display:block; }
-    .cal-tooltip { display:none; position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:#1a3a5c; color:#fff; font-size:0.68rem; font-weight:600; white-space:nowrap; padding:5px 9px; border-radius:8px; pointer-events:none; z-index:100; line-height:1.4; max-width:160px; white-space:normal; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.18); }
-    .cal-tooltip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-top-color:#1a3a5c; }
+    .cal-tooltip {
+      display:none;
+      position:absolute;
+      bottom:calc(100% + 6px);
+      left:50%;
+      transform:translateX(-50%);
+      background:#1a3a5c;
+      color:#fff;
+      font-size:0.68rem;
+      font-weight:600;
+      white-space:nowrap;
+      padding:5px 9px;
+      border-radius:8px;
+      pointer-events:none;
+      z-index:100;
+      line-height:1.4;
+      max-width:160px;
+      white-space:normal;
+      text-align:center;
+      box-shadow:0 4px 12px rgba(0,0,0,0.18);
+    }
+    .cal-tooltip::after {
+      content:'';
+      position:absolute;
+      top:100%; left:50%;
+      transform:translateX(-50%);
+      border:5px solid transparent;
+      border-top-color:#1a3a5c;
+    }
 
     /* ── Today Must-Do / Upcoming ── */
     .todo-section-hdr { font-family:var(--font-heading); font-size:1rem; font-weight:700; color:var(--clap-teal); margin-bottom:14px; }
     .todo-upcoming-sublbl { font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
-    .todo-item  { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .todo-pill  { flex:1; display:flex; align-items:center; gap:10px; border-radius:14px; padding:11px 14px; min-width:0; }
-    .todo-pill.easy    { background:#E8F5E9; }
-    .todo-pill.medium  { background:#FFF3E0; }
-    .todo-pill.hard    { background:#FFEBEE; }
-    .todo-pill.upcoming{ background:#EDE7F6; }
+    .todo-item    { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .todo-pill    { flex:1; display:flex; align-items:center; gap:10px; border-radius:14px; padding:11px 14px; min-width:0; }
+    /* Difficulty-based pill colors */
+    .todo-pill.easy   { background:#E8F5E9; }
+    .todo-pill.medium { background:#FFF3E0; }
+    .todo-pill.hard   { background:#FFEBEE; }
+    .todo-pill.upcoming { background:#EDE7F6; }
     .todo-icon-wrap   { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .todo-icon-wrap.easy    { background:#2E7D32; }
-    .todo-icon-wrap.medium  { background:#E67E22; }
-    .todo-icon-wrap.hard    { background:#C62828; }
-    .todo-icon-wrap.upcoming{ background:#5B21B6; }
-    .todo-name  { font-size:0.83rem; font-weight:800; line-height:1.2; }
-    .todo-name.easy    { color:#2E7D32; } .todo-name.medium { color:#E67E22; }
-    .todo-name.hard    { color:#C62828; } .todo-name.upcoming { color:#5B21B6; }
-    .todo-time  { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
+    .todo-icon-wrap.easy   { background:#2E7D32; }
+    .todo-icon-wrap.medium { background:#E67E22; }
+    .todo-icon-wrap.hard   { background:#C62828; }
+    .todo-icon-wrap.upcoming { background:#5B21B6; }
+    .todo-name    { font-size:0.83rem; font-weight:800; line-height:1.2; }
+    .todo-name.easy   { color:#2E7D32; } .todo-name.medium { color:#E67E22; }
+    .todo-name.hard   { color:#C62828; } .todo-name.upcoming { color:#5B21B6; }
+    .todo-time    { font-size:0.70rem; color:var(--text-muted); margin-top:2px; }
     .todo-date-tag { font-size:0.68rem; font-weight:700; color:var(--clap-teal); background:rgba(75,191,191,0.1); border-radius:6px; padding:2px 7px; margin-top:3px; display:inline-block; }
-    .todo-btns  { display:flex; gap:5px; flex-shrink:0; }
-    .todo-btn   { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all var(--transition); color:#aaa; }
+    .todo-btns    { display:flex; gap:5px; flex-shrink:0; }
+    .todo-btn     { width:30px; height:30px; border-radius:50%; border:2px solid #ccc; background:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all var(--transition); color:#aaa; }
     .todo-btn.chk:hover { border-color:var(--success); background:var(--success); color:#fff; }
     .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
     .todo-item.done .todo-name { text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
 
-    /* ── Section header with "view all" link ── */
-    .todo-hdr-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-    .todo-view-all { font-size:0.75rem; font-weight:700; color:var(--text-muted); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; }
-    .todo-view-all:hover { color:var(--clap-teal); }
-
     /* ── Missed Task Modal ── */
-    .missed-overlay { display:none; position:fixed; inset:0; z-index:9500; background:rgba(26,58,92,0.4); backdrop-filter:blur(5px); align-items:center; justify-content:center; padding:20px; }
+    .missed-overlay {
+      display:none; position:fixed; inset:0; z-index:9500;
+      background:rgba(26,58,92,0.4); backdrop-filter:blur(5px);
+      align-items:center; justify-content:center; padding:20px;
+    }
     .missed-overlay.active { display:flex; }
-    .missed-modal { background:#fff; border-radius:24px; padding:40px 36px 36px; max-width:500px; width:100%; text-align:center; box-shadow:0 24px 64px rgba(26,58,92,0.24); animation:missedIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .missed-modal {
+      background:#fff; border-radius:24px; padding:40px 36px 36px;
+      max-width:500px; width:100%; text-align:center;
+      box-shadow:0 24px 64px rgba(26,58,92,0.24);
+      animation:missedIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
     @keyframes missedIn { from{opacity:0;transform:translateY(28px) scale(0.94)} to{opacity:1;transform:none} }
     .missed-icon  { font-size:2.8rem; margin-bottom:10px; }
     .missed-title { font-family:var(--font-heading); font-size:1.55rem; font-weight:800; color:#E74C3C; margin-bottom:10px; }
@@ -178,20 +183,20 @@
     .missed-card-time  { font-size:0.78rem; color:var(--text-muted); margin-top:3px; }
     .missed-arrow { font-size:1.8rem; color:#aaa; flex-shrink:0; }
     .missed-btns  { display:flex; gap:12px; justify-content:center; }
-    .missed-btn-primary  { flex:1; max-width:200px; padding:13px 20px; border-radius:999px; background:var(--grad-primary); color:#fff; border:none; cursor:pointer; font-family:var(--font-heading); font-weight:800; font-size:0.88rem; transition:opacity 0.2s; }
+    .missed-btn-primary {
+      flex:1; max-width:200px; padding:13px 20px; border-radius:999px;
+      background:var(--grad-primary); color:#fff; border:none; cursor:pointer;
+      font-family:var(--font-heading); font-weight:800; font-size:0.88rem;
+      transition:opacity 0.2s;
+    }
     .missed-btn-primary:hover { opacity:0.87; }
-    .missed-btn-secondary { flex:1; max-width:120px; padding:13px 20px; border-radius:999px; background:transparent; color:var(--clap-teal); border:2px solid var(--clap-teal); cursor:pointer; font-family:var(--font-heading); font-weight:800; font-size:0.88rem; transition:background 0.2s,color 0.2s; }
+    .missed-btn-secondary {
+      flex:1; max-width:120px; padding:13px 20px; border-radius:999px;
+      background:transparent; color:var(--clap-teal); border:2px solid var(--clap-teal);
+      cursor:pointer; font-family:var(--font-heading); font-weight:800; font-size:0.88rem;
+      transition:background 0.2s, color 0.2s;
+    }
     .missed-btn-secondary:hover { background:var(--clap-teal); color:#fff; }
-
-    /* ── Burnout / Stress warning banner ── */
-    .stress-banner { border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:12px; margin-bottom:0; }
-    .stress-banner.high  { background:#FFEBEE; border-left:4px solid #E74C3C; }
-    .stress-banner.warn  { background:#FFF3E0; border-left:4px solid #F39C12; }
-    .stress-banner.safe  { background:#E8F5E9; border-left:4px solid #27AE60; }
-    .stress-banner-icon  { font-size:1.4rem; flex-shrink:0; }
-    .stress-banner-title { font-family:var(--font-heading); font-size:0.85rem; font-weight:800; color:var(--text-primary); }
-    .stress-banner-sub   { font-size:0.75rem; color:var(--text-muted); margin-top:2px; }
-    .stress-banner-link  { margin-left:auto; flex-shrink:0; font-size:0.72rem; font-weight:700; color:var(--clap-teal); background:none; border:none; cursor:pointer; font-family:inherit; text-decoration:underline; white-space:nowrap; }
 
     /* ── Responsive ── */
     @media(max-width:1100px){
@@ -203,13 +208,28 @@
       .focus-box  { grid-column:1/3; grid-row:auto; }
       .dl-box     { grid-column:1/3; }
       .db-right   { grid-template-columns:1fr; }
-      .db-quick-nav { gap:6px; }
-      .qnav-btn   { padding:7px 12px; font-size:0.72rem; }
     }
-    @media(max-width:480px){
-      .missed-cards { flex-direction:column; }
-      .missed-arrow { transform:rotate(90deg); }
+
+    /* ── Dashboard mini timetable (table style) ── */
+    .db-timetable { width:100%; min-width:460px; border-collapse:separate; border-spacing:4px; }
+    .db-th-time   { width:62px; text-align:left; font-size:0.68rem; font-weight:700; color:var(--text-muted); padding:8px 4px; background:transparent; }
+    .db-th        { font-family:var(--font-heading); font-size:0.72rem; font-weight:700; color:var(--text-secondary); text-align:center; padding:8px 4px; background:var(--bg-light); border-radius:6px; }
+    .db-time-cell {
+      font-size:0.63rem; font-weight:700; color:#fff;
+      white-space:nowrap; padding:3px 6px; vertical-align:middle;
+      min-width:58px; text-align:center;
+      background:var(--clap-teal); border-radius:8px;
+      box-shadow:0 2px 6px rgba(75,191,191,0.25);
+      line-height:1.4;
     }
+    .db-empty-cell{ height:48px; }
+    .db-task-block{ display:flex; flex-direction:column; justify-content:center; border-radius:8px; padding:7px 9px; font-size:0.68rem; font-weight:700; min-height:48px; cursor:pointer; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
+    .db-task-block:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.12); }
+    .db-task-block.green  { background:#c8f0d4; color:#1a5c30; }
+    .db-task-block.orange { background:#fde9c0; color:#7a4300; }
+    .db-task-block.red    { background:#fac8c8; color:#7a1a1a; }
+    .db-task-block.blue   { background:#b8d4f8; color:#1a3a7a; }
+    .db-task-block.purple { background:#e8d5f8; color:#5b21b6; }
   </style>
 </head>
 <body>
@@ -250,52 +270,26 @@
   <aside id="sidebar" class="sidebar"></aside>
   <main class="main-content">
 
-    <!-- ── Greeting + Quick Nav ── -->
+    <!-- ── Greeting (no search bar) ── -->
     <div class="db-topbar">
       <div class="db-greet-row">
         <div class="db-avatar" id="db-av">S</div>
         <div>
           <div class="db-name" id="db-greet">Welcome Back!</div>
-          <div class="db-sub" id="db-date-sub">Loading…</div>
+          <div class="db-sub">Nice to have you back.</div>
         </div>
       </div>
-      <!-- FIX: Quick-nav buttons so user can jump to any page from the dashboard -->
-      <nav class="db-quick-nav" aria-label="Quick navigation">
-        <button class="qnav-btn" onclick="location.href='assignments.html'" aria-label="Go to assignments">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-          Assignments
-        </button>
-        <button class="qnav-btn" onclick="location.href='schedule.html'" aria-label="Go to schedule">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          Schedule
-        </button>
-        <button class="qnav-btn" onclick="location.href='stress-analytics.html'" aria-label="Go to stress analytics">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          Analytics
-        </button>
-        <button class="qnav-btn" onclick="location.href='settings.html'" aria-label="Go to settings">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
-        </button>
-      </nav>
     </div>
-
-    <!-- FIX: Stress/burnout warning banner — shown only when cognitive load is high -->
-    <div id="stress-banner-wrap" style="margin-bottom:20px;"></div>
 
     <div class="db-wrapper">
       <!-- ════ LEFT ════ -->
       <div class="db-left">
         <div class="stats-grid">
-
-          <!-- FIX: Total Tasks now links to assignments.html -->
-          <a href="assignments.html" class="stat-box stat-box-link" aria-label="View all assignments">
+          <div class="stat-box">
             <div class="stat-lbl">Total Tasks</div>
             <div class="stat-num" id="s-tasks">—</div>
-          </a>
-
-          <!-- FIX: Cognitive Load links to stress-analytics.html -->
-          <a href="stress-analytics.html" class="stat-box stat-box-link" aria-label="View stress analytics">
+          </div>
+          <div class="stat-box">
             <div class="stat-lbl">Cognitive Load</div>
             <div class="cog-row">
               <canvas class="cog-spark" id="cog-spark"></canvas>
@@ -304,10 +298,8 @@
                 <span class="cog-badge moderate" id="s-cog-badge">Moderate</span>
               </div>
             </div>
-          </a>
-
-          <!-- FIX: Focus Box links to schedule.html + has a progress bar -->
-          <a href="schedule.html" class="focus-box" aria-label="View today's schedule">
+          </div>
+          <div class="focus-box">
             <div class="focus-title">Focus Hours<br>Today</div>
             <div class="focus-clock" aria-hidden="true">
               <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
@@ -319,17 +311,9 @@
               </svg>
             </div>
             <div class="focus-hrs" id="s-focus">— / — Hrs</div>
-            <div class="focus-progress-track">
-              <div class="focus-progress-fill" id="focus-progress-fill" style="width:0%"></div>
-            </div>
-          </a>
-
-          <!-- FIX: Next Deadline box links to assignments.html -->
-          <div class="dl-box dl-box-link" onclick="location.href='assignments.html'" role="link" tabindex="0"
-               aria-label="View assignments — next deadline" onkeydown="if(event.key==='Enter')location.href='assignments.html'">
-            <div>
-              <div class="dl-lbl">Next Deadline</div>
-            </div>
+          </div>
+          <div class="dl-box">
+            <div class="dl-lbl">Next Deadline</div>
             <div class="dl-icon-wrap" aria-hidden="true">
               <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -350,19 +334,18 @@
               <span class="plan-ttl">Generated Study Plan</span>
               <span class="plan-week-badge" id="plan-week-badge"></span>
             </div>
-            <!-- FIX: "View full schedule" links to schedule.html -->
-            <button class="plan-link" onclick="location.href='schedule.html'">View full schedule →</button>
+            <button class="plan-link" onclick="location.href='schedule.html'">View full schedule</button>
           </div>
-          <div class="sched-wrap">
+          <div class="sched-wrap" style="overflow-x:auto;">
             <table class="db-timetable" id="plan-grid">
               <thead>
                 <tr>
                   <th class="db-th-time"></th>
-                  <th class="db-th" id="th-mon">Monday</th>
-                  <th class="db-th" id="th-tue">Tuesday</th>
-                  <th class="db-th" id="th-wed">Wednesday</th>
-                  <th class="db-th" id="th-thu">Thursday</th>
-                  <th class="db-th" id="th-fri">Friday</th>
+                  <th class="db-th">Monday</th>
+                  <th class="db-th">Tuesday</th>
+                  <th class="db-th">Wednesday</th>
+                  <th class="db-th">Thursday</th>
+                  <th class="db-th">Friday</th>
                 </tr>
               </thead>
               <tbody id="plan-body">
@@ -393,11 +376,7 @@
 
         <!-- Today / Upcoming tasks -->
         <div>
-          <!-- FIX: "View all" link to assignments page in todo header -->
-          <div class="todo-hdr-row">
-            <div class="todo-section-hdr" id="todo-section-hdr">Today's Must-Do List</div>
-            <button class="todo-view-all" onclick="location.href='assignments.html'" aria-label="View all assignments">View all →</button>
-          </div>
+          <div class="todo-section-hdr" id="todo-section-hdr">Today Must-Do List</div>
           <div id="todo-list"></div>
         </div>
       </div><!-- /.db-right -->
@@ -413,28 +392,7 @@
 
 AppShell.init('dashboard.html', { showTopbar: false });
 
-/* ── Set today's date in subtitle ── */
-(function setDateSub() {
-  const now = new Date();
-  const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric' };
-  const el = document.getElementById('db-date-sub');
-  if (el) el.textContent = now.toLocaleDateString('en-US', opts);
-})();
-
-/* ── Highlight today's column in plan table ── */
-function highlightTodayColumn() {
-  const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const todayName = dayNames[new Date().getDay()];
-  const dayIds = { Monday:'th-mon', Tuesday:'th-tue', Wednesday:'th-wed', Thursday:'th-thu', Friday:'th-fri' };
-  const thId = dayIds[todayName];
-  if (thId) {
-    const th = document.getElementById(thId);
-    if (th) th.classList.add('today-col');
-  }
-}
-highlightTodayColumn();
-
-/* ── Greeting + avatar ── */
+/* Greeting + avatar — reads from localStorage, then refreshes from API */
 function _renderAvatar(user) {
   const avEl = document.getElementById('db-av');
   const pic  = user.profile_picture || user.avatarDataUrl || null;
@@ -446,9 +404,13 @@ function _renderAvatar(user) {
     img.onerror = () => {
       avEl.innerHTML = '';
       avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
+      /* Also clear the broken URL from storage so we don't retry it */
       try {
         const stored = CLAP.Auth.getUser() || {};
-        if (stored.profile_picture === pic) { stored.profile_picture = ''; CLAP.Auth.setUser(stored); }
+        if (stored.profile_picture === pic) {
+          stored.profile_picture = '';
+          CLAP.Auth.setUser(stored);
+        }
       } catch {}
     };
     avEl.appendChild(img);
@@ -462,55 +424,91 @@ const _fn = (_u.name || 'Student').split(' ')[0];
 _renderAvatar(_u);
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
-/* ── User preferences ── */
+/* Profile is now fetched inside init() above */
+
+/* ── User preferences ──────────────────────────────────────
+   CONNECT: GET /api/users/preferences/
+   { study_start, study_end, sleep_start, sleep_end, max_focus_hours }
+   ─────────────────────────────────────────────────────────── */
 let userPrefs = { study_start:'09:00', study_end:'18:00', max_focus_hours:6 };
 async function loadPrefs() {
   try {
     const p = await CLAP.API.get('/users/preferences/get/');
     if (p && p.study_start) userPrefs = { ...userPrefs, ...p };
-  } catch {}
+  } catch { /* keep defaults */ }
 }
 
-/* ── Stress/burnout banner ── */
-function renderStressBanner(cogLoad) {
-  const wrap = document.getElementById('stress-banner-wrap');
-  if (!wrap || !cogLoad) return;
-  const val = cogLoad.value ?? 0;
-  const lv  = (cogLoad.level || '').toLowerCase();
-  if (val >= 80 || lv === 'high' || lv === 'critical') {
-    wrap.style.display = 'block';
-    wrap.innerHTML = `
-      <div class="stress-banner high" role="alert">
-        <span class="stress-banner-icon">🔥</span>
-        <div>
-          <div class="stress-banner-title">High Cognitive Load Detected (${val}%)</div>
-          <div class="stress-banner-sub">Consider rescheduling tasks or taking breaks to avoid burnout.</div>
-        </div>
-        <button class="stress-banner-link" onclick="location.href='stress-analytics.html'">View Analytics →</button>
-      </div>`;
-  } else if (val >= 60 || lv === 'moderate') {
-    wrap.style.display = 'block';
-    wrap.innerHTML = `
-      <div class="stress-banner warn" role="alert">
-        <span class="stress-banner-icon">⚠️</span>
-        <div>
-          <div class="stress-banner-title">Moderate Load (${val}%) — Stay on track</div>
-          <div class="stress-banner-sub">Your schedule looks manageable. Keep up the good work!</div>
-        </div>
-        <button class="stress-banner-link" onclick="location.href='stress-analytics.html'">View Analytics →</button>
-      </div>`;
-  } else {
-    wrap.style.display = 'block';
-    wrap.innerHTML = `
-      <div class="stress-banner safe" role="status">
-        <span class="stress-banner-icon">✅</span>
-        <div>
-          <div class="stress-banner-title">Cognitive Load is Low (${val}%) — You're doing great!</div>
-          <div class="stress-banner-sub">Your schedule is well-balanced. Keep maintaining this pace.</div>
-        </div>
-        <button class="stress-banner-link" onclick="location.href='stress-analytics.html'">View Analytics →</button>
-      </div>`;
-  }
+/* ── Mock data ──────────────────────────────────────────────
+   CONNECT: GET /api/dashboard/
+   Full expected shape is documented inline below.
+   ─────────────────────────────────────────────────────────── */
+function getMock() {
+  const now    = new Date();
+  const dow    = now.getDay();
+  const toMon  = (dow===0) ? -6 : 1-dow;
+  const monday = new Date(now); monday.setDate(now.getDate()+toMon);
+
+  /* Build task_date_meta: map ISO date → dot CSS class */
+  const taskDateMeta = {};
+  [0,1,2,3,4,7,8,9,10,11].forEach((off,i) => {
+    const d = new Date(monday); d.setDate(monday.getDate()+off);
+    const iso = d.toISOString().slice(0,10);
+    taskDateMeta[iso] = (i%4===0)?'dot-red':(i%3===0)?'dot-orange':'dot-teal';
+  });
+
+  return {
+    total_tasks:    5,
+    cognitive_load: { value:72, level:'moderate', trend:[40,45,55,50,72] },
+    focus:          { used:3, max:6 },
+    next_deadline:  { course:'CSC2383', title:'Database Project', days_left:2 },
+    schedule: {
+      Monday:    [
+        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy'   },
+        { time:'11:00', end:'12:00', title:'Parallel Comp.',   difficulty:'medium' },
+      ],
+      Tuesday:   [{ time:'10:00', end:'12:00', title:'Mobile App',     difficulty:'hard'   }],
+      Wednesday: [
+        { time:'09:00', end:'10:00', title:'Parallel Comp.',  difficulty:'medium' },
+        { time:'11:00', end:'13:00', title:'Mobile App',      difficulty:'hard'   },
+      ],
+      Thursday:  [{ time:'09:00', end:'10:00', title:'Mobile App',     difficulty:'hard'   }],
+      Friday:    [
+        { time:'11:00', end:'12:00', title:'Parallel Comp.',  difficulty:'medium' },
+        { time:'13:00', end:'14:00', title:'Mobile App',      difficulty:'hard'   },
+      ],
+    },
+    today_tasks: [
+      { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
+      { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
+      { id:3, title:'Mobile Application', start:'15:00 PM', end:'16:00 PM', difficulty:'hard',   color:'purple' },
+    ],
+    /*
+     * missed_task: null if nothing missed.
+     * CONNECT: backend sets this when a session was scheduled yesterday
+     *          and not marked complete, and has auto-rescheduled it.
+     */
+    missed_task: null,
+    task_date_meta: taskDateMeta,  // kept for backwards-compat
+    /* CONNECT: replace with real API data. assignment_due_dates is the canonical field. */
+    assignment_due_dates: [
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); })(), title: 'CSC2383 Database Project' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+5); return d.toISOString().slice(0,10); })(), title: 'MPU123 Speaking' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+7); return d.toISOString().slice(0,10); })(), title: 'CSC123 DB Assignment' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+10); return d.toISOString().slice(0,10); })(), title: 'ISL123 Islamic Studies' },
+      { date: (() => { const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10); })(), title: 'MPU123 Final Report' },
+    ],
+  };
+}
+
+/* ── Helpers ── */
+const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
+const COL_CYCLE  = ['easy','medium','hard','medium','easy'];
+const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+const DN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+function taskColor(t) {
+  return (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color||'blue');
 }
 
 /* ── Stats ── */
@@ -524,12 +522,6 @@ function renderStats(d) {
   badge.textContent = lv.charAt(0).toUpperCase()+lv.slice(1);
   const f = d.focus || {};
   document.getElementById('s-focus').textContent = `${f.used??'—'} / ${f.max??'—'} Hrs`;
-  /* FIX: animate focus progress bar */
-  const used = parseFloat(f.used) || 0;
-  const max  = parseFloat(f.max)  || (userPrefs.max_focus_hours || 6);
-  const pct  = max > 0 ? Math.min(100, Math.round((used/max)*100)) : 0;
-  const bar  = document.getElementById('focus-progress-fill');
-  if (bar) setTimeout(() => { bar.style.width = pct + '%'; }, 200);
 }
 
 /* ── Sparkline ── */
@@ -551,39 +543,63 @@ function renderSparkline(trend) {
 
 /* ── Deadline ── */
 function renderDeadline(dl) {
-  if(!dl){ document.getElementById('dl-course').textContent='No upcoming deadlines'; document.getElementById('dl-name').textContent=''; document.getElementById('dl-badge').textContent=''; document.getElementById('dl-badge').className='dl-badge safe'; return; }
+  if(!dl) return;
   document.getElementById('dl-course').textContent=dl.course||'';
   document.getElementById('dl-name').textContent  =dl.title ||'';
   const b=document.getElementById('dl-badge'),d=dl.days_left;
-  if(d<0)      {b.textContent='Overdue!';         b.className='dl-badge urgent';}
-  else if(d<=1){b.textContent='Due Today!';        b.className='dl-badge urgent';}
-  else if(d<=3){b.textContent=`Due in ${d} Days`;  b.className='dl-badge urgent';}
-  else if(d<=7){b.textContent=`Due in ${d} Days`;  b.className='dl-badge warn';}
-  else         {b.textContent=`Due in ${d} Days`;  b.className='dl-badge safe';}
+  if(d<0)      {b.textContent='Overdue!';        b.className='dl-badge urgent';}
+  else if(d<=1){b.textContent='Due Today!';       b.className='dl-badge urgent';}
+  else if(d<=3){b.textContent=`Due in ${d} Days`; b.className='dl-badge urgent';}
+  else if(d<=7){b.textContent=`Due in ${d} Days`; b.className='dl-badge warn';}
+  else         {b.textContent=`Due in ${d} Days`; b.className='dl-badge safe';}
 }
 
-/* ── Schedule helpers ── */
-const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
-const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
-const DN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const MN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
+/* ── Schedule ── */
 function hasAnySchedule(schedule) {
   return !!schedule && Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
 }
 
-function _timeToMins(t) {
-  if (!t) return 0;
-  t = t.trim();
-  if (/\d{1,2}\.\d{2}\s*(AM|PM)/i.test(t)) {
-    const [hm, ap] = t.split(/\s+/);
-    let [h, m] = hm.split('.').map(Number);
-    if (/PM/i.test(ap) && h !== 12) h += 12;
-    if (/AM/i.test(ap) && h === 12) h = 0;
-    return h * 60 + (m || 0);
+async function shouldTreatNextWeekAsCurrentWeek() {
+  try {
+    const items = await CLAP.API.get('/assignments/');
+    if (!Array.isArray(items) || items.length === 0) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const monday = new Date(today);
+    const day = monday.getDay();
+    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
+    monday.setHours(0, 0, 0, 0);
+
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+
+    return items.some(item => {
+      const raw = item?.deadline ?? item?.due_date ?? null;
+      if (!raw) return false;
+      const dl = new Date(raw);
+      if (isNaN(dl)) return false;
+      dl.setHours(12, 0, 0, 0);
+      return dl >= monday && dl <= friday;
+    });
+  } catch (err) {
+    console.warn('[CLAP] Could not inspect assignments for dashboard week alignment:', err);
+    return false;
   }
-  if (t.includes(':')) { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); }
-  return parseInt(t) * 60;
+}
+
+function buildTodayTasksFromSchedule(schedule) {
+  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
+  const todaySessions = (schedule && schedule[todayName]) || [];
+  return todaySessions.map((s, i) => ({
+    id: s.session_id ?? s.id ?? (Date.now() + i),
+    title: s.title || s.subject || '',
+    start: s.time || '',
+    end: s.end || '',
+    difficulty: (s.difficulty || 'medium').toLowerCase(),
+  })).filter(t => t.title);
 }
 
 function normalizeScheduleApiToDashboard(apiData) {
@@ -600,64 +616,87 @@ function normalizeScheduleApiToDashboard(apiData) {
       const endMins = (sh * 60 + (sm || 0)) + Math.round(durationHours * 60);
       end = `${String(Math.floor(endMins / 60) % 24).padStart(2,'0')}:${String(endMins % 60).padStart(2,'0')}`;
     }
-    out[day].push({ ...slot, title: slot.title || [slot.code, slot.subject].filter(Boolean).join(' '), time: start, end: end || start, difficulty: (slot.difficulty || slot.task_difficulty || 'medium').toLowerCase(), duration: durationHours });
+    out[day].push({
+      ...slot,
+      title: slot.title || [slot.code, slot.subject].filter(Boolean).join(' '),
+      time: start,
+      end: end || start,
+      difficulty: (slot.difficulty || slot.task_difficulty || slot.assignment_difficulty || 'medium').toLowerCase(),
+      duration: durationHours,
+    });
   });
   return out;
-}
-
-function buildTodayTasksFromSchedule(schedule) {
-  const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
-  const todaySessions = (schedule && schedule[todayName]) || [];
-  return todaySessions.map((s, i) => ({ id: s.session_id ?? s.id ?? (Date.now() + i), title: s.title || s.subject || '', start: s.time || '', end: s.end || '', difficulty: (s.difficulty || 'medium').toLowerCase() })).filter(t => t.title);
-}
-
-async function shouldTreatNextWeekAsCurrentWeek() {
-  try {
-    const items = await CLAP.API.get('/assignments/');
-    if (!Array.isArray(items) || items.length === 0) return false;
-    const today = new Date(); today.setHours(0,0,0,0);
-    const monday = new Date(today);
-    const day = monday.getDay();
-    monday.setDate(monday.getDate() + (day === 0 ? -6 : 1 - day));
-    monday.setHours(0,0,0,0);
-    const friday = new Date(monday); friday.setDate(monday.getDate() + 4); friday.setHours(23,59,59,999);
-    return items.some(item => { const raw = item?.deadline ?? item?.due_date ?? null; if (!raw) return false; const dl = new Date(raw); if (isNaN(dl)) return false; dl.setHours(12,0,0,0); return dl >= monday && dl <= friday; });
-  } catch { return false; }
 }
 
 function renderSchedule(schedule, badgeLabel = 'This Week') {
   const badge = document.getElementById('plan-week-badge');
   if (badge) badge.textContent = badgeLabel;
-  if (!hasAnySchedule(schedule)) { emptySchedule(badgeLabel); return; }
+
+  if (!hasAnySchedule(schedule)) {
+    emptySchedule(badgeLabel);
+    return;
+  }
+
   _renderScheduleTable(schedule);
 }
 
+/* Convert any time string (HH:MM 24h OR "H.MM AM/PM") to total minutes since midnight */
+function _timeToMins(t) {
+  if (!t) return 0;
+  t = t.trim();
+  /* "H.MM AM" / "H.MM PM" format (from schedule.html normalizer) */
+  if (/\d{1,2}\.\d{2}\s*(AM|PM)/i.test(t)) {
+    const [hm, ap] = t.split(/\s+/);
+    let [h, m] = hm.split('.').map(Number);
+    if (/PM/i.test(ap) && h !== 12) h += 12;
+    if (/AM/i.test(ap) && h === 12) h = 0;
+    return h * 60 + (m || 0);
+  }
+  /* "HH:MM" 24h format */
+  if (t.includes(':')) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+  return parseInt(t) * 60;
+}
+
+/* Format total minutes back to "HH:MM" for display */
+function _minsToLabel(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
 function _renderScheduleTable(schedule) {
+  /* Group slots by day, sorted by start time */
   const daySlots = {};
   DAYS.forEach(d => { daySlots[d] = []; });
   DAYS.forEach(day => {
-    (schedule[day] || []).forEach(t => daySlots[day].push(t));
+    (schedule[day] || []).forEach(t => {
+      daySlots[day].push(t);
+    });
     daySlots[day].sort((a, b) => _timeToMins(a.time) - _timeToMins(b.time));
   });
 
   const maxSessions = Math.max(...DAYS.map(d => daySlots[d].length));
   if (maxSessions === 0) { emptySchedule(); return; }
 
-  /* FIX: Find the day with the most sessions to anchor rows correctly */
-  const anchorDay = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
+  const anchorDay      = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
   const anchorSessions = daySlots[anchorDay];
 
+  /* Inject table into #plan-body — one row per session slot */
   let html = '';
   anchorSessions.forEach((anchorSlot, rowIdx) => {
     html += '<tr>';
+    /* Time label cell */
     html += `<td class="db-time-cell">${anchorSlot.time}</td>`;
+
     DAYS.forEach(day => {
       const t = daySlots[day][rowIdx];
       if (!t) { html += `<td><div class="db-empty-cell"></div></td>`; return; }
       const col = (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color || 'blue');
-      /* FIX: Each task block links directly to schedule.html */
       html += `<td style="vertical-align:top;padding:2px;">
-        <a href="schedule.html" class="db-task-block ${col}" title="${t.title}" aria-label="${t.title} — ${t.time} to ${t.end}">
+        <a href="schedule.html" class="db-task-block ${col}" title="${t.title}">
           <div class="t-block-name">${t.title}</div>
           <div class="t-block-time">${t.time} – ${t.end}</div>
         </a>
@@ -670,31 +709,45 @@ function _renderScheduleTable(schedule) {
 }
 
 function emptySchedule(badgeLabel = 'This Week') {
-  const badge = document.getElementById('plan-week-badge');
-  if (badge) badge.textContent = badgeLabel;
-  document.getElementById('plan-body').innerHTML =
-    `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">
-      No study sessions scheduled yet.<br>
-      <button onclick="location.href='assignments.html'" style="margin-top:8px;background:var(--grad-primary);color:#fff;border:none;border-radius:999px;padding:8px 20px;font-family:var(--font-heading);font-size:0.78rem;font-weight:700;cursor:pointer;">
-        + Add Assignments
-      </button>
-    </td></tr>`;
+  const badge=document.getElementById('plan-week-badge');
+  if(badge) badge.textContent = badgeLabel;
+  document.getElementById('plan-body').innerHTML=
+    `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">No study sessions scheduled yet. Add assignments to generate a schedule.</td></tr>`;
 }
 
-/* ── Calendar ── */
+/* ── Calendar: dots from real task_date_meta ── */
 let calDate=new Date(), _dotMap={};
 
+/*
+ * renderCalendar: accepts assignment_due_dates from the API.
+ * CONNECT: GET /api/dashboard/ should return:
+ *   assignment_due_dates: [
+ *     { date: "2025-04-10", title: "CSC2383 Database Project" },
+ *     { date: "2025-04-15", title: "MPU123 Speaking" },
+ *     ...
+ *   ]
+ * Each date gets a red dot; hovering shows the assignment title.
+ * Multiple assignments on the same day are joined with a newline.
+ */
 function renderCalendar(dueDates) {
   _dotMap = {};
   if (Array.isArray(dueDates)) {
     dueDates.forEach(item => {
       if (!item || !item.date) return;
-      const iso = item.date, title = item.title || '';
-      if (_dotMap[iso]) { _dotMap[iso].label += (title ? ' · ' + title : ''); }
-      else { _dotMap[iso] = { label: title }; }
+      const iso   = item.date;           // "YYYY-MM-DD"
+      const title = item.title || '';
+      if (_dotMap[iso]) {
+        // Multiple assignments on same day — append
+        _dotMap[iso].label += (title ? ' · ' + title : '');
+      } else {
+        _dotMap[iso] = { label: title };
+      }
     });
   } else if (dueDates && typeof dueDates === 'object') {
-    Object.entries(dueDates).forEach(([iso]) => { _dotMap[iso] = { label: '' }; });
+    // Backwards-compat: old task_date_meta map passed in
+    Object.entries(dueDates).forEach(([iso, val]) => {
+      _dotMap[iso] = { label: '' };
+    });
   }
   _drawCal();
 }
@@ -706,18 +759,20 @@ function _drawCal() {
   const td=today.getDate();
   document.getElementById('cal-title').textContent=`${MN[m]}, ${isCur?td:1}`;
   document.getElementById('cal-day').textContent=isCur?DN[today.getDay()]:'';
-  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  const first=new Date(y,m,1).getDay();
+  const days =new Date(y,m+1,0).getDate();
   let html=DN.map(d=>`<div class="cal-dn">${d}</div>`).join('');
   for(let i=0;i<first;i++) html+=`<div class="cal-d om"></div>`;
   for(let d=1;d<=days;d++){
     const isT=isCur&&d===td;
     const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const entry=_dotMap[iso];
+    /* _dotMap now stores { label } or string — only assignment due dates */
+    const entry = _dotMap[iso];
     if(entry && !isT){
-      const lbl=(typeof entry==='object'&&entry.label)?entry.label:(typeof entry==='string'&&entry!=='')?entry:'';
-      const dataAttr=lbl?` data-due="1"`:'';
-      const tooltip=lbl?`<span class="cal-tooltip">${lbl}</span>`:'';
-      html+=`<div class="cal-d has-due"${dataAttr} tabindex="0" role="button" aria-label="Due: ${lbl||'assignment'}">${d}${tooltip}</div>`;
+      const label = (typeof entry==='object' && entry.label) ? entry.label : (typeof entry==='string' && entry!=='') ? entry : '';
+      const dataAttr = label ? ` data-due="1"` : '';
+      const tooltip  = label ? `<span class="cal-tooltip">${label}</span>` : '';
+      html+=`<div class="cal-d has-due"${dataAttr} tabindex="0">${d}${tooltip}</div>`;
     } else {
       html+=`<div class="cal-d ${isT?'today':''}">${d}</div>`;
     }
@@ -729,62 +784,78 @@ document.getElementById('cal-prev').onclick=()=>{calDate.setMonth(calDate.getMon
 document.getElementById('cal-next').onclick=()=>{calDate.setMonth(calDate.getMonth()+1);_drawCal();};
 _drawCal();
 
-/* ── SVG icons ── */
+/* ── SVG icon helpers ── */
 const DIFF_ICONS = {
-  easy:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
-  medium:  `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  hard:    `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  easy:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+  medium: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  hard:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
   upcoming:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
 };
-function _diffClass(t) { const d=(t.difficulty||'').toLowerCase(); return d==='easy'?'easy':d==='hard'?'hard':'medium'; }
 
-/* ── Todo list ── */
+function _diffClass(t) {
+  const d = (t.difficulty || '').toLowerCase();
+  if (d === 'easy')   return 'easy';
+  if (d === 'hard')   return 'hard';
+  if (d === 'medium') return 'medium';
+  return 'medium';
+}
+
 function renderTodo(tasks, upcoming) {
   const el  = document.getElementById('todo-list');
   const hdr = document.getElementById('todo-section-hdr');
+
+  /* Filter today's tasks to only those that actually have a valid title */
   const todayValid = (tasks || []).filter(t => t && t.title);
 
   if (todayValid.length > 0) {
     hdr.textContent = "Today's Must-Do List";
     el.innerHTML = todayValid.map(t => {
-      const cls=_diffClass(t), icon=DIFF_ICONS[cls]||DIFF_ICONS.medium;
+      const cls  = _diffClass(t);
+      const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
       return `
       <div class="todo-item" id="td-${t.id}">
         <div class="todo-pill ${cls}">
           <div class="todo-icon-wrap ${cls}">${icon}</div>
           <div style="min-width:0">
             <div class="todo-name ${cls}">${t.title}</div>
-            <div class="todo-time">${t.start||''}${t.end?' – '+t.end:''}</div>
+            <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
           </div>
         </div>
         <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Mark done" title="Mark done">
+          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
-          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip task" title="Skip">
+          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip" title="Skip">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
       </div>`;
     }).join('');
   } else {
+    /* No today tasks → show upcoming */
     hdr.textContent = 'Upcoming Tasks';
-    let up = (upcoming && upcoming.length > 0) ? upcoming : _deriveUpcoming(window._scheduleCache || {});
+
+    let up = (upcoming && upcoming.length > 0)
+      ? upcoming
+      : _deriveUpcoming(window._scheduleCache || {});
+
     if (!up || up.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">Nothing scheduled — enjoy your break! 🎉</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);font-size:.82rem;text-align:center;padding:16px 0">Nothing scheduled — enjoy your break!</p>';
       return;
     }
+
     el.innerHTML = `<div class="todo-upcoming-sublbl">Coming up</div>` +
-      up.slice(0,4).map(t => {
-        const cls=_diffClass(t), icon=DIFF_ICONS[cls]||DIFF_ICONS.upcoming;
+      up.slice(0, 4).map(t => {
+        const cls  = _diffClass(t);
+        const icon = DIFF_ICONS[cls] || DIFF_ICONS.upcoming;
         return `
         <div class="todo-item">
-          <div class="todo-pill ${cls||'upcoming'}">
-            <div class="todo-icon-wrap ${cls||'upcoming'}">${icon}</div>
+          <div class="todo-pill ${cls || 'upcoming'}">
+            <div class="todo-icon-wrap ${cls || 'upcoming'}">${icon}</div>
             <div style="min-width:0">
-              <div class="todo-name ${cls||'upcoming'}">${t.title}</div>
-              ${t.start?`<div class="todo-time">${t.start}${t.end?' – '+t.end:''}</div>`:''}
-              ${t.date?`<div class="todo-date-tag">${t.date}</div>`:''}
+              <div class="todo-name ${cls || 'upcoming'}">${t.title}</div>
+              ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
+              ${t.date  ? `<div class="todo-date-tag">${t.date}</div>` : ''}
             </div>
           </div>
         </div>`;
@@ -793,68 +864,71 @@ function renderTodo(tasks, upcoming) {
 }
 
 function _deriveUpcoming(schedule) {
-  const today=new Date(), dow=today.getDay(), result=[];
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun,1=Mon,...6=Sat
+  const result = [];
   DAYS.forEach(day => {
-    const tasks=schedule[day];
-    if(!Array.isArray(tasks)||tasks.length===0) return;
-    const dayIdx=['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day)+1;
-    let ahead=(dayIdx-dow+7)%7;
-    const dt=new Date(today); dt.setDate(today.getDate()+ahead);
-    const label=ahead===0?'Today':dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-    tasks.forEach(t => result.push({...t,date:label,difficulty:(t.difficulty||'medium').toLowerCase()}));
+    const tasks = schedule[day];
+    if (!Array.isArray(tasks) || tasks.length === 0) return;
+    const dayIdx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day) + 1; // 1–5
+    let ahead = (dayIdx - dow + 7) % 7;
+    /* ahead=0 means today — include today's tasks */
+    const dt = new Date(today);
+    dt.setDate(today.getDate() + ahead);
+    const label = ahead === 0
+      ? 'Today'
+      : dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+    tasks.forEach(t => {
+      result.push({
+        ...t,
+        date: label,
+        difficulty: (t.difficulty || 'medium').toLowerCase(),
+      });
+    });
   });
-  return result.sort((a,b)=>{if(a.date==='Today')return -1;if(b.date==='Today')return 1;return new Date(a.date)-new Date(b.date);});
+  /* Sort: today first, then by calendar date */
+  return result.sort((a, b) => {
+    if (a.date === 'Today') return -1;
+    if (b.date === 'Today') return 1;
+    return new Date(a.date) - new Date(b.date);
+  });
 }
 
-window.markTask = async function(id, done) {
+window.markTask=async function(id,done){
   const el=document.getElementById('td-'+id);
-  if(el) el.classList.toggle('done', done);
-  try { await CLAP.API.patch(`/schedule/sessions/${id}/complete/`, {completed:done}); } catch {}
-  CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
+  if(el) el.classList.toggle('done',done);
+  try{await CLAP.API.patch(`/schedule/sessions/${id}/complete/`,{completed:done});}catch{}
+  CLAP.Toast.success(done?'Task completed! 🎉':'Task skipped.');
 };
 
 /* ── Missed Task Modal ── */
 function showMissedModal(missed) {
   if(!missed) return;
   document.getElementById('mm-task-title').textContent  = missed.task_title||'—';
-  document.getElementById('mm-task-time').textContent   = `${missed.task_day||''}, ${missed.task_start||''} – ${missed.task_end||''}`;
+  document.getElementById('mm-task-time').textContent   =
+    `${missed.task_day||''}, ${missed.task_start||''} – ${missed.task_end||''}`;
   document.getElementById('mm-resched-title').textContent = missed.task_title||'—';
-  document.getElementById('mm-resched-time').textContent  = `${missed.reschedule_day||''}, ${missed.reschedule_start||''} – ${missed.reschedule_end||''}`;
+  document.getElementById('mm-resched-time').textContent  =
+    `${missed.reschedule_day||''}, ${missed.reschedule_start||''} – ${missed.reschedule_end||''}`;
   document.getElementById('missed-overlay').classList.add('active');
 }
-window.closeMissedModal = function() { document.getElementById('missed-overlay').classList.remove('active'); };
-document.getElementById('missed-overlay').addEventListener('click', function(e){ if(e.target===this) closeMissedModal(); });
-
-/* ── Chain schedule times ── */
-function applyTimeChaining(schedule) {
-  if (!schedule) return schedule;
-  DAYS.forEach(day => {
-    const sessions = schedule[day];
-    if (!Array.isArray(sessions) || sessions.length === 0) return;
-    let curMins = null;
-    schedule[day] = sessions.map(s => {
-      const [sh, sm] = (s.time || '09:00').split(':').map(Number);
-      if (curMins === null) curMins = sh * 60 + (sm || 0);
-      const durMins = Math.round((s.duration || s.scheduled_hours || 1) * 60);
-      const endMins = curMins + durMins;
-      const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
-      const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
-      curMins = endMins;
-      return { ...s, time: startLabel, end: endLabel };
-    });
-  });
-  return schedule;
-}
+window.closeMissedModal=function(){
+  document.getElementById('missed-overlay').classList.remove('active');
+};
+document.getElementById('missed-overlay').addEventListener('click',function(e){
+  if(e.target===this) closeMissedModal();
+});
 
 /* ── Init ── */
-(async function init() {
+(async function init(){
   await loadPrefs();
   let data;
 
-  /* Silently check for missed tasks */
-  try { await CLAP.API.post('/schedule/check-missed/', {}); } catch {}
+  /* Fire check-missed silently */
+  try { await CLAP.API.post('/schedule/check-missed/', {}); } catch { /* silent */ }
 
-  /* Refresh profile picture from API */
+  /* FIX (profile picture): Always re-fetch profile from API on load so
+     profile_picture is fresh — don't rely solely on stale localStorage */
   (async () => {
     try {
       const profile = await CLAP.API.get('/auth/profile/');
@@ -866,28 +940,30 @@ function applyTimeChaining(schedule) {
         const firstName = (merged.name || merged.username || _fn).split(' ')[0];
         document.getElementById('db-greet').textContent = `Welcome Back, ${firstName}!`;
       }
-    } catch {}
+    } catch { /* keep localStorage values */ }
   })();
 
   try {
     data = await CLAP.API.get('/dashboard/');
   } catch (err) {
     console.error('[CLAP] Dashboard load error:', err);
-    /* FIX: show a proper fallback state instead of crashing */
-    CLAP.Toast.error(err?.message || 'Could not load dashboard data. Showing offline state.');
+    CLAP.Toast.error(err?.message || 'Could not load dashboard data.');
     data = {
       total_tasks: 0,
       cognitive_load: { value: 0, level: 'low', trend: [0,0,0,0,0] },
       focus: { used: 0, max: userPrefs.max_focus_hours || 6 },
       next_deadline: null,
       schedule: {},
+      stress_history: {},
+      recommendation: null,
       today_tasks: [],
       assignment_due_dates: [],
       upcoming_tasks: [],
     };
   }
 
-  /* Fetch assignment due dates separately (calendar + deadline badge) */
+  /* FIX (calendar dots + upcoming tasks): /dashboard/ does NOT return
+     assignment_due_dates — fetch assignments separately and build it */
   let assignmentDueDates = [];
   try {
     const assignData = await CLAP.API.get('/assignments/');
@@ -897,48 +973,27 @@ function applyTimeChaining(schedule) {
       .map(a => ({
         date:  a.deadline || a.due_date,
         title: [a.course_code, a.title].filter(Boolean).join(' '),
-        difficulty: a.difficulty || 'medium',
       }));
     data.assignment_due_dates = assignmentDueDates;
+  } catch { /* silent — calendar just won't have dots */ }
 
-    /* FIX: compute next_deadline from assignments if backend didn't provide it */
-    if (!data.next_deadline && assignmentDueDates.length > 0) {
-      const today = new Date(); today.setHours(0,0,0,0);
-      const sorted = [...assignmentDueDates]
-        .map(a => ({ ...a, _d: new Date(a.date) }))
-        .filter(a => !isNaN(a._d) && a._d >= today)
-        .sort((a, b) => a._d - b._d);
-      if (sorted.length > 0) {
-        const soonest = sorted[0];
-        const daysLeft = Math.ceil((soonest._d - today) / (1000 * 60 * 60 * 24));
-        data.next_deadline = { course: soonest.title.split(' ')[0] || '—', title: soonest.title, days_left: daysLeft };
-      }
-    }
-  } catch {}
-
-  /* Normalise cognitive_load */
-  if (data.stress_history) {
-    const tv = Object.values(data.stress_history);
-    const cv = data.cognitive_load?.value ?? (tv.at(-1) ?? 0);
-    const cl = data.cognitive_load?.level ?? (cv >= 80 ? 'high' : cv >= 50 ? 'moderate' : 'low');
-    data.cognitive_load = { value:cv, level:cl, trend:tv.length?tv:[0,0,0,0,cv] };
+  /* Normalise cognitive_load from stress_history if backend sends that format */
+  if(data.stress_history){
+    const tv=Object.values(data.stress_history);
+    const cv=data.cognitive_load?.value??(tv.at(-1)??0);
+    const cl=data.cognitive_load?.level??(cv>=80?'high':cv>=50?'moderate':'low');
+    data.cognitive_load={value:cv,level:cl,trend:tv.length?tv:[0,0,0,0,cv]};
   }
-
-  /* Normalise today_tasks */
-  if (data.today_tasks) {
-    data.today_tasks = data.today_tasks.map(t => ({
-      id: t.id ?? t.session_id ?? Math.random(),
-      title: t.title,
-      start: t.time || t.start || '',
-      end: t.end || t.end_time || '',
-      difficulty: t.difficulty || 'medium',
+  /* Normalise today_tasks field names */
+  if(data.today_tasks){
+    data.today_tasks=data.today_tasks.map(t=>({
+      id:t.id??t.session_id??Math.random(), title:t.title,
+      start:t.time||t.start||'', end:t.end||t.end_time||'',
+      difficulty:t.difficulty||'medium',
     }));
   }
 
-  /* Apply time chaining to schedule */
-  data.schedule = applyTimeChaining(data.schedule || {});
-
-  /* Fallback: build today tasks from schedule */
+  /* If today_tasks is empty or missing, pull today's sessions directly from the schedule */
   if (!data.today_tasks || data.today_tasks.length === 0) {
     const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
     const todaySessions = (data.schedule && data.schedule[todayName]) || [];
@@ -946,14 +1001,37 @@ function applyTimeChaining(schedule) {
       data.today_tasks = todaySessions.map((s, i) => ({
         id: s.session_id ?? s.id ?? (Date.now() + i),
         title: s.title || s.subject || '',
-        start: s.time || '', end: s.end || '',
+        start: s.time || '',
+        end: s.end || '',
         difficulty: (s.difficulty || 'medium').toLowerCase(),
       }));
     }
   }
-  window._scheduleCache = data.schedule || {};
 
-  /* Try next week if current is empty */
+  /* FIX: Apply cumulative time chaining to dashboard schedule data.
+     The backend assigns times by index (09:00, 10:00...) ignoring actual
+     session duration — chain them so each session starts where the previous ended. */
+  if (data.schedule) {
+    const DAYS_ALL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+    DAYS_ALL.forEach(day => {
+      const sessions = data.schedule[day];
+      if (!Array.isArray(sessions) || sessions.length === 0) return;
+      let curMins = null;
+      data.schedule[day] = sessions.map(s => {
+        const [sh, sm] = (s.time || '09:00').split(':').map(Number);
+        if (curMins === null) curMins = sh * 60 + (sm || 0);
+        /* Duration: use s.duration if present, else default 1h */
+        const durMins = Math.round((s.duration || s.scheduled_hours || 1) * 60);
+        const endMins = curMins + durMins;
+        const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
+        const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
+        curMins = endMins;
+        return { ...s, time: startLabel, end: endLabel };
+      });
+    });
+  }
+  window._scheduleCache=data.schedule||{};
+
   let dashboardPlanLabel = 'This Week';
   if (!hasAnySchedule(data.schedule)) {
     try {
@@ -961,39 +1039,45 @@ function applyTimeChaining(schedule) {
       const nextWeekSchedule = normalizeScheduleApiToDashboard(nextWeekApi);
       if (hasAnySchedule(nextWeekSchedule)) {
         const useNextWeekAsCurrent = await shouldTreatNextWeekAsCurrentWeek();
-        data.schedule = applyTimeChaining(nextWeekSchedule);
-        window._scheduleCache = data.schedule;
+        data.schedule = nextWeekSchedule;
+        window._scheduleCache = nextWeekSchedule;
         dashboardPlanLabel = useNextWeekAsCurrent ? 'This Week' : 'Next Week';
       }
-    } catch {}
+    } catch { /* keep current-week empty state */ }
   }
 
   if (!data.today_tasks || data.today_tasks.length === 0) {
     data.today_tasks = buildTodayTasksFromSchedule(data.schedule || {});
   }
 
-  /* Build upcoming tasks */
-  let upcomingTasks = (data.upcoming_tasks && data.upcoming_tasks.length > 0) ? data.upcoming_tasks : null;
+  /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
+  let upcomingTasks = data.upcoming_tasks && data.upcoming_tasks.length > 0
+    ? data.upcoming_tasks
+    : null;
+
   if (!upcomingTasks && Array.isArray(data.assignment_due_dates) && data.assignment_due_dates.length > 0) {
     const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
     upcomingTasks = data.assignment_due_dates
       .filter(item => { const d = new Date(item.date); d.setHours(0,0,0,0); return d >= todayMidnight; })
-      .sort((a,b) => new Date(a.date) - new Date(b.date))
-      .slice(0,4)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 4)
       .map(item => ({
-        title: item.title,
+        title:      item.title,
         difficulty: (item.difficulty || 'medium').toLowerCase(),
-        date: new Date(item.date).toLocaleDateString('en-US', {weekday:'short',month:'short',day:'numeric'}),
+        date:       new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
       }));
   }
-  if (!upcomingTasks || upcomingTasks.length === 0) upcomingTasks = _deriveUpcoming(data.schedule || {});
 
-  /* ── Render everything ── */
+  /* Last resort: derive from schedule — this also includes today if it's a weekday */
+  if (!upcomingTasks || upcomingTasks.length === 0) {
+    upcomingTasks = _deriveUpcoming(data.schedule || {});
+  }
+
   renderStats(data);
   renderDeadline(data.next_deadline);
-  renderSparkline(data.cognitive_load?.trend || [40,45,55,50,72]);
-  renderStressBanner(data.cognitive_load);
+  renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
   renderSchedule(data.schedule, dashboardPlanLabel);
+  /* Calendar: always use assignment_due_dates (the canonical field) */
   renderCalendar(data.assignment_due_dates || null);
   renderTodo(data.today_tasks, upcomingTasks);
   showMissedModal(data.missed_task);
