@@ -521,8 +521,58 @@ function taskColor(t) {
   return (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color||'blue');
 }
 
+/* ── Task completion persistence ── */
+const TASK_DONE_KEY = 'clap_done_tasks';   // { "YYYY-MM-DD": [id, id, …] }
+const TASK_SKIP_KEY = 'clap_skip_tasks';
+
+function _todayKey() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function _loadSet(storageKey) {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    // stored as { date: [ids] } — only today's ids matter
+    return new Set((parsed[_todayKey()] || []).map(String));
+  } catch { return new Set(); }
+}
+
+function _saveSet(storageKey, set) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    // Prune keys older than 2 days to avoid bloat
+    const today = _todayKey();
+    Object.keys(existing).forEach(k => { if (k < today) delete existing[k]; });
+    existing[today] = [...set];
+    localStorage.setItem(storageKey, JSON.stringify(existing));
+  } catch {}
+}
+
 /* ── Stats ── */
-function renderStats(d) {
+
+/* Calculate locally-tracked focus hours from completed tasks today.
+   Each done task contributes its session duration (end - start).
+   Falls back to 0.5h per task if no time data available. */
+function _localFocusHours(tasks) {
+  if (!tasks || tasks.length === 0) return 0;
+  const doneSet = _loadSet(TASK_DONE_KEY);
+  let mins = 0;
+  tasks.forEach(t => {
+    if (!doneSet.has(String(t.id))) return;
+    const startMins = _timeToMins(t.start);
+    const endMins   = _timeToMins(t.end);
+    const dur = (endMins > startMins) ? (endMins - startMins) : 30; // 30 min fallback
+    mins += dur;
+  });
+  return Math.round((mins / 60) * 10) / 10; // round to 1 decimal
+}
+
+/* Store the current task list so renderStats can access it for focus calc */
+let _currentTodayTasks = [];
+
+function renderStats(d, todayTasks) {
   document.getElementById('s-tasks').textContent = d.total_tasks ?? '—';
   const cog = d.cognitive_load || {};
   document.getElementById('s-cog-pct').textContent = cog.value != null ? cog.value+'%' : '—%';
@@ -531,7 +581,22 @@ function renderStats(d) {
   badge.className   = 'cog-badge '+lv;
   badge.textContent = lv.charAt(0).toUpperCase()+lv.slice(1);
   const f = d.focus || {};
-  document.getElementById('s-focus').textContent = `${f.used??'—'} / ${f.max??'—'} Hrs`;
+  const maxHrs = f.max ?? userPrefs.max_focus_hours ?? 6;
+  /* Compute focus hours from locally-persisted completed tasks.
+     Use whichever is higher: what the API reported or what we counted locally. */
+  const apiUsed    = f.used ?? 0;
+  const tasks      = todayTasks || _currentTodayTasks || [];
+  const localUsed  = _localFocusHours(tasks);
+  const displayUsed = localUsed > apiUsed ? localUsed : apiUsed;
+  document.getElementById('s-focus').textContent = `${displayUsed} / ${maxHrs} Hrs`;
+}
+
+/* Re-render just the focus hours box after a task is ticked */
+function _refreshFocusDisplay() {
+  const f = {};
+  const maxHrs = userPrefs.max_focus_hours ?? 6;
+  const localUsed = _localFocusHours(_currentTodayTasks);
+  document.getElementById('s-focus').textContent = `${localUsed} / ${maxHrs} Hrs`;
 }
 
 /* ── Sparkline ── */
@@ -600,11 +665,24 @@ async function shouldTreatNextWeekAsCurrentWeek() {
   }
 }
 
+function _stableIdFromSession(s) {
+  /* session_id is the canonical stable key from the backend schedule API.
+     Never use plain .id alone — it may be assignment_id which is a different entity.
+     Fall back to a deterministic hash of title+time so the key survives refreshes
+     even when the backend omits session_id. */
+  if (s.session_id != null && s.session_id !== '') return 'sid_' + String(s.session_id);
+  if (s.slot_id    != null && s.slot_id    !== '') return 'sid_' + String(s.slot_id);
+  const raw = (s.title || s.subject || '') + '|' + (s.time || s.start || '');
+  let h = 5381;
+  for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
+  return 'local_' + (h >>> 0);
+}
+
 function buildTodayTasksFromSchedule(schedule) {
   const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
   const todaySessions = (schedule && schedule[todayName]) || [];
-  return todaySessions.map((s, i) => ({
-    id: s.session_id ?? s.id ?? (Date.now() + i),
+  return todaySessions.map(s => ({
+    id: _stableIdFromSession(s),
     title: s.title || s.subject || '',
     start: s.time || '',
     end: s.end || '',
@@ -818,8 +896,11 @@ function renderTodo(tasks, upcoming) {
   const doneSet = _loadSet(TASK_DONE_KEY);
   const skipSet = _loadSet(TASK_SKIP_KEY);
 
+  /* Store for focus-hour recalculation */
+  _currentTodayTasks = (tasks || []).filter(t => t && t.title);
+
   /* Filter today's tasks to only those that actually have a valid title */
-  const todayValid = (tasks || []).filter(t => t && t.title);
+  const todayValid = _currentTodayTasks;
 
   if (todayValid.length > 0) {
     hdr.textContent = "Today's Must-Do List";
@@ -915,35 +996,6 @@ function _deriveUpcoming(schedule) {
   });
 }
 
-/* ── Task completion persistence ── */
-const TASK_DONE_KEY = 'clap_done_tasks';   // { "YYYY-MM-DD": [id, id, …] }
-const TASK_SKIP_KEY = 'clap_skip_tasks';
-
-function _todayKey() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-}
-
-function _loadSet(storageKey) {
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    // stored as { date: [ids] } — only today's ids matter
-    return new Set((parsed[_todayKey()] || []).map(String));
-  } catch { return new Set(); }
-}
-
-function _saveSet(storageKey, set) {
-  try {
-    const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    // Prune keys older than 2 days to avoid bloat
-    const today = _todayKey();
-    Object.keys(existing).forEach(k => { if (k < today) delete existing[k]; });
-    existing[today] = [...set];
-    localStorage.setItem(storageKey, JSON.stringify(existing));
-  } catch {}
-}
-
 window.markTask = async function(id, done) {
   const sid = String(id);
   const doneSet = _loadSet(TASK_DONE_KEY);
@@ -970,6 +1022,7 @@ window.markTask = async function(id, done) {
     if (skpBtn) skpBtn.style.cssText = !done  ? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
   }
 
+  _refreshFocusDisplay();
   try { await CLAP.API.patch(`/schedule/sessions/${id}/complete/`, { completed: done }); } catch {}
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };
@@ -1057,10 +1110,13 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     const cl=data.cognitive_load?.level??(cv>=80?'high':cv>=50?'moderate':'low');
     data.cognitive_load={value:cv,level:cl,trend:tv.length?tv:[0,0,0,0,cv]};
   }
-  /* Normalise today_tasks field names */
+  /* Normalise today_tasks field names.
+     IMPORTANT: IDs must be STABLE across refreshes — never use Math.random().
+     If the backend gives no id/session_id, derive a deterministic key from
+     title + start time so localStorage tick state survives page reloads. */
   if(data.today_tasks){
     data.today_tasks=data.today_tasks.map(t=>({
-      id:t.id??t.session_id??Math.random(), title:t.title,
+      id: _stableIdFromSession(t), title:t.title,
       start:t.time||t.start||'', end:t.end||t.end_time||'',
       difficulty:t.difficulty||'medium',
     }));
@@ -1071,8 +1127,8 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
     const todaySessions = (data.schedule && data.schedule[todayName]) || [];
     if (todaySessions.length > 0) {
-      data.today_tasks = todaySessions.map((s, i) => ({
-        id: s.session_id ?? s.id ?? (Date.now() + i),
+      data.today_tasks = todaySessions.map(s => ({
+        id: _stableIdFromSession(s),
         title: s.title || s.subject || '',
         start: s.time || '',
         end: s.end || '',
@@ -1146,7 +1202,9 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     upcomingTasks = _deriveUpcoming(data.schedule || {});
   }
 
-  renderStats(data);
+  /* Store tasks BEFORE renderStats so focus-hour calc has the list */
+  _currentTodayTasks = (data.today_tasks || []).filter(t => t && t.title);
+  renderStats(data, _currentTodayTasks);
   renderDeadline(data.next_deadline);
   renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
   renderSchedule(data.schedule, dashboardPlanLabel);
