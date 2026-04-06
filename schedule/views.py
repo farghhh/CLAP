@@ -70,6 +70,9 @@ def chain_session_times(sessions, start_time):
     Sessions should already be sorted in the desired display order before calling this.
 
     Returns a list of (session, start_str, end_str) tuples.
+
+    Note: end times past midnight are represented as 24:xx, 25:xx etc. so the
+    frontend can display e.g. "21:00 – 24:00" rather than the confusing "21:00 – 00:00".
     """
     result = []
     cur_mins = start_time.hour * 60 + start_time.minute
@@ -78,8 +81,12 @@ def chain_session_times(sessions, start_time):
         dur_mins = round(float(session.scheduled_hours) * 60)
         end_mins = cur_mins + dur_mins
 
-        start_str = f'{str(cur_mins // 60 % 24).zfill(2)}:{str(cur_mins % 60).zfill(2)}'
-        end_str   = f'{str(end_mins // 60 % 24).zfill(2)}:{str(end_mins % 60).zfill(2)}'
+        # Use plain integer division — no modulo — so 24:00 stays 24:00, not 00:00
+        start_h, start_m = divmod(cur_mins, 60)
+        end_h,   end_m   = divmod(end_mins, 60)
+
+        start_str = f'{str(start_h).zfill(2)}:{str(start_m).zfill(2)}'
+        end_str   = f'{str(end_h).zfill(2)}:{str(end_m).zfill(2)}'
 
         result.append((session, start_str, end_str))
         cur_mins = end_mins
@@ -390,11 +397,14 @@ def complete_session(request, session_id):
     session.is_completed = completed
     session.save()
 
-    # Mark task as completed if all sessions are done
+    # Sync task completion state with its sessions:
+    # Mark task complete only when ALL sessions are done.
+    # Re-open the task immediately if ANY session is un-marked.
     task = session.task
     all_sessions = StudySession.objects.filter(task=task)
-    if all_sessions.filter(is_completed=False).count() == 0:
-        task.is_completed = True
+    all_done = all_sessions.filter(is_completed=False).count() == 0
+    if task.is_completed != all_done:
+        task.is_completed = all_done
         task.save()
 
     return Response({
