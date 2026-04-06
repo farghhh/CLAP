@@ -915,7 +915,7 @@ function renderTodo(tasks, upcoming) {
       const chkStyle = isDone   ? 'border-color:var(--success);background:var(--success);color:#fff;' : '';
       const skpStyle = isSkipped? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
       return `
-      <div class="todo-item${doneClass}" id="td-${t.id}">
+      <div class="todo-item${doneClass}" id="td-${sid}">
         <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
           <div class="todo-icon-wrap ${cls}">${icon}</div>
           <div style="min-width:0">
@@ -924,10 +924,10 @@ function renderTodo(tasks, upcoming) {
           </div>
         </a>
         <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done" style="${chkStyle}">
+          <button class="todo-btn chk" onclick="markTask('${sid}',true)" aria-label="Done" title="Mark done" style="${chkStyle}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
-          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip" title="Skip" style="${skpStyle}">
+          <button class="todo-btn skp" onclick="markTask('${sid}',false)" aria-label="Skip" title="Skip" style="${skpStyle}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -1103,6 +1103,22 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
     data.assignment_due_dates = assignmentDueDates;
   } catch { /* silent — calendar just won't have dots */ }
 
+  /* Normalise schedule shape from backend dashboard endpoint.
+     /dashboard/ may return either:
+     1) { schedule: { Monday:[...], ... } }
+     2) { schedule: { slots:[...] } } or even { schedule:[...] }
+     Dashboard rendering expects a day-keyed object, so convert it early before
+     any today-task fallback or schedule rendering logic runs. */
+  if (data.schedule) {
+    const looksLikeSlotsArray = Array.isArray(data.schedule);
+    const looksLikeSlotWrapper = !looksLikeSlotsArray && Array.isArray(data.schedule.slots);
+    if (looksLikeSlotsArray || looksLikeSlotWrapper) {
+      data.schedule = normalizeScheduleApiToDashboard(
+        looksLikeSlotsArray ? { slots: data.schedule } : data.schedule
+      );
+    }
+  }
+
   /* Normalise cognitive_load from stress_history if backend sends that format */
   if(data.stress_history){
     const tv=Object.values(data.stress_history);
@@ -1147,10 +1163,16 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
       if (!Array.isArray(sessions) || sessions.length === 0) return;
       let curMins = null;
       data.schedule[day] = sessions.map(s => {
-        const [sh, sm] = (s.time || '09:00').split(':').map(Number);
-        if (curMins === null) curMins = sh * 60 + (sm || 0);
-        /* Duration: use s.duration if present, else default 1h */
-        const durMins = Math.round((s.duration || s.scheduled_hours || 1) * 60);
+        const startRaw = String(s.time || s.start || '09:00');
+        const parsedStart = _timeToMins(startRaw);
+        if (curMins === null) curMins = parsedStart || (9 * 60);
+        const hasExplicitEnd = !!(s.end || s.end_time);
+        const explicitEndMins = _timeToMins(s.end || s.end_time || '');
+        let durMins = Math.round((s.duration || s.scheduled_hours || 0) * 60);
+        if (!durMins && hasExplicitEnd && explicitEndMins > parsedStart) {
+          durMins = explicitEndMins - parsedStart;
+        }
+        if (!durMins) durMins = 60;
         const endMins = curMins + durMins;
         const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
         const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
