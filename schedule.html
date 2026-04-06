@@ -190,7 +190,7 @@ let weekOffset = 0;
 function weekLabel(offset) {
   const today   = new Date();
   const wd      = today.getDay(); // 0=Sun, 6=Sat
-  const toMon   = wd === 0 ? 1 : wd === 6 ? 2 : 1 - wd;
+  const toMon   = wd === 0 ? -6 : wd === 6 ? -5 : 1 - wd;
   const mon     = new Date(today);
   mon.setDate(today.getDate() + toMon + offset * 7);
   const fri = new Date(mon);
@@ -341,13 +341,11 @@ function render(slots) {
 
 /* ── Load ── */
 async function load(offset) {
-  console.log('weekOffset sent =', offset);
   weekOffset = offset;
   setHeader();
   let data;
   try {
     data = await CLAP.API.get(`/schedule/?week_offset=${weekOffset}`);
-    console.log('schedule response =', data);
   } catch (err) {
     console.error('[CLAP]', err);
     CLAP.Toast.error('Could not load schedule. Please try again.');
@@ -472,7 +470,6 @@ try {
 } catch {}
 
 /* ── Init ── */
-console.log('loading current week');
 load(0);
 </script>
 </body>
