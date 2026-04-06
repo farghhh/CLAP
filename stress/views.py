@@ -24,11 +24,19 @@ def stress_analytics(request):
     max_cls = max_focus * 1.5
 
     # ── Build date range ──────────────────────────────────────
-    # Show 7 past days + today + future days (up to days limit)
-    # This ensures the chart shows actual scheduled sessions
+    # 7  -> past 3 + next 4
+    # 14 -> past 7 + next 7
+    # 30 -> past 7 + next 23
 
-    past_days = 7  # always show last 7 days
-    future_days = days - past_days  # rest of the period is future
+    if days == 7:
+        past_days = 3
+        future_days = 4
+    elif days == 14:
+        past_days = 7
+        future_days = 7
+    else:
+        past_days = 7
+        future_days = 23
 
     start_date = today - timedelta(days=past_days)
     end_date = today + timedelta(days=future_days)
