@@ -692,26 +692,78 @@ function attachAvatarHandlers() {
   const delBtn    = document.getElementById('del-avatar-btn');
   const preview   = document.getElementById('av-preview');
 
+  const MAX_FILE_MB = 1.5;
+  const MAX_FILE_SIZE = MAX_FILE_MB * 1024 * 1024;
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+  function resetFileInput() {
+    if (fileInput) fileInput.value = '';
+  }
+
+  function showInitialAvatar() {
+    const initial = (user.name || 'S').charAt(0).toUpperCase();
+    preview.innerHTML = initial;
+  }
+
   if (fileInput) {
     fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
+      const file = fileInput.files && fileInput.files[0];
       if (!file) return;
+
+      /* Validate file type */
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        resetFileInput();
+        CLAP.Toast.error('Invalid image format. Please upload JPG, PNG, or WEBP.');
+        return;
+      }
+
+      /* Validate file size */
+      if (file.size > MAX_FILE_SIZE) {
+        resetFileInput();
+        CLAP.Toast.error(`Image too large. Please upload an image under ${MAX_FILE_MB} MB.`);
+        return;
+      }
+
+      /* Read file safely */
       const reader = new FileReader();
+
       reader.onload = (e) => {
-        preview.innerHTML = `<img src="${e.target.result}" alt="Profile photo"
-          style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-        user.avatarDataUrl = e.target.result;
-        CLAP.Toast.success('Photo updated. Click Save Changes to persist.');
+        const result = e?.target?.result;
+        if (!result) {
+          resetFileInput();
+          CLAP.Toast.error('Failed to read image file. Please try another image.');
+          return;
+        }
+
+        preview.innerHTML = `
+          <img src="${result}" alt="Profile photo"
+               style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
+        `;
+
+        user.avatarDataUrl = result;
+        CLAP.Toast.success('Photo selected. Click Save Changes to upload.');
       };
-      reader.readAsDataURL(file);
+
+      reader.onerror = () => {
+        resetFileInput();
+        CLAP.Toast.error('Could not read the selected image.');
+      };
+
+      try {
+        reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('[CLAP] FileReader error:', err);
+        resetFileInput();
+        CLAP.Toast.error('Failed to process image. Please try again.');
+      }
     });
   }
 
   if (delBtn) {
     delBtn.addEventListener('click', () => {
-      const initial = (user.name || 'S').charAt(0).toUpperCase();
-      preview.innerHTML = initial;
+      showInitialAvatar();
       user.avatarDataUrl = null;
+      resetFileInput();
       CLAP.Toast.info('Photo removed. Click Save Changes to persist.');
     });
   }
