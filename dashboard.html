@@ -161,8 +161,9 @@
     .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
     .todo-item.done .todo-name { text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
-    .todo-item.skipped { opacity:0.7; }
-    .todo-item.skipped .todo-name { opacity:0.65; }
+    .todo-item.skipped { opacity:1; }
+    .todo-item.skipped .todo-name { opacity:1; }
+    .todo-item.skipped .todo-time { opacity:1; }
 
     /* ── Missed Task Modal ── */
     .missed-overlay {
@@ -944,10 +945,10 @@ function renderTodo(tasks, upcoming) {
       // localStorage is only used as temporary UI persistence.
       const isDoneFromBackend = !!t.done;
       const isDoneFromLocal   = doneSet.has(sid);
-      const isSkipped         = skipSet.has(sid);
+      const isSkipped         = !isDone && skipSet.has(sid);
 
       const isDone = isDoneFromBackend || (!isDoneFromBackend && isDoneFromLocal);
-      const doneClass = isDone || isSkipped ? ' done' : '';
+      const doneClass = isDone ? ' done' : '';
       const skippedClass = isSkipped ? ' skipped' : '';
 
       // Apply button styles based on actual state
@@ -1046,10 +1047,10 @@ window.markTask = async function(id, done) {
   const doneSet = _loadSet(TASK_DONE_KEY);
   const skipSet = _loadSet(TASK_SKIP_KEY);
 
-  if (done) {
+  if (done === true) {
     doneSet.add(sid);
     skipSet.delete(sid);
-  } else {
+  } else if (done === false) {
     skipSet.add(sid);
     doneSet.delete(sid);
   }
@@ -1081,6 +1082,20 @@ window.markTask = async function(id, done) {
     try { await CLAP.API.patch(`/schedule/sessions/${patchId}/complete/`, { completed: done }); } catch {}
   }
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
+
+  setTimeout(async () => {
+  try {
+    const missed = await CLAP.API.get('/schedule/check-missed/');
+    if (missed && missed.task_title) {
+      showMissedModal(missed);
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      location.reload();
+    }
+  } catch {
+    location.reload();
+  }
+}, 400);
 };
 
 /* ── Missed Task Modal ── */
