@@ -382,6 +382,22 @@ window.toggleDone = async function(btn) {
     return;
   }
 
+  /* FIX 4: Write session completion into the same localStorage key the dashboard
+     reads for focus-hour calculation. Key format mirrors dashboard's _stableIdFromSession:
+     "sid_<slotId>" so the two pages share a consistent ID namespace. */
+  try {
+    const TASK_DONE_KEY = 'clap_done_tasks';
+    const today = new Date().toISOString().slice(0, 10);
+    const stored = JSON.parse(localStorage.getItem(TASK_DONE_KEY) || '{}');
+    const ids = new Set((stored[today] || []).map(String));
+    const stableId = 'sid_' + String(slotId);
+    if (isDone) ids.add(stableId); else ids.delete(stableId);
+    /* Prune dates older than today to avoid storage bloat */
+    Object.keys(stored).forEach(k => { if (k < today) delete stored[k]; });
+    stored[today] = [...ids];
+    localStorage.setItem(TASK_DONE_KEY, JSON.stringify(stored));
+  } catch { /* non-critical — focus hours will catch up on next dashboard load */ }
+
   if (taskId) {
     const all = [...document.querySelectorAll(`[data-task-id="${taskId}"]`)];
 

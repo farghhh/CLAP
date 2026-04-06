@@ -554,13 +554,20 @@ function _saveSet(storageKey, set) {
 
 /* Calculate locally-tracked focus hours from completed tasks today.
    Each done task contributes its session duration (end - start).
-   Falls back to 0.5h per task if no time data available. */
+   Falls back to 0.5h per task if no time data available.
+   FIX 5: Check both the raw task id AND the "sid_" prefixed form, since
+   schedule.html writes "sid_<slotId>" while dashboard writes the stable hash id. */
 function _localFocusHours(tasks) {
   if (!tasks || tasks.length === 0) return 0;
   const doneSet = _loadSet(TASK_DONE_KEY);
   let mins = 0;
   tasks.forEach(t => {
-    if (!doneSet.has(String(t.id))) return;
+    const rawId = String(t.id);
+    /* Match either the stored id directly or its sid_ variant */
+    const matched = doneSet.has(rawId)
+      || doneSet.has('sid_' + rawId)
+      || (rawId.startsWith('sid_') && doneSet.has(rawId.slice(4)));
+    if (!matched) return;
     const startMins = _timeToMins(t.start);
     const endMins   = _timeToMins(t.end);
     const dur = (endMins > startMins) ? (endMins - startMins) : 30; // 30 min fallback
@@ -1022,7 +1029,14 @@ window.markTask = async function(id, done) {
   }
 
   _refreshFocusDisplay();
-  try { await CLAP.API.patch(`/schedule/sessions/${id}/complete/`, { completed: done }); } catch {}
+
+  /* FIX 3: PATCH the session completion endpoint — use session_id if the task id
+     is a "sid_" prefixed stable id, otherwise fall back to the raw id value.
+     Either way this is a schedule session, not an assignment, so the endpoint is correct. */
+  const patchId = sid.startsWith('sid_') ? sid.slice(4) : sid.startsWith('local_') ? null : sid;
+  if (patchId) {
+    try { await CLAP.API.patch(`/schedule/sessions/${patchId}/complete/`, { completed: done }); } catch {}
+  }
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };
 
@@ -1042,6 +1056,12 @@ window.closeMissedModal=function(){
 };
 document.getElementById('missed-overlay').addEventListener('click',function(e){
   if(e.target===this) closeMissedModal();
+});
+
+/* FIX 2: When the user switches back to this tab (e.g. after marking tasks done
+   on schedule.html) re-read localStorage so focus hours stay accurate. */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) _refreshFocusDisplay();
 });
 
 /* ── Init ── */
@@ -1100,6 +1120,8 @@ document.getElementById('missed-overlay').addEventListener('click',function(e){
         title: [a.course_code, a.title].filter(Boolean).join(' '),
       }));
     data.assignment_due_dates = assignmentDueDates;
+    /* total_tasks comes from /dashboard/ which already counts is_completed=False
+       tasks only — that is exactly what we want. Do not override it here. */
   } catch { /* silent — calendar just won't have dots */ }
 
   /* Normalise cognitive_load from stress_history if backend sends that format */
