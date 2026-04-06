@@ -945,9 +945,10 @@ function renderTodo(tasks, upcoming) {
       // localStorage is only used as temporary UI persistence.
       const isDoneFromBackend = !!t.done;
       const isDoneFromLocal   = doneSet.has(sid);
-      const isSkipped         = !isDone && skipSet.has(sid);
 
       const isDone = isDoneFromBackend || (!isDoneFromBackend && isDoneFromLocal);
+      const isSkipped         = !isDone && skipSet.has(sid);
+
       const doneClass = isDone ? ' done' : '';
       const skippedClass = isSkipped ? ' skipped' : '';
 
