@@ -1156,9 +1156,12 @@ document.addEventListener('visibilitychange', () => {
      title + start time so localStorage tick state survives page reloads. */
   if(data.today_tasks){
     data.today_tasks=data.today_tasks.map(t=>({
-      id: _stableIdFromSession(t), title:t.title,
-      start:t.time||t.start||'', end:t.end||t.end_time||'',
+      id: _stableIdFromSession(t), 
+      title:t.title,
+      start:t.time||t.start||'', 
+      end:t.end||t.end_time||'',
       difficulty:t.difficulty||'medium',
+      done: !!t.done,
     }));
   }
 
