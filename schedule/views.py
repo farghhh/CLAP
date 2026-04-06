@@ -63,6 +63,30 @@ def build_time_slots(start_time, max_hours):
     return slots
 
 
+def chain_session_times(sessions, start_time):
+    """
+    Assign start/end times to sessions by chaining them consecutively.
+    Each session starts where the previous one ended, based on scheduled_hours.
+    Sessions should already be sorted in the desired display order before calling this.
+
+    Returns a list of (session, start_str, end_str) tuples.
+    """
+    result = []
+    cur_mins = start_time.hour * 60 + start_time.minute
+
+    for session in sessions:
+        dur_mins = round(float(session.scheduled_hours) * 60)
+        end_mins = cur_mins + dur_mins
+
+        start_str = f'{str(cur_mins // 60 % 24).zfill(2)}:{str(cur_mins % 60).zfill(2)}'
+        end_str   = f'{str(end_mins // 60 % 24).zfill(2)}:{str(end_mins % 60).zfill(2)}'
+
+        result.append((session, start_str, end_str))
+        cur_mins = end_mins
+
+    return result
+
+
 def get_user_preference(user):
     """Get user preference or return safe defaults"""
     try:
@@ -112,9 +136,6 @@ def schedule_view(request):
     max_focus = pref_data['max_focus']
     study_start = pref_data['study_start']
 
-    # Build time slots from user's study start time
-    available_times = build_time_slots(study_start, max_focus)
-
     # Get all sessions for this week
     sessions = StudySession.objects.filter(
         user=user,
@@ -139,26 +160,32 @@ def schedule_view(request):
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
         daily_load[day_key] = cls_pct
 
-        # Sort sessions by hours descending so biggest block gets first time slot
+        # FIX: Sort sessions by creation order (task deadline then task_id) so the
+        # displayed order is stable and matches what the schedule engine intended.
+        # Previously sorted by scheduled_hours desc, which scrambled the visual order
+        # every time and made session times non-deterministic.
         sorted_sessions = sorted(
             day_sessions,
-            key=lambda s: s.scheduled_hours,
-            reverse=True
+            key=lambda s: (s.task.deadline, s.task.task_id)
         )
 
-        for i, session in enumerate(sorted_sessions):
-            if i >= len(available_times):
-                break
+        # FIX: Chain times consecutively instead of using a fixed hourly slot index.
+        # Old approach: session[0] → 09:00, session[1] → 10:00 regardless of duration.
+        # New approach: session[0] → 09:00–10:30, session[1] → 10:30–12:00, etc.
+        timed = chain_session_times(sorted_sessions, study_start)
+
+        for session, start_str, end_str in timed:
             slots.append({
-                'day': day_key,
-                'time': available_times[i],
-                'subject': session.task.title,
-                'code': session.task.course_code,
-                'duration': session.scheduled_hours,
-                'color': task_colors.get(session.task.task_id, 'blue'),
-                'session_id': session.session_id,
-                'task_id': session.task.task_id,
-                'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
+                'day':          day_key,
+                'time':         start_str,
+                'end':          end_str,
+                'subject':      session.task.title,
+                'code':         session.task.course_code,
+                'duration':     session.scheduled_hours,
+                'color':        task_colors.get(session.task.task_id, 'blue'),
+                'session_id':   session.session_id,   # FIX: always present — frontend needs this
+                'task_id':      session.task.task_id,
+                'difficulty':   DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
                 'is_completed': session.is_completed,
             })
 
@@ -199,6 +226,7 @@ def dashboard_view(request):
     pref_data = get_user_preference(user)
     max_focus = pref_data['max_focus']
     max_cls = pref_data['max_cls']
+    study_start = pref_data['study_start']
 
     # Total incomplete tasks
     tasks = Task.objects.filter(user=user, is_completed=False)
@@ -221,30 +249,40 @@ def dashboard_view(request):
     for i, task in enumerate(all_tasks):
         task_colors[task.task_id] = COLORS[i % len(COLORS)]
 
-    # Today's sessions
+    # FIX: Fetch ALL of today's sessions (completed + incomplete) so the dashboard
+    # todo list shows every task with its real done state rather than hiding
+    # completed sessions and confusing the user about what's left.
     today_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=today,
-        is_completed=False
     ).select_related('task')
 
-    # Use user's study start time for today's tasks
-    study_start = pref_data['study_start']
-    today_times = build_time_slots(study_start, max_focus)
-    today_tasks = []
+    # FIX: Sort by task deadline then task_id for stable ordering (matches schedule_view).
+    sorted_today = sorted(today_sessions, key=lambda s: (s.task.deadline, s.task.task_id))
 
-    for i, session in enumerate(today_sessions):
-        if i >= len(today_times):
-            break
+    # FIX: Chain times consecutively so today_tasks start/end times are accurate
+    # and the frontend can calculate real focus-hour durations from them.
+    timed_today = chain_session_times(sorted_today, study_start)
+
+    today_tasks = []
+    for session, start_str, end_str in timed_today:
         today_tasks.append({
-            'id': session.session_id,
-            'title': session.task.title,
-            'time': today_times[i],
-            'color': task_colors.get(session.task.task_id, 'blue'),
-            'done': session.is_completed,
+            # FIX: expose session_id as both 'id' and 'session_id' so the frontend
+            # markTask() PATCH call and _stableIdFromSession() both resolve correctly.
+            'id':           session.session_id,
+            'session_id':   session.session_id,
+            'title':        session.task.title,
+            'start':        start_str,
+            'end':          end_str,
+            'color':        task_colors.get(session.task.task_id, 'blue'),
+            'difficulty':   DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
+            'done':         session.is_completed,
         })
 
-    used_hours = round(sum(s.scheduled_hours for s in today_sessions), 1)
+    # Focus hours: only count completed sessions for 'used'
+    used_hours = round(
+        sum(s.scheduled_hours for s in today_sessions if s.is_completed), 1
+    )
 
     # Stress history for this week
     stress_history = {}
@@ -282,16 +320,23 @@ def dashboard_view(request):
         if not day_name:
             continue
         day_sessions = sessions_this_week.filter(scheduled_date=day_date)
-        dashboard_times = build_time_slots(study_start, max_focus)
+
+        # FIX: same stable sort as schedule_view so the mini timetable order matches
+        sorted_day = sorted(day_sessions, key=lambda s: (s.task.deadline, s.task.task_id))
+        timed_day = chain_session_times(sorted_day, study_start)
+
         schedule[day_name] = []
-        for i, session in enumerate(day_sessions):
-            if i >= len(dashboard_times):
-                break
+        for session, start_str, end_str in timed_day:
             schedule[day_name].append({
-                'time': dashboard_times[i],
-                'title': session.task.title,
-                'color': task_colors.get(session.task.task_id, 'blue'),
+                'time':       start_str,
+                'end':        end_str,
+                'title':      session.task.title,
+                'color':      task_colors.get(session.task.task_id, 'blue'),
                 'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
+                # FIX: include session_id in schedule slots so the dashboard mini
+                # timetable blocks can link to the correct session on schedule.html
+                'session_id': session.session_id,
+                'task_id':    session.task.task_id,
             })
 
     # Recommendation
