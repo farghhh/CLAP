@@ -762,43 +762,62 @@ function _minsToLabel(mins) {
 }
 
 function _renderScheduleTable(schedule) {
-  /* Group slots by day, sorted by start time */
-  const daySlots = {};
-  DAYS.forEach(d => { daySlots[d] = []; });
+  // 1. Collect all unique time slots from all days
+  const timeSet = new Set();
+
   DAYS.forEach(day => {
     (schedule[day] || []).forEach(t => {
-      daySlots[day].push(t);
+      if (t.time) timeSet.add(t.time);
     });
-    daySlots[day].sort((a, b) => _timeToMins(a.time) - _timeToMins(b.time));
   });
 
-  const maxSessions = Math.max(...DAYS.map(d => daySlots[d].length));
-  if (maxSessions === 0) { emptySchedule(); return; }
+  // 2. Sort time slots in chronological order
+  const timeList = [...timeSet].sort((a, b) => _timeToMins(a) - _timeToMins(b));
 
-  const anchorDay      = DAYS.find(d => daySlots[d].length === maxSessions) || DAYS[0];
-  const anchorSessions = daySlots[anchorDay];
+  // If no schedule exists, show empty state
+  if (timeList.length === 0) {
+    emptySchedule();
+    return;
+  }
 
-  /* Inject table into #plan-body — one row per session slot */
   let html = '';
-  anchorSessions.forEach((anchorSlot, rowIdx) => {
-    html += '<tr>';
-    /* Time label cell */
-    html += `<td class="db-time-cell">${anchorSlot.time}</td>`;
 
+  // 3. Render one row per time slot (NOT per index)
+  timeList.forEach(time => {
+    html += '<tr>';
+
+    // Time label column
+    html += `<td class="db-time-cell">${time}</td>`;
+
+    // Loop through each weekday column
     DAYS.forEach(day => {
-      const t = daySlots[day][rowIdx];
-      if (!t) { html += `<td><div class="db-empty-cell"></div></td>`; return; }
-      const col = (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color || 'blue');
-      html += `<td style="vertical-align:top;padding:2px;">
-        <a href="schedule.html" class="db-task-block ${col}" title="${t.title}">
-          <div class="t-block-name">${t.title}</div>
-          <div class="t-block-time">${t.time} – ${t.end}</div>
-        </a>
-      </td>`;
+      // Find session that matches this exact time
+      const slot = (schedule[day] || []).find(t => t.time === time);
+
+      // If no session at this time → render empty cell
+      if (!slot) {
+        html += `<td><div class="db-empty-cell"></div></td>`;
+        return;
+      }
+
+      // Determine color based on difficulty
+      const col = DIFF_COLOR[slot.difficulty] || 'blue';
+
+      // Render task block
+      html += `
+        <td style="vertical-align:top;padding:2px;">
+          <a href="schedule.html" class="db-task-block ${col}">
+            <div class="t-block-name">${slot.title}</div>
+            <div class="t-block-time">${slot.time} – ${slot.end}</div>
+          </a>
+        </td>
+      `;
     });
+
     html += '</tr>';
   });
 
+  // Inject into table body
   document.getElementById('plan-body').innerHTML = html;
 }
 
