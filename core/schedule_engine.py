@@ -432,15 +432,23 @@ def handle_missed_sessions(user, preference):
 def calculate_progress(task):
     """
     Returns progress percentage for a task
-    based on completed vs total study sessions.
+    based on completed study hours vs total scheduled hours.
+    This is more accurate than counting sessions because
+    sessions may have different durations.
     """
     from schedule.models import StudySession
 
-    total_sessions = StudySession.objects.filter(task=task)
-    if not total_sessions.exists():
+    sessions = StudySession.objects.filter(task=task)
+    if not sessions.exists():
         return 0
 
-    completed = total_sessions.filter(is_completed=True).count()
-    total = total_sessions.count()
+    total_hours = round(sum(s.scheduled_hours for s in sessions), 2)
+    if total_hours <= 0:
+        return 0
 
-    return round((completed / total) * 100)
+    completed_hours = round(
+        sum(s.scheduled_hours for s in sessions if s.is_completed),
+        2
+    )
+
+    return round((completed_hours / total_hours) * 100)
