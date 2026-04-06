@@ -745,7 +745,14 @@
       const hours = Number(a.hours ?? a.estimated_hours ?? 0);
 
       return {
-        id: a.id ?? Date.now(),
+        id: a.id ?? (function() {
+        /* Deterministic fallback: hash title+deadline so the ID is stable
+           across re-renders and localStorage progress lookups don't break. */
+        const raw = String(a.title ?? '') + '|' + String(a.deadline ?? a.due_date ?? '');
+        let h = 5381;
+        for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
+        return 'local_' + (h >>> 0);
+      })(),
         course_code: a.course_code ?? a.code ?? '',
         title: a.title ?? a.assignment_title ?? a.name ?? '',
         deadline: a.deadline ?? a.due_date ?? '',
@@ -1094,8 +1101,9 @@
         const dl = new Date(payload.deadline);
         dl.setHours(0, 0, 0, 0);
 
-        /* Match Django backend: deadline must be strictly future */
-        if (dl <= today) {
+        /* New assignments require a strictly future deadline.
+           Edits allow today — the user may just be saving without changing the date. */
+        if (editingId ? dl < today : dl <= today) {
           deadlineEl.classList.add('error');
           CLAP.Toast.error('Deadline must be in the future.');
           hasError = true;
