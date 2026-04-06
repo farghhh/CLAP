@@ -817,7 +817,7 @@
         CLAP.Toast.error('Could not load assignments.');
       }
 
-      persistAssignmentsToLocal
+      persistAssignmentsToLocal();
       renderProgress();
       renderTable();
     }
@@ -1185,7 +1185,7 @@
     }
 
     loadAssignments();
-    window.addEventListener('beforeunload', persistAssignmentsToLocal);
+    window.addEventListener('beforeunload', persistAssignmentsToLocal());
   </script>
 </body>
 </html>
