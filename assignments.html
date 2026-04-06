@@ -740,14 +740,23 @@
 
     function normalizeAssignment(a) {
       if (!a) return null;
+
+      const progress = Number(a.progress ?? a.progress_percentage ?? 0);
+      const hours = Number(a.hours ?? a.estimated_hours ?? 0);
+
       return {
         id: a.id ?? Date.now(),
         course_code: a.course_code ?? a.code ?? '',
         title: a.title ?? a.assignment_title ?? a.name ?? '',
         deadline: a.deadline ?? a.due_date ?? '',
-        hours: Number(a.hours ?? a.estimated_hours ?? 0),
+        hours: hours,
         difficulty: String(a.difficulty ?? 'easy').toLowerCase(),
-        progress: Number(a.progress ?? a.progress_percentage ?? 0),
+        progress: progress,
+        completedHours: a.completedHours != null
+          ? Number(a.completedHours)
+          : (a.completed_hours != null
+              ? Number(a.completed_hours)
+              : null),
         created_at: a.created_at ?? a.createdAt ?? null,
       };
     }
@@ -764,6 +773,12 @@
       const day = String(date.getDate()).padStart(2, '0');
       const month = String(date.getMonth() + 1).padStart(2, '0');
       return `${day}/${month}/${date.getFullYear()}`;
+    }
+    
+    function persistAssignmentsToLocal() {
+      try {
+        localStorage.setItem('clap_assignments', JSON.stringify(assignments));
+      } catch {}
     }
 
     function getTableSearchValue() {
@@ -802,6 +817,7 @@
         CLAP.Toast.error('Could not load assignments.');
       }
 
+      persistAssignmentsToLocal
       renderProgress();
       renderTable();
     }
@@ -820,11 +836,14 @@
         const isNotStarted = pct === 0;
         const badgeBg = isComplete ? 'var(--success)' : isNotStarted ? '#222' : 'var(--clap-teal)';
         const labelTxt = isComplete ? 'C O M P L E T E D' : '';
-        const totalHrs = a.hours || 0;
-        const doneHrs = pct > 0 ? (pct / 100 * totalHrs).toFixed(1) : 0;
-        const hrsSub = totalHrs > 0
-          ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${doneHrs} / ${totalHrs} hrs completed</div>`
-          : '';
+        const totalHrs = Number(a.hours || 0);
+        const doneHrs = a.completedHours != null
+          ? Number(a.completedHours).toFixed(1)
+          : (pct > 0 && totalHrs > 0 ? (pct / 100 * totalHrs).toFixed(1) : '0.0');
+        
+          const hrsSub = totalHrs > 0
+            ? `<div style="font-size:0.72rem;color:var(--text-muted);margin-top:4px;">${doneHrs} / ${totalHrs} hrs completed</div>`
+            : '';
 
         return `
           <div class="progress-item">
@@ -1027,6 +1046,7 @@
       assignments = assignments.filter(a => String(a.id) !== String(idToDelete));
       assignments = sortAssignmentsForDisplay(assignments);
 
+      persistAssignmentsToLocal();
       renderProgress();
       renderTable();
       closeDeleteModal();
@@ -1098,11 +1118,13 @@
         if (editingId) {
           await CLAP.API.put(`/assignments/${editingId}/`, payload);
           await loadAssignments();
+          persistAssignmentsToLocal();
           broadcastAssignmentChange('assignment_updated', editingId, { title: payload.title });
           CLAP.Toast.success('Assignment updated!');
         } else {
           await CLAP.API.post('/assignments/', payload);
           await loadAssignments();
+          persistAssignmentsToLocal();
           CLAP.Toast.success('Assignment added!');
         }
 
@@ -1118,13 +1140,36 @@
 
     try {
       const progressChannel = new BroadcastChannel('clap_progress');
+
       progressChannel.addEventListener('message', (event) => {
-        const { type, assignmentId, progress } = event.data || {};
+        const data = event.data || {};
+        const { type, assignmentId, progress, completedHours } = data;
+
+        if (type === 'request_assignment_hours' && assignmentId != null) {
+          const found = assignments.find(a => String(a.id) === String(assignmentId));
+          if (!found) return;
+
+          progressChannel.postMessage({
+            type: 'assignment_hours_response',
+            assignmentId: assignmentId,
+            totalHours: Number(found.hours || 0)
+          });
+          return;
+        }
+
         if (type !== 'progress_update' || assignmentId == null) return;
 
         const index = assignments.findIndex(a => String(a.id) === String(assignmentId));
         if (index !== -1) {
-          assignments[index] = { ...assignments[index], progress: Number(progress) };
+          assignments[index] = {
+            ...assignments[index],
+            progress: Number(progress),
+            completedHours: completedHours != null
+              ? Number(completedHours)
+              : assignments[index].completedHours
+          };
+
+          persistAssignmentsToLocal();
           renderProgress();
           if (activeTab === 'all') renderTable();
         }
@@ -1140,6 +1185,7 @@
     }
 
     loadAssignments();
+    window.addEventListener('beforeunload', persistAssignmentsToLocal);
   </script>
 </body>
 </html>

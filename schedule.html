@@ -385,12 +385,54 @@ window.toggleDone = async function(btn) {
   }
 
   if (taskId) {
-    const all  = [...document.querySelectorAll(`[data-task-id="${taskId}"]`)];
-    let th = 0, dh = 0;
-    all.forEach(b => { const d = parseFloat(b.dataset.dur||1); th += d; if (b.classList.contains('done')) dh += d; });
-    const pct = th ? Math.round(dh/th*100) : 0;
+    const all = [...document.querySelectorAll(`[data-task-id="${taskId}"]`)];
+
+    let totalScheduledHours = 0;
+    let completedHours = 0;
+
+    all.forEach(b => {
+      const dur = parseFloat(b.dataset.dur || 1);
+      totalScheduledHours += dur;
+      if (b.classList.contains('done')) completedHours += dur;
+    });
+
+    // FRONTEND-ONLY SOURCE OF TRUTH:
+    // Use assignment.hours as the real target if available.
+    let assignmentHours = 0;
+
+    try {
+      const progressChannel = new BroadcastChannel('clap_progress');
+      progressChannel.postMessage({
+        type: 'request_assignment_hours',
+        assignmentId: taskId
+      });
+      progressChannel.close();
+    } catch {}
+
+    try {
+      const storedAssignments = JSON.parse(localStorage.getItem('clap_assignments') || '[]');
+      const found = storedAssignments.find(a => String(a.id) === String(taskId));
+      if (found) assignmentHours = Number(found.hours || 0);
+    } catch {}
+
+    const targetHours = assignmentHours > 0 ? assignmentHours : totalScheduledHours;
+    const pct = targetHours > 0
+      ? Math.max(0, Math.min(100, Math.round((completedHours / targetHours) * 100)))
+      : 0;
+
     CLAP.Toast.success(`Progress updated: ${pct}%`);
-    try { const ch = new BroadcastChannel('clap_progress'); ch.postMessage({ type:'progress_update', assignmentId:taskId, progress:pct }); ch.close(); } catch {}
+
+    try {
+      const ch = new BroadcastChannel('clap_progress');
+      ch.postMessage({
+        type: 'progress_update',
+        assignmentId: taskId,
+        progress: pct,
+        completedHours: completedHours,
+        totalHours: targetHours
+      });
+      ch.close();
+    } catch {}
   } else {
     CLAP.Toast.success(isDone ? 'Session marked complete!' : 'Session unmarked.');
   }
