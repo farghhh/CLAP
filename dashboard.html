@@ -161,6 +161,8 @@
     .todo-btn.skp:hover { border-color:var(--danger);  background:var(--danger);  color:#fff; }
     .todo-item.done .todo-name { text-decoration:line-through; opacity:0.5; }
     .todo-item.done { opacity:0.7; }
+    .todo-item.skipped { opacity:0.7; }
+    .todo-item.skipped .todo-name { opacity:0.65; }
 
     /* ── Missed Task Modal ── */
     .missed-overlay {
@@ -693,6 +695,8 @@ function buildTodayTasksFromSchedule(schedule) {
     start: s.time || '',
     end: s.end || '',
     difficulty: (s.difficulty || 'medium').toLowerCase(),
+    done: !!s.done || !!s.is_completed,
+    color: taskColor(s),
   })).filter(t => t.title);
 }
 
@@ -792,8 +796,9 @@ function _renderScheduleTable(schedule) {
     // Loop through each weekday column
     DAYS.forEach(day => {
       // Find session that matches this exact time
-      const slot = (schedule[day] || []).find(t => t.time === time);
-
+     const slot = (schedule[day] || []).find(
+      t => _timeToMins(t.time) === _timeToMins(time)
+    );
       // If no session at this time → render empty cell
       if (!slot) {
         html += `<td><div class="db-empty-cell"></div></td>`;
@@ -870,7 +875,7 @@ function _drawCal() {
   const today=new Date();
   const isCur=y===today.getFullYear()&&m===today.getMonth();
   const td=today.getDate();
-  document.getElementById('cal-title').textContent=`${MN[m]}, ${isCur?td:1}`;
+  document.getElementById('cal-title').textContent = `${MN[m]} ${y}`;
   document.getElementById('cal-day').textContent=isCur?DN[today.getDay()]:'';
   const first=new Date(y,m,1).getDay();
   const days =new Date(y,m+1,0).getDate();
@@ -929,18 +934,33 @@ function renderTodo(tasks, upcoming) {
 
   if (todayValid.length > 0) {
     hdr.textContent = "Today's Must-Do List";
+
     el.innerHTML = todayValid.map(t => {
-      const cls      = _diffClass(t);
-      const icon     = DIFF_ICONS[cls] || DIFF_ICONS.medium;
-      const sid      = String(t.id);
-      const isDone   = doneSet.has(sid);
-      const isSkipped= skipSet.has(sid);
-      const doneClass= isDone || isSkipped ? ' done' : '';
-      /* Flip button styles when already marked */
-      const chkStyle = isDone   ? 'border-color:var(--success);background:var(--success);color:#fff;' : '';
-      const skpStyle = isSkipped? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
+      const cls  = _diffClass(t);
+      const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
+      const sid  = String(t.id);
+
+      // Use backend completion state as the primary source of truth.
+      // localStorage is only used as temporary UI persistence.
+      const isDoneFromBackend = !!t.done;
+      const isDoneFromLocal   = doneSet.has(sid);
+      const isSkipped         = skipSet.has(sid);
+
+      const isDone = isDoneFromBackend || (!isDoneFromBackend && isDoneFromLocal);
+      const doneClass = isDone || isSkipped ? ' done' : '';
+      const skippedClass = isSkipped ? ' skipped' : '';
+
+      // Apply button styles based on actual state
+      const chkStyle = isDone
+        ? 'border-color:var(--success);background:var(--success);color:#fff;'
+        : '';
+
+      const skpStyle = isSkipped
+        ? 'border-color:var(--danger);background:var(--danger);color:#fff;'
+        : '';
+
       return `
-      <div class="todo-item${doneClass}" id="td-${t.id}">
+      <div class="todo-item${doneClass}${skippedClass}" id="td-${t.id}">
         <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
           <div class="todo-icon-wrap ${cls}">${icon}</div>
           <div style="min-width:0">
@@ -1037,9 +1057,13 @@ window.markTask = async function(id, done) {
   _saveSet(TASK_DONE_KEY, doneSet);
   _saveSet(TASK_SKIP_KEY, skipSet);
 
+  const task = _currentTodayTasks.find(t => String(t.id) === sid);
+    if (task) task.done = done;
+
   const el = document.getElementById('td-' + id);
   if (el) {
     el.classList.toggle('done', done);
+    el.classList.toggle('skipped', !done);
     /* Update button fill immediately so it matches persisted state */
     const chkBtn = el.querySelector('.todo-btn.chk');
     const skpBtn = el.querySelector('.todo-btn.skp');
@@ -1052,7 +1076,7 @@ window.markTask = async function(id, done) {
   /* FIX 3: PATCH the session completion endpoint — use session_id if the task id
      is a "sid_" prefixed stable id, otherwise fall back to the raw id value.
      Either way this is a schedule session, not an assignment, so the endpoint is correct. */
-  const patchId = sid.startsWith('sid_') ? sid.slice(4) : sid.startsWith('local_') ? null : sid;
+  const patchId = sid.startsWith('sid_') ? sid.slice(4) : null;
   if (patchId) {
     try { await CLAP.API.patch(`/schedule/sessions/${patchId}/complete/`, { completed: done }); } catch {}
   }
@@ -1201,6 +1225,8 @@ document.addEventListener('visibilitychange', () => {
         start: s.time || '',
         end: s.end || '',
         difficulty: (s.difficulty || 'medium').toLowerCase(),
+        done: !!s.done || !!s.is_completed, // accept either field for backwards compatibility
+        color: taskColor(s),
       }));
     }
   }
