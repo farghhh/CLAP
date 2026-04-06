@@ -22,9 +22,9 @@ from core.schedule_engine import (
 # ─────────────────────────────────────────────────────────────
 # CONSTANTS
 # ─────────────────────────────────────────────────────────────
-DAY_MAP = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
+DAY_MAP  = {0: 'mon', 1: 'tue', 2: 'wed', 3: 'thu', 4: 'fri', 5: 'sat', 6: 'sun'}
 DAY_FULL = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday'}
-COLORS = ['orange', 'blue', 'red', 'purple', 'green']
+COLORS   = ['orange', 'blue', 'red', 'purple', 'green']
 DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
 
 
@@ -53,7 +53,9 @@ def build_time_slots(start_time, max_hours):
     current_minute = start_time.minute
 
     for _ in range(int(max_hours)):
-        slots.append(f'{str(current_hour).zfill(2)}:{str(current_minute).zfill(2)}')
+        slots.append(
+            f'{str(current_hour).zfill(2)}:{str(current_minute).zfill(2)}'
+        )
         current_hour += 1
         if current_hour >= 24:
             break
@@ -84,7 +86,6 @@ def build_recommendation_response(recommendation):
     """Helper to format recommendation dict for API response"""
     if not recommendation:
         return None
-
     return {
         'alert': recommendation['alert'],
         'suggestion': recommendation['suggestion'],
@@ -148,7 +149,6 @@ def schedule_view(request):
         for i, session in enumerate(sorted_sessions):
             if i >= len(available_times):
                 break
-
             slots.append({
                 'day': day_key,
                 'time': available_times[i],
@@ -165,15 +165,11 @@ def schedule_view(request):
     # Build recommendation if any day exceeds 80%
     recommendation = None
     overloaded_days = {k: v for k, v in daily_load.items() if v >= 80}
-
     if overloaded_days:
         worst_day = max(overloaded_days, key=overloaded_days.get)
         day_names = {
-            'mon': 'Monday',
-            'tue': 'Tuesday',
-            'wed': 'Wednesday',
-            'thu': 'Thursday',
-            'fri': 'Friday',
+            'mon': 'Monday', 'tue': 'Tuesday', 'wed': 'Wednesday',
+            'thu': 'Thursday', 'fri': 'Friday'
         }
         recommendation = {
             'alert': f'{day_names.get(worst_day, worst_day)} exceeds safe cognitive load at {overloaded_days[worst_day]}%.',
@@ -265,10 +261,8 @@ def dashboard_view(request):
 
     # Current cognitive load level
     today_cls = stress_history.get(
-        day_labels[today.weekday()] if today.weekday() < 5 else 'Mon',
-        0
+        day_labels[today.weekday()] if today.weekday() < 5 else 'Mon', 0
     )
-
     if today_cls >= 80:
         cog_level = 'high'
     elif today_cls >= 50:
@@ -287,11 +281,9 @@ def dashboard_view(request):
         day_name = DAY_FULL.get(day_date.weekday())
         if not day_name:
             continue
-
         day_sessions = sessions_this_week.filter(scheduled_date=day_date)
         dashboard_times = build_time_slots(study_start, max_focus)
         schedule[day_name] = []
-
         for i, session in enumerate(day_sessions):
             if i >= len(dashboard_times):
                 break
@@ -305,7 +297,6 @@ def dashboard_view(request):
     # Recommendation
     overloaded = {k: v for k, v in stress_history.items() if v >= 80}
     recommendation = None
-
     if overloaded:
         worst = max(overloaded, key=overloaded.get)
         recommendation = {
