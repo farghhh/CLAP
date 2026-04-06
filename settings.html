@@ -1037,13 +1037,13 @@ window.saveStudyPrefs = async function() {
   const studyDurationMins  = studyRange.end - studyRange.start;
   const studyDurationHours = studyDurationMins / 60;
 
-  if (maxHours > studyDurationHours) {
-    CLAP.Toast.error(`Max focus hours (${maxHours}h) exceeds your study window (${studyDurationHours.toFixed(1)}h).`);
+  if (maxHours < 1 || maxHours > 16) {
+    CLAP.Toast.error('Daily study limit must be between 1 and 16 hours.');
     return;
   }
 
-  if (maxHours < 1 || maxHours > 16) {
-    CLAP.Toast.error('Daily study limit must be between 1 and 16 hours.');
+  if (maxHours > studyDurationHours) {
+    CLAP.Toast.error(`Max focus hours (${maxHours}h) exceeds your study window (${studyDurationHours.toFixed(1)}h).`);
     return;
   }
 
