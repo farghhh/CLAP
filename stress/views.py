@@ -2,17 +2,18 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.utils import timezone
 from schedule.models import StudySession
 from sleep.models import SleepStudyPreference
 from tasks.models import Task
-from datetime import date, timedelta
+from datetime import timedelta
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def stress_analytics(request):
     user = request.user
     days = int(request.GET.get('days', 30))
-    today = date.today()
+    today = timezone.localdate()   # FIX: use Django local timezone date
 
     # Get max focus hours for percentage calculation
     try:
@@ -27,7 +28,6 @@ def stress_analytics(request):
     # 7  -> past 3 + next 4
     # 14 -> past 7 + next 7
     # 30 -> past 7 + next 23
-
     if days == 7:
         past_days = 3
         future_days = 4
@@ -63,7 +63,6 @@ def stress_analytics(request):
         total_cls = sum(s.cls_contribution for s in day_sessions)
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
 
-        # Format label — mark today and weekends
         if current == today:
             label = f'TODAY ({current.strftime("%d %b")})'
         else:
@@ -82,7 +81,6 @@ def stress_analytics(request):
     safe_days = len([v for v in values if v < 60])
 
     # ── Burnout risk ──────────────────────────────────────────
-    # Check for 3 or more consecutive high load days
     burnout_risk = False
     burnout_msg = None
     consecutive = 0
