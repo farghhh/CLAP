@@ -814,16 +814,27 @@ function renderTodo(tasks, upcoming) {
   const el  = document.getElementById('todo-list');
   const hdr = document.getElementById('todo-section-hdr');
 
+  /* Load persisted done/skipped state for today */
+  const doneSet = _loadSet(TASK_DONE_KEY);
+  const skipSet = _loadSet(TASK_SKIP_KEY);
+
   /* Filter today's tasks to only those that actually have a valid title */
   const todayValid = (tasks || []).filter(t => t && t.title);
 
   if (todayValid.length > 0) {
     hdr.textContent = "Today's Must-Do List";
     el.innerHTML = todayValid.map(t => {
-      const cls  = _diffClass(t);
-      const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
+      const cls      = _diffClass(t);
+      const icon     = DIFF_ICONS[cls] || DIFF_ICONS.medium;
+      const sid      = String(t.id);
+      const isDone   = doneSet.has(sid);
+      const isSkipped= skipSet.has(sid);
+      const doneClass= isDone || isSkipped ? ' done' : '';
+      /* Flip button styles when already marked */
+      const chkStyle = isDone   ? 'border-color:var(--success);background:var(--success);color:#fff;' : '';
+      const skpStyle = isSkipped? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
       return `
-      <div class="todo-item" id="td-${t.id}">
+      <div class="todo-item${doneClass}" id="td-${t.id}">
         <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
           <div class="todo-icon-wrap ${cls}">${icon}</div>
           <div style="min-width:0">
@@ -832,10 +843,10 @@ function renderTodo(tasks, upcoming) {
           </div>
         </a>
         <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done">
+          <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done" style="${chkStyle}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
-          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip" title="Skip">
+          <button class="todo-btn skp" onclick="markTask(${t.id},false)" aria-label="Skip" title="Skip" style="${skpStyle}">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
@@ -904,11 +915,63 @@ function _deriveUpcoming(schedule) {
   });
 }
 
-window.markTask=async function(id,done){
-  const el=document.getElementById('td-'+id);
-  if(el) el.classList.toggle('done',done);
-  try{await CLAP.API.patch(`/schedule/sessions/${id}/complete/`,{completed:done});}catch{}
-  CLAP.Toast.success(done?'Task completed! 🎉':'Task skipped.');
+/* ── Task completion persistence ── */
+const TASK_DONE_KEY = 'clap_done_tasks';   // { "YYYY-MM-DD": [id, id, …] }
+const TASK_SKIP_KEY = 'clap_skip_tasks';
+
+function _todayKey() {
+  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+}
+
+function _loadSet(storageKey) {
+  try {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    // stored as { date: [ids] } — only today's ids matter
+    return new Set((parsed[_todayKey()] || []).map(String));
+  } catch { return new Set(); }
+}
+
+function _saveSet(storageKey, set) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    // Prune keys older than 2 days to avoid bloat
+    const today = _todayKey();
+    Object.keys(existing).forEach(k => { if (k < today) delete existing[k]; });
+    existing[today] = [...set];
+    localStorage.setItem(storageKey, JSON.stringify(existing));
+  } catch {}
+}
+
+window.markTask = async function(id, done) {
+  const sid = String(id);
+  const doneSet = _loadSet(TASK_DONE_KEY);
+  const skipSet = _loadSet(TASK_SKIP_KEY);
+
+  if (done) {
+    doneSet.add(sid);
+    skipSet.delete(sid);
+  } else {
+    skipSet.add(sid);
+    doneSet.delete(sid);
+  }
+
+  _saveSet(TASK_DONE_KEY, doneSet);
+  _saveSet(TASK_SKIP_KEY, skipSet);
+
+  const el = document.getElementById('td-' + id);
+  if (el) {
+    el.classList.toggle('done', done);
+    /* Update button fill immediately so it matches persisted state */
+    const chkBtn = el.querySelector('.todo-btn.chk');
+    const skpBtn = el.querySelector('.todo-btn.skp');
+    if (chkBtn) chkBtn.style.cssText = done   ? 'border-color:var(--success);background:var(--success);color:#fff;' : '';
+    if (skpBtn) skpBtn.style.cssText = !done  ? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
+  }
+
+  try { await CLAP.API.patch(`/schedule/sessions/${id}/complete/`, { completed: done }); } catch {}
+  CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 };
 
 /* ── Missed Task Modal ── */
