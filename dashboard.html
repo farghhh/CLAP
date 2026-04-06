@@ -23,6 +23,12 @@
     /* ── Stats grid ── */
     .stats-grid   { display:grid; grid-template-columns:1fr 1fr minmax(180px,240px); grid-template-rows:auto auto; gap:16px; }
     .stat-box     { background:var(--white); border-radius:18px; padding:22px 24px; box-shadow:var(--shadow-card); }
+    .stat-box.clickable { cursor:pointer; text-decoration:none; display:block; transition:transform 0.15s,box-shadow 0.15s; }
+    .stat-box.clickable:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(75,191,191,0.18); }
+    .focus-box.clickable { cursor:pointer; text-decoration:none; transition:filter 0.15s; }
+    .focus-box.clickable:hover { filter:brightness(1.08); }
+    .dl-box.clickable { cursor:pointer; text-decoration:none; transition:transform 0.15s,box-shadow 0.15s; }
+    .dl-box.clickable:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(75,191,191,0.18); }
     .stat-lbl     { font-size:0.82rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; }
     .stat-num     { font-family:var(--font-heading); font-size:2.6rem; font-weight:800; color:var(--text-primary); line-height:1; }
     .cog-row      { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
@@ -32,6 +38,7 @@
     .cog-badge.low      { background:#27AE60; color:#fff; }
     .cog-badge.high     { background:#E74C3C; color:#fff; }
     .cog-badge.critical { background:#E74C3C; color:#fff; animation:pulseBadge 1s ease-in-out infinite; }
+    @keyframes pulseBadge { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.75;transform:scale(1.07)} }
     .cog-spark    { width:90px; height:48px; }
     .dl-box       { grid-column:1/3; background:var(--white); border-radius:18px; padding:18px 24px; box-shadow:var(--shadow-card); display:flex; align-items:center; gap:14px; }
     .dl-lbl       { font-size:0.78rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; }
@@ -285,11 +292,11 @@
       <!-- ════ LEFT ════ -->
       <div class="db-left">
         <div class="stats-grid">
-          <div class="stat-box">
+          <a href="assignments.html" class="stat-box clickable" aria-label="View all assignments">
             <div class="stat-lbl">Total Tasks</div>
             <div class="stat-num" id="s-tasks">—</div>
-          </div>
-          <div class="stat-box">
+          </a>
+          <a href="stress-analytics.html" class="stat-box clickable" aria-label="View stress analytics">
             <div class="stat-lbl">Cognitive Load</div>
             <div class="cog-row">
               <canvas class="cog-spark" id="cog-spark"></canvas>
@@ -298,8 +305,8 @@
                 <span class="cog-badge moderate" id="s-cog-badge">Moderate</span>
               </div>
             </div>
-          </div>
-          <div class="focus-box">
+          </a>
+          <a href="schedule.html" class="focus-box clickable" aria-label="View schedule">
             <div class="focus-title">Focus Hours<br>Today</div>
             <div class="focus-clock" aria-hidden="true">
               <svg viewBox="0 0 52 52" fill="none" stroke-width="2">
@@ -311,8 +318,8 @@
               </svg>
             </div>
             <div class="focus-hrs" id="s-focus">— / — Hrs</div>
-          </div>
-          <div class="dl-box">
+          </a>
+          <a href="assignments.html" class="dl-box clickable" aria-label="View assignments deadlines">
             <div class="dl-lbl">Next Deadline</div>
             <div class="dl-icon-wrap" aria-hidden="true">
               <svg width="20" height="20" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
@@ -324,7 +331,7 @@
               <div class="dl-name"   id="dl-name">—</div>
             </div>
             <span class="dl-badge urgent" id="dl-badge">—</span>
-          </div>
+          </a>
         </div>
 
         <!-- Study Plan -->
@@ -376,7 +383,10 @@
 
         <!-- Today / Upcoming tasks -->
         <div>
-          <div class="todo-section-hdr" id="todo-section-hdr">Today Must-Do List</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div class="todo-section-hdr" id="todo-section-hdr" style="margin-bottom:0;">Today Must-Do List</div>
+            <a href="schedule.html" style="font-size:0.78rem;font-weight:600;color:var(--text-muted);text-decoration:underline;" aria-label="View full schedule">View all</a>
+          </div>
           <div id="todo-list"></div>
         </div>
       </div><!-- /.db-right -->
@@ -772,7 +782,7 @@ function _drawCal() {
       const label = (typeof entry==='object' && entry.label) ? entry.label : (typeof entry==='string' && entry!=='') ? entry : '';
       const dataAttr = label ? ` data-due="1"` : '';
       const tooltip  = label ? `<span class="cal-tooltip">${label}</span>` : '';
-      html+=`<div class="cal-d has-due"${dataAttr} tabindex="0">${d}${tooltip}</div>`;
+      html+=`<a href="assignments.html" class="cal-d has-due"${dataAttr} tabindex="0" title="${label||'Assignment due'}" style="color:inherit;text-decoration:none;display:block;">${d}${tooltip}</a>`;
     } else {
       html+=`<div class="cal-d ${isT?'today':''}">${d}</div>`;
     }
@@ -814,13 +824,13 @@ function renderTodo(tasks, upcoming) {
       const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
       return `
       <div class="todo-item" id="td-${t.id}">
-        <div class="todo-pill ${cls}">
+        <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
           <div class="todo-icon-wrap ${cls}">${icon}</div>
           <div style="min-width:0">
             <div class="todo-name ${cls}">${t.title}</div>
             <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
           </div>
-        </div>
+        </a>
         <div class="todo-btns">
           <button class="todo-btn chk" onclick="markTask(${t.id},true)" aria-label="Done" title="Mark done">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -850,14 +860,14 @@ function renderTodo(tasks, upcoming) {
         const icon = DIFF_ICONS[cls] || DIFF_ICONS.upcoming;
         return `
         <div class="todo-item">
-          <div class="todo-pill ${cls || 'upcoming'}">
+          <a href="assignments.html" class="todo-pill ${cls || 'upcoming'}" style="text-decoration:none;" aria-label="View ${t.title} in assignments">
             <div class="todo-icon-wrap ${cls || 'upcoming'}">${icon}</div>
             <div style="min-width:0">
               <div class="todo-name ${cls || 'upcoming'}">${t.title}</div>
               ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
               ${t.date  ? `<div class="todo-date-tag">${t.date}</div>` : ''}
             </div>
-          </div>
+          </a>
         </div>`;
       }).join('');
   }
