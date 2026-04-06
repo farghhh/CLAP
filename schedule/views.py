@@ -35,14 +35,13 @@ DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
 def get_week_dates(week_offset=0):
     """Returns list of 5 weekday dates for a given week offset"""
     today = timezone.localdate()
-    weekday = today.weekday()
 
-    if weekday >= 5:
-        days_to_monday = 7 - weekday
-    else:
-        days_to_monday = -weekday
+    # Always get Monday of the CURRENT week first
+    monday = today - timedelta(days=today.weekday())
 
-    monday = today + timedelta(days=days_to_monday) + timedelta(weeks=week_offset)
+    # Then apply requested week offset
+    monday = monday + timedelta(weeks=week_offset)
+
     return [monday + timedelta(days=i) for i in range(5)]
 
 
@@ -305,16 +304,18 @@ def dashboard_view(request):
         stress_history[day_labels[i]] = cls_pct
 
     # Current cognitive load level
-    today_cls = stress_history.get(
-        day_labels[today.weekday()] if today.weekday() < 5 else 'Mon', 0
-    )
+    if today.weekday() < 5:
+        today_cls = stress_history.get(day_labels[today.weekday()], 0)
+    else:
+        today_cls = 0
+
     if today_cls >= 80:
         cog_level = 'high'
     elif today_cls >= 50:
         cog_level = 'moderate'
     else:
         cog_level = 'low'
-
+        
     # Schedule for dashboard timetable
     sessions_this_week = StudySession.objects.filter(
         user=user,
