@@ -177,6 +177,13 @@ def assignment_detail(request, task_id):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        #validation data backend
+        if deadline_date <= date.today():
+            return Response(
+                {'error': 'Deadline must be in the future'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         # Convert difficulty string to integer
         difficulty_map = {'easy': 1, 'medium': 2, 'hard': 3}
         if isinstance(difficulty, str):
