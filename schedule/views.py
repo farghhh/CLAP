@@ -342,6 +342,8 @@ def dashboard_view(request):
                 'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
                 # FIX: include session_id in schedule slots so the dashboard mini
                 # timetable blocks can link to the correct session on schedule.html
+                # add duration
+                'duration' : session.scheduled_hours,
                 'session_id': session.session_id,
                 'task_id':    session.task.task_id,
             })
