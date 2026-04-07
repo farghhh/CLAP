@@ -601,13 +601,23 @@ def check_missed(request):
     from core.schedule_engine import handle_missed_sessions
 
     preference = pref_data['preference']
-    rescheduled = handle_missed_sessions(user, preference)
+
+    # NEW: get full result instead of just count
+    missed_result = handle_missed_sessions(user, preference)
+
     recommendation = check_and_redistribute(user, preference)
 
     response_data = {
-        'message': f'{rescheduled} missed session(s) rescheduled.',
-        'rescheduled_count': rescheduled,
+        'message': f"{missed_result['count']} missed session(s) rescheduled.",
+        'rescheduled_count': missed_result['count'],
     }
+
+    # 👉 IMPORTANT: pass detail to frontend (for popup)
+    if missed_result['items']:
+        response_data.update(missed_result['items'][0])
+
+    # optional (for future multi-popup)
+    response_data['missed_items'] = missed_result['items']
 
     if recommendation:
         response_data['recommendation'] = build_recommendation_response(
