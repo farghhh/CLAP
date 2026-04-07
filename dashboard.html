@@ -403,21 +403,44 @@
 <script>
 'use strict';
 
+/* =========================================================
+   CLAP DASHBOARD SCRIPT
+   =========================================================
+   What this script handles:
+   1. Load dashboard data from backend
+   2. Render greeting/avatar
+   3. Render stats, focus hours, deadline, schedule, calendar
+   4. Render today tasks / upcoming tasks
+   5. Mark task done / skipped
+   6. Check missed sessions and show popup
+   7. Refresh dashboard partially without full reload
+   ========================================================= */
+
 AppShell.init('dashboard.html', { showTopbar: false });
 
-/* Greeting + avatar — reads from localStorage, then refreshes from API */
+/* =========================================================
+   USER / PROFILE DISPLAY
+   ========================================================= */
+
+/* Render user avatar:
+   - uses profile picture if available
+   - falls back to first initial if image missing/broken */
 function _renderAvatar(user) {
   const avEl = document.getElementById('db-av');
   const pic  = user.profile_picture || user.avatarDataUrl || null;
+
   avEl.innerHTML = '';
+
   if (pic) {
     const img = document.createElement('img');
     img.src = pic;
     img.alt = user.name || 'Profile';
+
     img.onerror = () => {
       avEl.innerHTML = '';
       avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
-      /* Also clear the broken URL from storage so we don't retry it */
+
+      /* If stored image is broken, clear it from local storage */
       try {
         const stored = CLAP.Auth.getUser() || {};
         if (stored.profile_picture === pic) {
@@ -426,6 +449,7 @@ function _renderAvatar(user) {
         }
       } catch {}
     };
+
     avEl.appendChild(img);
   } else {
     avEl.textContent = (user.name || 'S').charAt(0).toUpperCase();
@@ -434,102 +458,111 @@ function _renderAvatar(user) {
 
 const _u  = CLAP.Auth.getUser() || {};
 const _fn = (_u.name || 'Student').split(' ')[0];
+
 _renderAvatar(_u);
 document.getElementById('db-greet').textContent = `Welcome Back, ${_fn}!`;
 
-/* Profile is now fetched inside init() above */
+/* =========================================================
+   USER PREFERENCES
+   =========================================================
+   Backend endpoint:
+   GET /api/users/preferences/get/
+*/
+let userPrefs = {
+  study_start: '09:00',
+  study_end: '18:00',
+  max_focus_hours: 6
+};
 
-/* ── User preferences ──────────────────────────────────────
-   CONNECT: GET /api/users/preferences/
-   { study_start, study_end, sleep_start, sleep_end, max_focus_hours }
-   ─────────────────────────────────────────────────────────── */
-let userPrefs = { study_start:'09:00', study_end:'18:00', max_focus_hours:6 };
 async function loadPrefs() {
   try {
     const p = await CLAP.API.get('/users/preferences/get/');
     if (p && p.study_start) userPrefs = { ...userPrefs, ...p };
-  } catch { /* keep defaults */ }
+  } catch {
+    /* keep defaults */
+  }
 }
 
-/* ── Mock data ──────────────────────────────────────────────
-   CONNECT: GET /api/dashboard/
-   Full expected shape is documented inline below.
-   ─────────────────────────────────────────────────────────── */
+/* =========================================================
+   MOCK DATA (fallback only for development reference)
+   ========================================================= */
 function getMock() {
   const now    = new Date();
   const dow    = now.getDay();
-  const toMon  = (dow===0) ? -6 : 1-dow;
-  const monday = new Date(now); monday.setDate(now.getDate()+toMon);
+  const toMon  = (dow === 0) ? -6 : 1 - dow;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + toMon);
 
-  /* Build task_date_meta: map ISO date → dot CSS class */
   const taskDateMeta = {};
-  [0,1,2,3,4,7,8,9,10,11].forEach((off,i) => {
-    const d = new Date(monday); d.setDate(monday.getDate()+off);
-    const iso = d.toISOString().slice(0,10);
-    taskDateMeta[iso] = (i%4===0)?'dot-red':(i%3===0)?'dot-orange':'dot-teal';
+  [0,1,2,3,4,7,8,9,10,11].forEach((off, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + off);
+    const iso = d.toISOString().slice(0, 10);
+    taskDateMeta[iso] = (i % 4 === 0) ? 'dot-red' : (i % 3 === 0) ? 'dot-orange' : 'dot-teal';
   });
 
   return {
-    total_tasks:    5,
-    cognitive_load: { value:72, level:'moderate', trend:[40,45,55,50,72] },
-    focus:          { used:3, max:6 },
-    next_deadline:  { course:'CSC2383', title:'Database Project', days_left:2 },
+    total_tasks: 5,
+    cognitive_load: { value: 72, level: 'moderate', trend: [40,45,55,50,72] },
+    focus: { used: 3, max: 6 },
+    next_deadline: { course: 'CSC2383', title: 'Database Project', days_left: 2 },
     schedule: {
-      Monday:    [
-        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy'   },
-        { time:'11:00', end:'12:00', title:'Parallel Comp.',   difficulty:'medium' },
+      Monday: [
+        { time:'09:00', end:'10:00', title:'Database Project', difficulty:'easy' },
+        { time:'11:00', end:'12:00', title:'Parallel Comp.', difficulty:'medium' },
       ],
-      Tuesday:   [{ time:'10:00', end:'12:00', title:'Mobile App',     difficulty:'hard'   }],
+      Tuesday: [
+        { time:'10:00', end:'12:00', title:'Mobile App', difficulty:'hard' }
+      ],
       Wednesday: [
-        { time:'09:00', end:'10:00', title:'Parallel Comp.',  difficulty:'medium' },
-        { time:'11:00', end:'13:00', title:'Mobile App',      difficulty:'hard'   },
+        { time:'09:00', end:'10:00', title:'Parallel Comp.', difficulty:'medium' },
+        { time:'11:00', end:'13:00', title:'Mobile App', difficulty:'hard' },
       ],
-      Thursday:  [{ time:'09:00', end:'10:00', title:'Mobile App',     difficulty:'hard'   }],
-      Friday:    [
-        { time:'11:00', end:'12:00', title:'Parallel Comp.',  difficulty:'medium' },
-        { time:'13:00', end:'14:00', title:'Mobile App',      difficulty:'hard'   },
+      Thursday: [
+        { time:'09:00', end:'10:00', title:'Mobile App', difficulty:'hard' }
+      ],
+      Friday: [
+        { time:'11:00', end:'12:00', title:'Parallel Comp.', difficulty:'medium' },
+        { time:'13:00', end:'14:00', title:'Mobile App', difficulty:'hard' },
       ],
     },
     today_tasks: [
-      { id:1, title:'Database Project',   start:'09:00 AM', end:'10:00 AM', difficulty:'easy',   color:'green'  },
+      { id:1, title:'Database Project', start:'09:00 AM', end:'10:00 AM', difficulty:'easy', color:'green' },
       { id:2, title:'Parallel Computing', start:'11:00 AM', end:'12:30 PM', difficulty:'medium', color:'orange' },
-      { id:3, title:'Mobile Application', start:'15:00',    end:'16:00',    difficulty:'hard',   color:'purple' },
+      { id:3, title:'Mobile Application', start:'15:00', end:'16:00', difficulty:'hard', color:'purple' },
     ],
-    /*
-     * missed_task: null if nothing missed.
-     * CONNECT: backend sets this when a session was scheduled yesterday
-     *          and not marked complete, and has auto-rescheduled it.
-     */
     missed_task: null,
-    task_date_meta: taskDateMeta,  // kept for backwards-compat
-    /* CONNECT: replace with real API data. assignment_due_dates is the canonical field. */
+    task_date_meta: taskDateMeta,
     assignment_due_dates: [
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+2); return d.toISOString().slice(0,10); })(), title: 'CSC2383 Database Project' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+5); return d.toISOString().slice(0,10); })(), title: 'MPU123 Speaking' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+7); return d.toISOString().slice(0,10); })(), title: 'CSC123 DB Assignment' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+10); return d.toISOString().slice(0,10); })(), title: 'ISL123 Islamic Studies' },
-      { date: (() => { const d=new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10); })(), title: 'MPU123 Final Report' },
+      { date: (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().slice(0,10); })(), title: 'CSC2383 Database Project' },
+      { date: (() => { const d = new Date(); d.setDate(d.getDate() + 5); return d.toISOString().slice(0,10); })(), title: 'MPU123 Speaking' },
     ],
   };
 }
 
-/* ── Helpers ── */
+/* =========================================================
+   GENERAL HELPERS
+   ========================================================= */
 const DIFF_COLOR = { easy:'green', medium:'orange', hard:'red', study:'blue' };
-const COL_CYCLE  = ['easy','medium','hard','medium','easy'];
 const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
 const DN   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MN   = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 function taskColor(t) {
-  return (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color||'blue');
+  return (t.difficulty && DIFF_COLOR[t.difficulty]) ? DIFF_COLOR[t.difficulty] : (t.color || 'blue');
 }
 
-/* ── Task completion persistence ── */
-const TASK_DONE_KEY = 'clap_done_tasks';   // { "YYYY-MM-DD": [id, id, …] }
+/* =========================================================
+   TASK STATE STORAGE
+   =========================================================
+   We keep local done/skipped sets so the UI feels responsive.
+   Backend is still the real source of truth.
+*/
+const TASK_DONE_KEY = 'clap_done_tasks';
 const TASK_SKIP_KEY = 'clap_skip_tasks';
 
 function _todayKey() {
-  return new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  return new Date().toISOString().slice(0, 10);
 }
 
 function _loadSet(storageKey) {
@@ -537,115 +570,217 @@ function _loadSet(storageKey) {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return new Set();
     const parsed = JSON.parse(raw);
-    // stored as { date: [ids] } — only today's ids matter
     return new Set((parsed[_todayKey()] || []).map(String));
-  } catch { return new Set(); }
+  } catch {
+    return new Set();
+  }
 }
 
 function _saveSet(storageKey, set) {
   try {
     const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    // Prune keys older than 2 days to avoid bloat
     const today = _todayKey();
-    Object.keys(existing).forEach(k => { if (k < today) delete existing[k]; });
+
+    /* prune old dates to avoid storage bloat */
+    Object.keys(existing).forEach(k => {
+      if (k < today) delete existing[k];
+    });
+
     existing[today] = [...set];
     localStorage.setItem(storageKey, JSON.stringify(existing));
   } catch {}
 }
 
-/* ── Stats ── */
+/* =========================================================
+   TIME HELPERS
+   ========================================================= */
 
-/* Calculate locally-tracked focus hours from completed tasks today.
-   Each done task contributes its session duration (end - start).
-   Falls back to 0.5h per task if no time data available.
-   FIX 5: Check both the raw task id AND the "sid_" prefixed form, since
-   schedule.html writes "sid_<slotId>" while dashboard writes the stable hash id. */
-function _localFocusHours(tasks) {
-  if (!tasks || tasks.length === 0) return 0;
-  const doneSet = _loadSet(TASK_DONE_KEY);
-  let mins = 0;
-  tasks.forEach(t => {
-    const rawId = String(t.id);
-    /* Match either the stored id directly or its sid_ variant */
-    const matched = doneSet.has(rawId)
-      || doneSet.has('sid_' + rawId)
-      || (rawId.startsWith('sid_') && doneSet.has(rawId.slice(4)));
-    if (!matched) return;
-    const startMins = _timeToMins(t.start);
-    const endMins   = _timeToMins(t.end);
-    const dur = (endMins > startMins) ? (endMins - startMins) : 30; // 30 min fallback
-    mins += dur;
-  });
-  return Math.round((mins / 60) * 10) / 10; // round to 1 decimal
+function _timeToMins(t) {
+  if (!t) return 0;
+  t = t.trim();
+
+  /* Handles "10.00 AM" format */
+  if (/\d{1,2}\.\d{2}\s*(AM|PM)/i.test(t)) {
+    const [hm, ap] = t.split(/\s+/);
+    let [h, m] = hm.split('.').map(Number);
+
+    if (/PM/i.test(ap) && h !== 12) h += 12;
+    if (/AM/i.test(ap) && h === 12) h = 0;
+
+    return h * 60 + (m || 0);
+  }
+
+  /* Handles "10:00" format */
+  if (t.includes(':')) {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + (m || 0);
+  }
+
+  return parseInt(t, 10) * 60;
 }
 
-/* Store the current task list so renderStats can access it for focus calc */
+function _minsToLabel(mins) {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+}
+
+/* =========================================================
+   FOCUS HOURS
+   ========================================================= */
+
+function _localFocusHours(tasks) {
+  if (!tasks || tasks.length === 0) return 0;
+
+  const doneSet = _loadSet(TASK_DONE_KEY);
+  let mins = 0;
+
+  tasks.forEach(t => {
+    const rawId = String(t.id);
+
+    const matched =
+      doneSet.has(rawId) ||
+      doneSet.has('sid_' + rawId) ||
+      (rawId.startsWith('sid_') && doneSet.has(rawId.slice(4)));
+
+    if (!matched) return;
+
+    const startMins = _timeToMins(t.start);
+    const endMins   = _timeToMins(t.end);
+    const dur = (endMins > startMins) ? (endMins - startMins) : 30;
+
+    mins += dur;
+  });
+
+  return Math.round((mins / 60) * 10) / 10;
+}
+
 let _currentTodayTasks = [];
 
 function renderStats(d, todayTasks) {
   document.getElementById('s-tasks').textContent = d.total_tasks ?? '—';
+
   const cog = d.cognitive_load || {};
-  document.getElementById('s-cog-pct').textContent = cog.value != null ? cog.value+'%' : '—%';
+  document.getElementById('s-cog-pct').textContent =
+    cog.value != null ? cog.value + '%' : '—%';
+
   const badge = document.getElementById('s-cog-badge');
-  const lv    = (cog.level||'moderate').toLowerCase();
-  badge.className   = 'cog-badge '+lv;
-  badge.textContent = lv.charAt(0).toUpperCase()+lv.slice(1);
+  const lv = (cog.level || 'moderate').toLowerCase();
+  badge.className = 'cog-badge ' + lv;
+  badge.textContent = lv.charAt(0).toUpperCase() + lv.slice(1);
+
   const f = d.focus || {};
   const maxHrs = f.max ?? userPrefs.max_focus_hours ?? 6;
-  /* Compute focus hours from locally-persisted completed tasks.
-     Use whichever is higher: what the API reported or what we counted locally. */
-  const apiUsed    = f.used ?? 0;
-  const tasks      = todayTasks || _currentTodayTasks || [];
-  const localUsed  = _localFocusHours(tasks);
+  const apiUsed = f.used ?? 0;
+  const tasks = todayTasks || _currentTodayTasks || [];
+  const localUsed = _localFocusHours(tasks);
   const displayUsed = localUsed > apiUsed ? localUsed : apiUsed;
+
   document.getElementById('s-focus').textContent = `${displayUsed} / ${maxHrs} Hrs`;
 }
 
-/* Re-render just the focus hours box after a task is ticked */
 function _refreshFocusDisplay() {
-  const f = {};
   const maxHrs = userPrefs.max_focus_hours ?? 6;
   const localUsed = _localFocusHours(_currentTodayTasks);
   document.getElementById('s-focus').textContent = `${localUsed} / ${maxHrs} Hrs`;
 }
 
-/* ── Sparkline ── */
+/* =========================================================
+   SPARKLINE
+   ========================================================= */
+
 function renderSparkline(trend) {
-  const c = document.getElementById('cog-spark'); if(!c) return;
-  const ctx=c.getContext('2d'); c.width=90; c.height=48;
-  const max=Math.max(...trend),min=Math.min(...trend),rng=max-min||1;
-  const pts=trend.map((v,i)=>({x:(i/(trend.length-1))*78+6,y:42-((v-min)/rng)*36}));
-  ctx.clearRect(0,0,90,48);
-  ctx.strokeStyle='#7B68EE'; ctx.lineWidth=2.5; ctx.lineJoin='round';
-  ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
-  pts.slice(1).forEach(p=>ctx.lineTo(p.x,p.y)); ctx.stroke();
-  const e=pts[pts.length-1],p=pts[pts.length-2],a=Math.atan2(e.y-p.y,e.x-p.x);
+  const c = document.getElementById('cog-spark');
+  if (!c) return;
+
+  const ctx = c.getContext('2d');
+  c.width = 90;
+  c.height = 48;
+
+  const max = Math.max(...trend);
+  const min = Math.min(...trend);
+  const rng = max - min || 1;
+
+  const pts = trend.map((v, i) => ({
+    x: (i / (trend.length - 1)) * 78 + 6,
+    y: 42 - ((v - min) / rng) * 36
+  }));
+
+  ctx.clearRect(0, 0, 90, 48);
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+
   ctx.beginPath();
-  ctx.moveTo(e.x,e.y);ctx.lineTo(e.x-8*Math.cos(a-0.35),e.y-8*Math.sin(a-0.35));
-  ctx.moveTo(e.x,e.y);ctx.lineTo(e.x-8*Math.cos(a+0.35),e.y-8*Math.sin(a+0.35));
-  ctx.strokeStyle='#7B68EE';ctx.lineWidth=2;ctx.stroke();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  pts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.stroke();
+
+  const e = pts[pts.length - 1];
+  const p = pts[pts.length - 2];
+  const a = Math.atan2(e.y - p.y, e.x - p.x);
+
+  ctx.beginPath();
+  ctx.moveTo(e.x, e.y);
+  ctx.lineTo(e.x - 8 * Math.cos(a - 0.35), e.y - 8 * Math.sin(a - 0.35));
+  ctx.moveTo(e.x, e.y);
+  ctx.lineTo(e.x - 8 * Math.cos(a + 0.35), e.y - 8 * Math.sin(a + 0.35));
+  ctx.strokeStyle = '#7B68EE';
+  ctx.lineWidth = 2;
+  ctx.stroke();
 }
 
-/* ── Deadline ── */
+/* =========================================================
+   DEADLINE CARD
+   ========================================================= */
+
 function renderDeadline(dl) {
-  if(!dl) return;
-  document.getElementById('dl-course').textContent=dl.course||'';
-  document.getElementById('dl-name').textContent  =dl.title ||'';
-  const b=document.getElementById('dl-badge'),d=dl.days_left;
-  if(d<0)      {b.textContent='Overdue!';        b.className='dl-badge urgent';}
-  else if(d<=1){b.textContent='Due Today!';       b.className='dl-badge urgent';}
-  else if(d<=3){b.textContent=`Due in ${d} Days`; b.className='dl-badge urgent';}
-  else if(d<=7){b.textContent=`Due in ${d} Days`; b.className='dl-badge warn';}
-  else         {b.textContent=`Due in ${d} Days`; b.className='dl-badge safe';}
+  if (!dl) return;
+
+  document.getElementById('dl-course').textContent = dl.course || '';
+  document.getElementById('dl-name').textContent = dl.title || '';
+
+  const b = document.getElementById('dl-badge');
+  const d = Number(dl.days_left);
+
+  /* Deadline label rules:
+     d < 0  -> overdue
+     d = 0  -> due today
+     d = 1  -> due tomorrow
+     d 2-3  -> urgent
+     d 4-7  -> warning
+     d > 7  -> safe
+  */
+  if (d < 0) {
+    b.textContent = 'Overdue!';
+    b.className = 'dl-badge urgent';
+  } else if (d === 0) {
+    b.textContent = 'Due Today!';
+    b.className = 'dl-badge urgent';
+  } else if (d === 1) {
+    b.textContent = 'Due Tomorrow';
+    b.className = 'dl-badge urgent';
+  } else if (d <= 3) {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge urgent';
+  } else if (d <= 7) {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge warn';
+  } else {
+    b.textContent = `Due in ${d} Days`;
+    b.className = 'dl-badge safe';
+  }
 }
 
-/* ── Schedule ── */
+/* =========================================================
+   SCHEDULE HELPERS
+   ========================================================= */
+
 function hasAnySchedule(schedule) {
   return !!schedule && Object.values(schedule).some(t => Array.isArray(t) && t.length > 0);
 }
 
 function shouldTreatNextWeekAsCurrentWeek(items) {
-  /* Accepts the already-fetched assignments list — no extra API call needed. */
   try {
     if (!Array.isArray(items) || items.length === 0) return false;
 
@@ -664,32 +799,33 @@ function shouldTreatNextWeekAsCurrentWeek(items) {
     return items.some(item => {
       const raw = item?.deadline ?? item?.due_date ?? null;
       if (!raw) return false;
+
       const dl = new Date(raw);
       if (isNaN(dl)) return false;
+
       dl.setHours(12, 0, 0, 0);
       return dl >= monday && dl <= friday;
     });
-  } catch (err) {
+  } catch {
     return false;
   }
 }
 
 function _stableIdFromSession(s) {
-  /* session_id is the canonical stable key from the backend schedule API.
-     Never use plain .id alone — it may be assignment_id which is a different entity.
-     Fall back to a deterministic hash of title+time so the key survives refreshes
-     even when the backend omits session_id. */
   if (s.session_id != null && s.session_id !== '') return 'sid_' + String(s.session_id);
-  if (s.slot_id    != null && s.slot_id    !== '') return 'sid_' + String(s.slot_id);
+  if (s.slot_id != null && s.slot_id !== '') return 'sid_' + String(s.slot_id);
+
   const raw = (s.title || s.subject || '') + '|' + (s.time || s.start || '');
   let h = 5381;
   for (let i = 0; i < raw.length; i++) h = ((h << 5) + h) ^ raw.charCodeAt(i);
+
   return 'local_' + (h >>> 0);
 }
 
 function buildTodayTasksFromSchedule(schedule) {
   const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
   const todaySessions = (schedule && schedule[todayName]) || [];
+
   return todaySessions.map(s => ({
     id: _stableIdFromSession(s),
     title: s.title || s.subject || '',
@@ -704,17 +840,21 @@ function buildTodayTasksFromSchedule(schedule) {
 function normalizeScheduleApiToDashboard(apiData) {
   const dayMap = { mon:'Monday', tue:'Tuesday', wed:'Wednesday', thu:'Thursday', fri:'Friday' };
   const out = { Monday:[], Tuesday:[], Wednesday:[], Thursday:[], Friday:[] };
+
   (apiData?.slots || []).forEach(slot => {
     const day = dayMap[String(slot.day || '').toLowerCase()] || slot.day;
     if (!out[day]) return;
+
     const durationHours = Number(slot.duration ?? slot.scheduled_hours ?? slot.duration_hours ?? 1) || 1;
     const start = String(slot.time || '09:00');
+
     let end = slot.end;
     if (!end && start.includes(':')) {
       const [sh, sm] = start.split(':').map(Number);
       const endMins = (sh * 60 + (sm || 0)) + Math.round(durationHours * 60);
       end = `${String(Math.floor(endMins / 60) % 24).padStart(2,'0')}:${String(endMins % 60).padStart(2,'0')}`;
     }
+
     out[day].push({
       ...slot,
       title: slot.title || [slot.code, slot.subject].filter(Boolean).join(' '),
@@ -724,6 +864,7 @@ function normalizeScheduleApiToDashboard(apiData) {
       duration: durationHours,
     });
   });
+
   return out;
 }
 
@@ -739,35 +880,7 @@ function renderSchedule(schedule, badgeLabel = 'This Week') {
   _renderScheduleTable(schedule);
 }
 
-/* Convert any time string (HH:MM 24h OR "H.MM AM/PM") to total minutes since midnight */
-function _timeToMins(t) {
-  if (!t) return 0;
-  t = t.trim();
-  /* "H.MM AM" / "H.MM PM" format (from schedule.html normalizer) */
-  if (/\d{1,2}\.\d{2}\s*(AM|PM)/i.test(t)) {
-    const [hm, ap] = t.split(/\s+/);
-    let [h, m] = hm.split('.').map(Number);
-    if (/PM/i.test(ap) && h !== 12) h += 12;
-    if (/AM/i.test(ap) && h === 12) h = 0;
-    return h * 60 + (m || 0);
-  }
-  /* "HH:MM" 24h format */
-  if (t.includes(':')) {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + (m || 0);
-  }
-  return parseInt(t) * 60;
-}
-
-/* Format total minutes back to "HH:MM" for display */
-function _minsToLabel(mins) {
-  const h = Math.floor(mins / 60) % 24;
-  const m = mins % 60;
-  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-}
-
 function _renderScheduleTable(schedule) {
-  // 1. Collect all unique time slots from all days
   const timeSet = new Set();
 
   DAYS.forEach(day => {
@@ -776,10 +889,8 @@ function _renderScheduleTable(schedule) {
     });
   });
 
-  // 2. Sort time slots in chronological order
   const timeList = [...timeSet].sort((a, b) => _timeToMins(a) - _timeToMins(b));
 
-  // If no schedule exists, show empty state
   if (timeList.length === 0) {
     emptySchedule();
     return;
@@ -787,29 +898,22 @@ function _renderScheduleTable(schedule) {
 
   let html = '';
 
-  // 3. Render one row per time slot (NOT per index)
   timeList.forEach(time => {
     html += '<tr>';
-
-    // Time label column
     html += `<td class="db-time-cell">${time}</td>`;
 
-    // Loop through each weekday column
     DAYS.forEach(day => {
-      // Find session that matches this exact time
-     const slot = (schedule[day] || []).find(
-      t => _timeToMins(t.time) === _timeToMins(time)
-    );
-      // If no session at this time → render empty cell
+      const slot = (schedule[day] || []).find(
+        t => _timeToMins(t.time) === _timeToMins(time)
+      );
+
       if (!slot) {
         html += `<td><div class="db-empty-cell"></div></td>`;
         return;
       }
 
-      // Determine color based on difficulty
       const col = DIFF_COLOR[slot.difficulty] || 'blue';
 
-      // Render task block
       html += `
         <td style="vertical-align:top;padding:2px;">
           <a href="schedule.html" class="db-task-block ${col}">
@@ -823,136 +927,147 @@ function _renderScheduleTable(schedule) {
     html += '</tr>';
   });
 
-  // Inject into table body
   document.getElementById('plan-body').innerHTML = html;
 }
 
 function emptySchedule(badgeLabel = 'This Week') {
-  const badge=document.getElementById('plan-week-badge');
-  if(badge) badge.textContent = badgeLabel;
-  document.getElementById('plan-body').innerHTML=
+  const badge = document.getElementById('plan-week-badge');
+  if (badge) badge.textContent = badgeLabel;
+
+  document.getElementById('plan-body').innerHTML =
     `<tr><td colspan="6" style="text-align:center;padding:28px 0;color:var(--text-muted);font-size:0.85rem;">No study sessions scheduled yet. Add assignments to generate a schedule.</td></tr>`;
 }
 
-/* ── Calendar: dots from real task_date_meta ── */
-let calDate=new Date(), _dotMap={};
+/* =========================================================
+   CALENDAR
+   ========================================================= */
 
-/*
- * renderCalendar: accepts assignment_due_dates from the API.
- * CONNECT: GET /api/dashboard/ should return:
- *   assignment_due_dates: [
- *     { date: "2025-04-10", title: "CSC2383 Database Project" },
- *     { date: "2025-04-15", title: "MPU123 Speaking" },
- *     ...
- *   ]
- * Each date gets a red dot; hovering shows the assignment title.
- * Multiple assignments on the same day are joined with a newline.
- */
+let calDate = new Date();
+let _dotMap = {};
+
 function renderCalendar(dueDates) {
   _dotMap = {};
+
   if (Array.isArray(dueDates)) {
     dueDates.forEach(item => {
       if (!item || !item.date) return;
-      const iso   = item.date;           // "YYYY-MM-DD"
+
+      const iso = item.date;
       const title = item.title || '';
+
       if (_dotMap[iso]) {
-        // Multiple assignments on same day — append
         _dotMap[iso].label += (title ? ' · ' + title : '');
       } else {
         _dotMap[iso] = { label: title };
       }
     });
   } else if (dueDates && typeof dueDates === 'object') {
-    // Backwards-compat: old task_date_meta map passed in
-    Object.entries(dueDates).forEach(([iso, val]) => {
+    Object.entries(dueDates).forEach(([iso]) => {
       _dotMap[iso] = { label: '' };
     });
   }
+
   _drawCal();
 }
 
 function _drawCal() {
-  const y=calDate.getFullYear(),m=calDate.getMonth();
-  const today=new Date();
-  const isCur=y===today.getFullYear()&&m===today.getMonth();
-  const td=today.getDate();
+  const y = calDate.getFullYear();
+  const m = calDate.getMonth();
+
+  const today = new Date();
+  const isCur = y === today.getFullYear() && m === today.getMonth();
+  const td = today.getDate();
+
   document.getElementById('cal-title').textContent = `${MN[m]} ${y}`;
-  document.getElementById('cal-day').textContent=isCur?DN[today.getDay()]:'';
-  const first=new Date(y,m,1).getDay();
-  const days =new Date(y,m+1,0).getDate();
-  let html=DN.map(d=>`<div class="cal-dn">${d}</div>`).join('');
-  for(let i=0;i<first;i++) html+=`<div class="cal-d om"></div>`;
-  for(let d=1;d<=days;d++){
-    const isT=isCur&&d===td;
-    const iso=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    /* _dotMap now stores { label } or string — only assignment due dates */
+  document.getElementById('cal-day').textContent = isCur ? DN[today.getDay()] : '';
+
+  const first = new Date(y, m, 1).getDay();
+  const days  = new Date(y, m + 1, 0).getDate();
+
+  let html = DN.map(d => `<div class="cal-dn">${d}</div>`).join('');
+
+  for (let i = 0; i < first; i++) html += `<div class="cal-d om"></div>`;
+
+  for (let d = 1; d <= days; d++) {
+    const isT = isCur && d === td;
+    const iso = `${y}-${String(m + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const entry = _dotMap[iso];
-    if(entry && !isT){
-      const label = (typeof entry==='object' && entry.label) ? entry.label : (typeof entry==='string' && entry!=='') ? entry : '';
+
+    if (entry && !isT) {
+      const label = (typeof entry === 'object' && entry.label)
+        ? entry.label
+        : (typeof entry === 'string' && entry !== '') ? entry : '';
+
       const dataAttr = label ? ` data-due="1"` : '';
-      const tooltip  = label ? `<span class="cal-tooltip">${label}</span>` : '';
-      html+=`<a href="assignments.html" class="cal-d has-due"${dataAttr} tabindex="0" title="${label||'Assignment due'}" style="color:inherit;text-decoration:none;display:block;">${d}${tooltip}</a>`;
+      const tooltip = label ? `<span class="cal-tooltip">${label}</span>` : '';
+
+      html += `<a href="assignments.html" class="cal-d has-due"${dataAttr} tabindex="0" title="${label || 'Assignment due'}" style="color:inherit;text-decoration:none;display:block;">${d}${tooltip}</a>`;
     } else {
-      html+=`<div class="cal-d ${isT?'today':''}">${d}</div>`;
+      html += `<div class="cal-d ${isT ? 'today' : ''}">${d}</div>`;
     }
   }
-  document.getElementById('cal-grid').innerHTML=html;
+
+  document.getElementById('cal-grid').innerHTML = html;
 }
 
-document.getElementById('cal-prev').onclick=()=>{calDate.setMonth(calDate.getMonth()-1);_drawCal();};
-document.getElementById('cal-next').onclick=()=>{calDate.setMonth(calDate.getMonth()+1);_drawCal();};
+document.getElementById('cal-prev').onclick = () => {
+  calDate.setMonth(calDate.getMonth() - 1);
+  _drawCal();
+};
+
+document.getElementById('cal-next').onclick = () => {
+  calDate.setMonth(calDate.getMonth() + 1);
+  _drawCal();
+};
+
 _drawCal();
 
-/* ── SVG icon helpers ── */
+/* =========================================================
+   TODO / UPCOMING LIST
+   ========================================================= */
+
 const DIFF_ICONS = {
-  easy:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+  easy: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
   medium: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
-  hard:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
-  upcoming:`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
+  hard: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  upcoming: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>`,
 };
 
 function _diffClass(t) {
   const d = (t.difficulty || '').toLowerCase();
-  if (d === 'easy')   return 'easy';
-  if (d === 'hard')   return 'hard';
+  if (d === 'easy') return 'easy';
+  if (d === 'hard') return 'hard';
   if (d === 'medium') return 'medium';
   return 'medium';
 }
 
 function renderTodo(tasks, upcoming) {
-  const el  = document.getElementById('todo-list');
+  const el = document.getElementById('todo-list');
   const hdr = document.getElementById('todo-section-hdr');
 
-  /* Load persisted done/skipped state for today */
   const doneSet = _loadSet(TASK_DONE_KEY);
   const skipSet = _loadSet(TASK_SKIP_KEY);
 
-  /* Store for focus-hour recalculation */
   _currentTodayTasks = (tasks || []).filter(t => t && t.title);
-
-  /* Filter today's tasks to only those that actually have a valid title */
   const todayValid = _currentTodayTasks;
 
   if (todayValid.length > 0) {
     hdr.textContent = "Today's Must-Do List";
 
     el.innerHTML = todayValid.map(t => {
-      const cls  = _diffClass(t);
+      const cls = _diffClass(t);
       const icon = DIFF_ICONS[cls] || DIFF_ICONS.medium;
-      const sid  = String(t.id);
+      const sid = String(t.id);
 
-      // Use backend completion state as the primary source of truth.
-      // localStorage is only used as temporary UI persistence.
       const isDoneFromBackend = !!t.done;
-      const isDoneFromLocal   = doneSet.has(sid);
+      const isDoneFromLocal = doneSet.has(sid);
 
       const isDone = isDoneFromBackend || (!isDoneFromBackend && isDoneFromLocal);
-      const isSkipped         = !isDone && skipSet.has(sid);
+      const isSkipped = !isDone && skipSet.has(sid);
 
       const doneClass = isDone ? ' done' : '';
       const skippedClass = isSkipped ? ' skipped' : '';
 
-      // Apply button styles based on actual state
       const chkStyle = isDone
         ? 'border-color:var(--success);background:var(--success);color:#fff;'
         : '';
@@ -962,26 +1077,26 @@ function renderTodo(tasks, upcoming) {
         : '';
 
       return `
-      <div class="todo-item${doneClass}${skippedClass}" id="td-${t.id}">
-        <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
-          <div class="todo-icon-wrap ${cls}">${icon}</div>
-          <div style="min-width:0">
-            <div class="todo-name ${cls}">${t.title}</div>
-            <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
+        <div class="todo-item${doneClass}${skippedClass}" id="td-${t.id}">
+          <a href="schedule.html" class="todo-pill ${cls}" style="text-decoration:none;" aria-label="View ${t.title} in schedule">
+            <div class="todo-icon-wrap ${cls}">${icon}</div>
+            <div style="min-width:0">
+              <div class="todo-name ${cls}">${t.title}</div>
+              <div class="todo-time">${t.start || ''}${t.end ? ' – ' + t.end : ''}</div>
+            </div>
+          </a>
+          <div class="todo-btns">
+            <button class="todo-btn chk" onclick="markTask('${t.id}',true)" aria-label="Done" title="Mark done" style="${chkStyle}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>
+            <button class="todo-btn skp" onclick="markTask('${t.id}',false)" aria-label="Skip" title="Skip" style="${skpStyle}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-        </a>
-        <div class="todo-btns">
-          <button class="todo-btn chk" onclick="markTask('${t.id}',true)" aria-label="Done" title="Mark done" style="${chkStyle}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          </button>
-          <button class="todo-btn skp" onclick="markTask('${t.id}',false)" aria-label="Skip" title="Skip" style="${skpStyle}">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
         </div>
-      </div>`;
+      `;
     }).join('');
   } else {
-    /* No today tasks → show upcoming */
     hdr.textContent = 'Upcoming Tasks';
 
     let up = (upcoming && upcoming.length > 0)
@@ -995,38 +1110,44 @@ function renderTodo(tasks, upcoming) {
 
     el.innerHTML = `<div class="todo-upcoming-sublbl">Coming up</div>` +
       up.slice(0, 4).map(t => {
-        const cls  = _diffClass(t);
+        const cls = _diffClass(t);
         const icon = DIFF_ICONS[cls] || DIFF_ICONS.upcoming;
+
         return `
-        <div class="todo-item">
-          <a href="assignments.html" class="todo-pill ${cls || 'upcoming'}" style="text-decoration:none;" aria-label="View ${t.title} in assignments">
-            <div class="todo-icon-wrap ${cls || 'upcoming'}">${icon}</div>
-            <div style="min-width:0">
-              <div class="todo-name ${cls || 'upcoming'}">${t.title}</div>
-              ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
-              ${t.date  ? `<div class="todo-date-tag">${t.date}</div>` : ''}
-            </div>
-          </a>
-        </div>`;
+          <div class="todo-item">
+            <a href="assignments.html" class="todo-pill ${cls || 'upcoming'}" style="text-decoration:none;" aria-label="View ${t.title} in assignments">
+              <div class="todo-icon-wrap ${cls || 'upcoming'}">${icon}</div>
+              <div style="min-width:0">
+                <div class="todo-name ${cls || 'upcoming'}">${t.title}</div>
+                ${t.start ? `<div class="todo-time">${t.start}${t.end ? ' – ' + t.end : ''}</div>` : ''}
+                ${t.date ? `<div class="todo-date-tag">${t.date}</div>` : ''}
+              </div>
+            </a>
+          </div>
+        `;
       }).join('');
   }
 }
 
 function _deriveUpcoming(schedule) {
   const today = new Date();
-  const dow = today.getDay(); // 0=Sun,1=Mon,...6=Sat
+  const dow = today.getDay();
   const result = [];
+
   DAYS.forEach(day => {
     const tasks = schedule[day];
     if (!Array.isArray(tasks) || tasks.length === 0) return;
-    const dayIdx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day) + 1; // 1–5
+
+    const dayIdx = ['Monday','Tuesday','Wednesday','Thursday','Friday'].indexOf(day) + 1;
     let ahead = (dayIdx - dow + 7) % 7;
-    /* ahead=0 means today — include today's tasks */
+
     const dt = new Date(today);
     dt.setDate(today.getDate() + ahead);
+
     const label = ahead === 0
       ? 'Today'
       : dt.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+
     tasks.forEach(t => {
       result.push({
         ...t,
@@ -1035,7 +1156,7 @@ function _deriveUpcoming(schedule) {
       });
     });
   });
-  /* Sort: today first, then by calendar date */
+
   return result.sort((a, b) => {
     if (a.date === 'Today') return -1;
     if (b.date === 'Today') return 1;
@@ -1043,11 +1164,73 @@ function _deriveUpcoming(schedule) {
   });
 }
 
+/* =========================================================
+   MISSED TASK POPUP
+   ========================================================= */
+
+function showMissedModal(missed) {
+  if (!missed || !missed.task_title) return;
+
+  document.getElementById('mm-task-title').textContent = missed.task_title || '—';
+  document.getElementById('mm-task-time').textContent =
+    `${missed.task_day || ''}, ${missed.task_start || ''} – ${missed.task_end || ''}`;
+
+  document.getElementById('mm-resched-title').textContent = missed.task_title || '—';
+  document.getElementById('mm-resched-time').textContent =
+    `${missed.reschedule_day || ''}, ${missed.reschedule_start || ''} – ${missed.reschedule_end || ''}`;
+
+  document.getElementById('missed-overlay').classList.add('active');
+}
+
+function closeMissedModal() {
+  document.getElementById('missed-overlay').classList.remove('active');
+}
+
+window.closeMissedModal = closeMissedModal;
+
+document.getElementById('missed-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeMissedModal();
+});
+
+/* =========================================================
+   CHECK MISSED TASK
+   =========================================================
+   This calls backend:
+   POST /schedule/check-missed/
+   Backend will:
+   - detect yesterday missed task
+   - rearrange/reschedule it
+   - return detail for popup
+*/
+async function checkMissedTaskAndShowPopup() {
+  try {
+    const missed = await CLAP.API.post('/schedule/check-missed/', {});
+
+    if (missed && Number(missed.rescheduled_count) > 0) {
+      if (missed.task_title) {
+        showMissedModal(missed);
+      } else {
+        CLAP.Toast.info(missed.message || 'Missed task rescheduled.');
+      }
+    }
+
+    return missed;
+  } catch (err) {
+    console.error('Missed task check failed:', err);
+    return null;
+  }
+}
+
+/* =========================================================
+   MARK TASK DONE / SKIPPED
+   ========================================================= */
+
 window.markTask = async function(id, done) {
   const sid = String(id);
   const doneSet = _loadSet(TASK_DONE_KEY);
   const skipSet = _loadSet(TASK_SKIP_KEY);
 
+  /* Step 1: update local storage state */
   if (done === true) {
     doneSet.add(sid);
     skipSet.delete(sid);
@@ -1059,99 +1242,124 @@ window.markTask = async function(id, done) {
   _saveSet(TASK_DONE_KEY, doneSet);
   _saveSet(TASK_SKIP_KEY, skipSet);
 
+  /* Step 2: update local in-memory task list */
   const task = _currentTodayTasks.find(t => String(t.id) === sid);
-    if (task) task.done = done;
+  if (task) task.done = done;
 
+  /* Step 3: update current UI immediately */
   const el = document.getElementById('td-' + id);
   if (el) {
     el.classList.toggle('done', done);
     el.classList.toggle('skipped', !done);
-    /* Update button fill immediately so it matches persisted state */
+
     const chkBtn = el.querySelector('.todo-btn.chk');
     const skpBtn = el.querySelector('.todo-btn.skp');
-    if (chkBtn) chkBtn.style.cssText = done   ? 'border-color:var(--success);background:var(--success);color:#fff;' : '';
-    if (skpBtn) skpBtn.style.cssText = !done  ? 'border-color:var(--danger);background:var(--danger);color:#fff;'   : '';
+
+    if (chkBtn) {
+      chkBtn.style.cssText = done
+        ? 'border-color:var(--success);background:var(--success);color:#fff;'
+        : '';
+    }
+
+    if (skpBtn) {
+      skpBtn.style.cssText = !done
+        ? 'border-color:var(--danger);background:var(--danger);color:#fff;'
+        : '';
+    }
   }
 
+  /* Step 4: refresh focus box immediately */
   _refreshFocusDisplay();
 
-  /* FIX 3: PATCH the session completion endpoint — use session_id if the task id
-     is a "sid_" prefixed stable id, otherwise fall back to the raw id value.
-     Either way this is a schedule session, not an assignment, so the endpoint is correct. */
+  /* Step 5: sync to backend if real session id exists */
   const patchId = sid.startsWith('sid_') ? sid.slice(4) : null;
   if (patchId) {
-    try { await CLAP.API.patch(`/schedule/sessions/${patchId}/complete/`, { completed: done }); } catch {}
+    try {
+      await CLAP.API.patch(`/schedule/sessions/${patchId}/complete/`, {
+        completed: done
+      });
+    } catch (err) {
+      console.error('Failed to update session completion:', err);
+    }
   }
+
   CLAP.Toast.success(done ? 'Task completed! 🎉' : 'Task skipped.');
 
+  /* Step 6: after update, re-check missed tasks and refresh dashboard data */
   setTimeout(async () => {
-  try {
-    const missed = await CLAP.API.get('/schedule/check-missed/');
-    if (missed && missed.task_title) {
-      showMissedModal(missed);
-      setTimeout(() => location.reload(), 1200);
-    } else {
-      location.reload();
+    try {
+      const missed = await checkMissedTaskAndShowPopup();
+      const updated = await CLAP.API.get('/dashboard/');
+
+      renderTodo(updated.today_tasks || []);
+      renderStats(updated, updated.today_tasks || []);
+
+      if (updated.schedule) {
+        window._scheduleCache = updated.schedule;
+        renderSchedule(updated.schedule, 'This Week');
+      }
+
+      if (updated.next_deadline) {
+        renderDeadline(updated.next_deadline);
+      }
+
+      if (updated.assignment_due_dates) {
+        renderCalendar(updated.assignment_due_dates);
+      }
+
+      /* show popup if backend returned missed task detail */
+      if (missed && Number(missed.rescheduled_count) > 0 && missed.task_title) {
+        showMissedModal(missed);
+      }
+    } catch (err) {
+      console.error('Dashboard refresh failed:', err);
     }
-  } catch {
-    location.reload();
-  }
-}, 400);
+  }, 400);
 };
 
-/* ── Missed Task Modal ── */
-function showMissedModal(missed) {
-  if(!missed) return;
-  document.getElementById('mm-task-title').textContent  = missed.task_title||'—';
-  document.getElementById('mm-task-time').textContent   =
-    `${missed.task_day||''}, ${missed.task_start||''} – ${missed.task_end||''}`;
-  document.getElementById('mm-resched-title').textContent = missed.task_title||'—';
-  document.getElementById('mm-resched-time').textContent  =
-    `${missed.reschedule_day||''}, ${missed.reschedule_start||''} – ${missed.reschedule_end||''}`;
-  document.getElementById('missed-overlay').classList.add('active');
-}
-window.closeMissedModal=function(){
-  document.getElementById('missed-overlay').classList.remove('active');
-};
-document.getElementById('missed-overlay').addEventListener('click',function(e){
-  if(e.target===this) closeMissedModal();
-});
-
-/* FIX 2: When the user switches back to this tab (e.g. after marking tasks done
-   on schedule.html) re-read localStorage so focus hours stay accurate. */
+/* When user comes back to this tab, refresh focus display from local storage */
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) _refreshFocusDisplay();
 });
 
-/* ── Init ── */
-(async function init(){
+/* =========================================================
+   MAIN INIT
+   ========================================================= */
+
+(async function init() {
   await loadPrefs();
   let data;
 
-  /* Fire check-missed silently */
-  try { await CLAP.API.post('/schedule/check-missed/', {}); } catch { /* silent */ }
+  /* Step 1: check missed task first
+     so backend rearranges data before dashboard renders */
+  const initialMissed = await checkMissedTaskAndShowPopup();
 
-  /* FIX (profile picture): Always re-fetch profile from API on load so
-     profile_picture is fresh — don't rely solely on stale localStorage */
+  /* Step 2: refresh profile */
   (async () => {
     try {
       const profile = await CLAP.API.get('/auth/profile/');
       if (profile) {
         const stored = CLAP.Auth.getUser() || {};
         const merged = { ...stored, ...profile };
+
         CLAP.Auth.setUser(merged);
         _renderAvatar(merged);
+
         const firstName = (merged.name || merged.username || _fn).split(' ')[0];
         document.getElementById('db-greet').textContent = `Welcome Back, ${firstName}!`;
       }
-    } catch { /* keep localStorage values */ }
+    } catch {
+      /* keep old local value */
+    }
   })();
 
+  /* Step 3: load dashboard data */
   try {
     data = await CLAP.API.get('/dashboard/');
   } catch (err) {
     console.error('[CLAP] Dashboard load error:', err);
     CLAP.Toast.error(err?.message || 'Could not load dashboard data.');
+
     data = {
       total_tasks: 0,
       cognitive_load: { value: 0, level: 'low', trend: [0,0,0,0,0] },
@@ -1166,74 +1374,82 @@ document.addEventListener('visibilitychange', () => {
     };
   }
 
-  /* FIX (calendar dots + upcoming tasks): /dashboard/ does NOT return
-     assignment_due_dates — fetch assignments separately and build it */
+  /* Step 4: fetch assignments separately for calendar due-date dots */
   let assignmentDueDates = [];
   try {
     const assignData = await CLAP.API.get('/assignments/');
-    const list = Array.isArray(assignData) ? assignData : (assignData?.results || assignData?.assignments || []);
+    const list = Array.isArray(assignData)
+      ? assignData
+      : (assignData?.results || assignData?.assignments || []);
+
     assignmentDueDates = list
       .filter(a => a && (a.deadline || a.due_date))
       .map(a => ({
-        date:  a.deadline || a.due_date,
+        date: a.deadline || a.due_date,
         title: [a.course_code, a.title].filter(Boolean).join(' '),
       }));
-    data.assignment_due_dates = assignmentDueDates;
-    /* total_tasks comes from /dashboard/ which already counts is_completed=False
-       tasks only — that is exactly what we want. Do not override it here. */
-  } catch { /* silent — calendar just won't have dots */ }
 
-  /* Normalise cognitive_load from stress_history if backend sends that format */
-  if(data.stress_history){
-    const tv=Object.values(data.stress_history);
-    const cv=data.cognitive_load?.value??(tv.at(-1)??0);
-    const cl=data.cognitive_load?.level??(cv>=80?'high':cv>=50?'moderate':'low');
-    data.cognitive_load={value:cv,level:cl,trend:tv.length?tv:[0,0,0,0,cv]};
+    data.assignment_due_dates = assignmentDueDates;
+  } catch {}
+
+  /* Step 5: normalize cognitive load shape if backend sends stress_history only */
+  if (data.stress_history) {
+    const tv = Object.values(data.stress_history);
+    const cv = data.cognitive_load?.value ?? (tv.at(-1) ?? 0);
+    const cl = data.cognitive_load?.level ?? (cv >= 80 ? 'high' : cv >= 50 ? 'moderate' : 'low');
+
+    data.cognitive_load = {
+      value: cv,
+      level: cl,
+      trend: tv.length ? tv : [0,0,0,0,cv]
+    };
   }
-  /* Normalise today_tasks field names.
-     IMPORTANT: IDs must be STABLE across refreshes — never use Math.random().
-     If the backend gives no id/session_id, derive a deterministic key from
-     title + start time so localStorage tick state survives page reloads. */
-  if(data.today_tasks){
-    data.today_tasks=data.today_tasks.map(t=>({
-      id: _stableIdFromSession(t), 
-      title:t.title,
-      start:t.time||t.start||'', 
-      end:t.end||t.end_time||'',
-      difficulty:t.difficulty||'medium',
+
+  /* Step 6: normalize today tasks */
+  if (data.today_tasks) {
+    data.today_tasks = data.today_tasks.map(t => ({
+      id: _stableIdFromSession(t),
+      title: t.title,
+      start: t.time || t.start || '',
+      end: t.end || t.end_time || '',
+      difficulty: t.difficulty || 'medium',
       done: !!t.done,
     }));
   }
 
-  /* Apply cumulative time chaining to dashboard schedule data FIRST so that
-     all today_tasks fallbacks below use correctly chained times.
-     The backend assigns times by index (09:00, 10:00...) ignoring actual
-     session duration — chain them so each session starts where the previous ended. */
+  /* Step 7: normalize dashboard schedule times by chaining durations */
   if (data.schedule) {
     const DAYS_ALL = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
     DAYS_ALL.forEach(day => {
       const sessions = data.schedule[day];
       if (!Array.isArray(sessions) || sessions.length === 0) return;
+
       let curMins = null;
+
       data.schedule[day] = sessions.map(s => {
         const [sh, sm] = (s.time || '09:00').split(':').map(Number);
         if (curMins === null) curMins = sh * 60 + (sm || 0);
-        /* Duration: use s.duration if present, else default 1h */
+
         const durMins = Math.round((s.duration || s.scheduled_hours || 1) * 60);
         const endMins = curMins + durMins;
+
         const startLabel = `${String(Math.floor(curMins/60)%24).padStart(2,'0')}:${String(curMins%60).padStart(2,'0')}`;
         const endLabel   = `${String(Math.floor(endMins/60)%24).padStart(2,'0')}:${String(endMins%60).padStart(2,'0')}`;
+
         curMins = endMins;
         return { ...s, time: startLabel, end: endLabel };
       });
     });
   }
-  window._scheduleCache=data.schedule||{};
 
-  /* If today_tasks is empty or missing, pull today's sessions directly from the schedule */
+  window._scheduleCache = data.schedule || {};
+
+  /* Step 8: if today_tasks missing, derive from schedule */
   if (!data.today_tasks || data.today_tasks.length === 0) {
     const todayName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()];
     const todaySessions = (data.schedule && data.schedule[todayName]) || [];
+
     if (todaySessions.length > 0) {
       data.today_tasks = todaySessions.map(s => ({
         id: _stableIdFromSession(s),
@@ -1241,63 +1457,80 @@ document.addEventListener('visibilitychange', () => {
         start: s.time || '',
         end: s.end || '',
         difficulty: (s.difficulty || 'medium').toLowerCase(),
-        done: !!s.done || !!s.is_completed, // accept either field for backwards compatibility
+        done: !!s.done || !!s.is_completed,
         color: taskColor(s),
       }));
     }
   }
 
+  /* Step 9: if current week has no schedule, try next week */
   let dashboardPlanLabel = 'This Week';
+
   if (!hasAnySchedule(data.schedule)) {
     try {
       const nextWeekApi = await CLAP.API.get('/schedule/?week_offset=1');
       const nextWeekSchedule = normalizeScheduleApiToDashboard(nextWeekApi);
+
       if (hasAnySchedule(nextWeekSchedule)) {
         const useNextWeekAsCurrent = shouldTreatNextWeekAsCurrentWeek(assignmentDueDates);
         data.schedule = nextWeekSchedule;
         window._scheduleCache = nextWeekSchedule;
         dashboardPlanLabel = useNextWeekAsCurrent ? 'This Week' : 'Next Week';
       }
-    } catch { /* keep current-week empty state */ }
+    } catch {}
   }
 
+  /* Step 10: final fallback for today tasks */
   if (!data.today_tasks || data.today_tasks.length === 0) {
     data.today_tasks = buildTodayTasksFromSchedule(data.schedule || {});
   }
 
-  /* Build upcoming tasks from assignment_due_dates if upcoming_tasks not provided */
+  /* Step 11: upcoming tasks */
   let upcomingTasks = data.upcoming_tasks && data.upcoming_tasks.length > 0
     ? data.upcoming_tasks
     : null;
 
   if (!upcomingTasks && Array.isArray(data.assignment_due_dates) && data.assignment_due_dates.length > 0) {
-    const todayMidnight = new Date(); todayMidnight.setHours(0,0,0,0);
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0,0,0,0);
+
     upcomingTasks = data.assignment_due_dates
-      .filter(item => { const d = new Date(item.date); d.setHours(0,0,0,0); return d >= todayMidnight; })
+      .filter(item => {
+        const d = new Date(item.date);
+        d.setHours(0,0,0,0);
+        return d >= todayMidnight;
+      })
       .sort((a, b) => new Date(a.date) - new Date(b.date))
       .slice(0, 4)
       .map(item => ({
-        title:      item.title,
+        title: item.title,
         difficulty: (item.difficulty || 'medium').toLowerCase(),
-        date:       new Date(item.date).toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' }),
+        date: new Date(item.date).toLocaleDateString('en-US', {
+          weekday:'short',
+          month:'short',
+          day:'numeric'
+        }),
       }));
   }
 
-  /* Last resort: derive from schedule — this also includes today if it's a weekday */
   if (!upcomingTasks || upcomingTasks.length === 0) {
     upcomingTasks = _deriveUpcoming(data.schedule || {});
   }
 
-  /* Store tasks BEFORE renderStats so focus-hour calc has the list */
+  /* Step 12: render everything */
   _currentTodayTasks = (data.today_tasks || []).filter(t => t && t.title);
+
   renderStats(data, _currentTodayTasks);
   renderDeadline(data.next_deadline);
-  renderSparkline(data.cognitive_load?.trend||[40,45,55,50,72]);
+  renderSparkline(data.cognitive_load?.trend || [40,45,55,50,72]);
   renderSchedule(data.schedule, dashboardPlanLabel);
-  /* Calendar: always use assignment_due_dates (the canonical field) */
   renderCalendar(data.assignment_due_dates || null);
   renderTodo(data.today_tasks, upcomingTasks);
-  showMissedModal(data.missed_task);
+
+  /* Step 13: show popup if initial missed task exists */
+  if (initialMissed && Number(initialMissed.rescheduled_count) > 0 && initialMissed.task_title) {
+    showMissedModal(initialMissed);
+  }
 })();
 </script>
 </body>
