@@ -1205,6 +1205,7 @@ document.getElementById('missed-overlay').addEventListener('click', function(e) 
 async function checkMissedTaskAndShowPopup() {
   try {
     const missed = await CLAP.API.post('/schedule/check-missed/', {});
+    console.log('[CLAP] check-missed response:', missed);
 
     if (missed && Number(missed.rescheduled_count) > 0) {
       if (missed.task_title) {
