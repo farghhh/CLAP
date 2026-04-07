@@ -609,7 +609,7 @@ def check_missed(request):
 
     response_data = {
         'message': f"{missed_result['count']} missed session(s) rescheduled.",
-        'rescheduled_count': missed_result['count'],
+        'rescheduled_count': missed_result['missed_count'],
         'missed_count": missed_result.get('missed_count', missed_result['count']),
     }
 
