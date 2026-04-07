@@ -242,7 +242,14 @@ def dashboard_view(request):
     next_task = tasks.order_by('deadline').first()
     next_deadline = None
     if next_task:
-        days_left = (next_task.deadline - today).days
+        client_date_str = request.GET.get('local_date')
+        try:
+            from datetime import date as _date
+            client_today = _date.fromisoformat(client_date_str)
+        except (TypeError, ValueError):
+            client_today = today
+        
+        days_left = (next_task.deadline - client_today).days
         next_deadline = {
             'course': next_task.course_code,
             'title': next_task.title,
