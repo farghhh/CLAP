@@ -390,11 +390,14 @@ def handle_missed_sessions(user, preference):
         is_missed=False
     ).select_related('task').order_by('task__deadline', 'task__task_id')
 
-    if not missed_sessions.exists():
+    total_missed = missed_sessions.count()
+
+    if total_missed == 0;
         return {
             'count': 0,
-            'items': []
-        }
+            'missed_count':0,
+            'items':[]
+    }
 
     rescheduled_items = []
 
@@ -478,6 +481,7 @@ def handle_missed_sessions(user, preference):
 
     return {
         'count': len(rescheduled_items),
+        'missed_count: total_missed,
         'items': rescheduled_items
     }
 
