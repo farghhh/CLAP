@@ -1356,7 +1356,8 @@ document.addEventListener('visibilitychange', () => {
 
   /* Step 3: load dashboard data */
   try {
-    data = await CLAP.API.get('/dashboard/');
+    const _localDate = new Date().toISOString().slice(0, 10);
+    data = await CLAP.API.get(`/dashboard/?local_date=${_localDate}`);
   } catch (err) {
     console.error('[CLAP] Dashboard load error:', err);
     CLAP.Toast.error(err?.message || 'Could not load dashboard data.');
