@@ -35,13 +35,8 @@ DIFF_DISPLAY = {1: 'easy', 2: 'medium', 3: 'hard'}
 def get_week_dates(week_offset=0):
     """Returns list of 5 weekday dates for a given week offset"""
     today = timezone.localdate()
-
-    # Always get Monday of the CURRENT week first
     monday = today - timedelta(days=today.weekday())
-
-    # Then apply requested week offset
     monday = monday + timedelta(weeks=week_offset)
-
     return [monday + timedelta(days=i) for i in range(5)]
 
 
@@ -66,12 +61,6 @@ def chain_session_times(sessions, start_time):
     """
     Assign start/end times to sessions by chaining them consecutively.
     Each session starts where the previous one ended, based on scheduled_hours.
-    Sessions should already be sorted in the desired display order before calling this.
-
-    Returns a list of (session, start_str, end_str) tuples.
-
-    Note: end times past midnight are represented as 24:xx, 25:xx etc. so the
-    frontend can display e.g. "21:00 – 24:00" rather than the confusing "21:00 – 00:00".
     """
     result = []
     cur_mins = start_time.hour * 60 + start_time.minute
@@ -80,7 +69,6 @@ def chain_session_times(sessions, start_time):
         dur_mins = round(float(session.scheduled_hours) * 60)
         end_mins = cur_mins + dur_mins
 
-        # Use plain integer division — no modulo — so 24:00 stays 24:00, not 00:00
         start_h, start_m = divmod(cur_mins, 60)
         end_h,   end_m   = divmod(end_mins, 60)
 
@@ -136,19 +124,16 @@ def schedule_view(request):
     week_offset = int(request.GET.get('week_offset', 0))
     week_dates = get_week_dates(week_offset)
 
-    # Get user preference once
     pref_data = get_user_preference(user)
     max_cls = pref_data['max_cls']
     max_focus = pref_data['max_focus']
     study_start = pref_data['study_start']
 
-    # Get all sessions for this week
     sessions = StudySession.objects.filter(
         user=user,
         scheduled_date__range=[week_dates[0], week_dates[4]]
     ).select_related('task')
 
-    # Build color map per task
     all_tasks = Task.objects.filter(user=user)
     task_colors = {}
     for i, task in enumerate(all_tasks):
@@ -161,23 +146,15 @@ def schedule_view(request):
         day_key = DAY_MAP[day_date.weekday()]
         day_sessions = sessions.filter(scheduled_date=day_date)
 
-        # Calculate daily CLS percentage
         total_cls = sum(s.cls_contribution for s in day_sessions)
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
         daily_load[day_key] = cls_pct
 
-        # FIX: Sort sessions by creation order (task deadline then task_id) so the
-        # displayed order is stable and matches what the schedule engine intended.
-        # Previously sorted by scheduled_hours desc, which scrambled the visual order
-        # every time and made session times non-deterministic.
         sorted_sessions = sorted(
             day_sessions,
             key=lambda s: (s.task.deadline, s.task.task_id)
         )
 
-        # FIX: Chain times consecutively instead of using a fixed hourly slot index.
-        # Old approach: session[0] → 09:00, session[1] → 10:00 regardless of duration.
-        # New approach: session[0] → 09:00–10:30, session[1] → 10:30–12:00, etc.
         timed = chain_session_times(sorted_sessions, study_start)
 
         for session, start_str, end_str in timed:
@@ -189,13 +166,12 @@ def schedule_view(request):
                 'code':         session.task.course_code,
                 'duration':     session.scheduled_hours,
                 'color':        task_colors.get(session.task.task_id, 'blue'),
-                'session_id':   session.session_id,   # FIX: always present — frontend needs this
+                'session_id':   session.session_id,
                 'task_id':      session.task.task_id,
                 'difficulty':   DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
                 'is_completed': session.is_completed,
             })
 
-    # Build recommendation if any day exceeds 80%
     recommendation = None
     overloaded_days = {k: v for k, v in daily_load.items() if v >= 80}
     if overloaded_days:
@@ -228,17 +204,14 @@ def dashboard_view(request):
     today = timezone.localdate()
     week_dates = get_week_dates()
 
-    # Get user preference once
     pref_data = get_user_preference(user)
     max_focus = pref_data['max_focus']
     max_cls = pref_data['max_cls']
     study_start = pref_data['study_start']
 
-    # Total incomplete tasks
     tasks = Task.objects.filter(user=user, is_completed=False)
     total_tasks = tasks.count()
 
-    # Next deadline
     next_task = tasks.order_by('deadline').first()
     next_deadline = None
     if next_task:
@@ -248,7 +221,7 @@ def dashboard_view(request):
             client_today = _date.fromisoformat(client_date_str)
         except (TypeError, ValueError):
             client_today = today
-        
+
         days_left = (next_task.deadline - client_today).days
         next_deadline = {
             'course': next_task.course_code,
@@ -256,32 +229,22 @@ def dashboard_view(request):
             'days_left': days_left,
         }
 
-    # Build color map per task
     all_tasks = Task.objects.filter(user=user)
     task_colors = {}
     for i, task in enumerate(all_tasks):
         task_colors[task.task_id] = COLORS[i % len(COLORS)]
 
-    # FIX: Fetch ALL of today's sessions (completed + incomplete) so the dashboard
-    # todo list shows every task with its real done state rather than hiding
-    # completed sessions and confusing the user about what's left.
     today_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=today,
     ).select_related('task')
 
-    # FIX: Sort by task deadline then task_id for stable ordering (matches schedule_view).
     sorted_today = sorted(today_sessions, key=lambda s: (s.task.deadline, s.task.task_id))
-
-    # FIX: Chain times consecutively so today_tasks start/end times are accurate
-    # and the frontend can calculate real focus-hour durations from them.
     timed_today = chain_session_times(sorted_today, study_start)
 
     today_tasks = []
     for session, start_str, end_str in timed_today:
         today_tasks.append({
-            # FIX: expose session_id as both 'id' and 'session_id' so the frontend
-            # markTask() PATCH call and _stableIdFromSession() both resolve correctly.
             'id':           session.session_id,
             'session_id':   session.session_id,
             'title':        session.task.title,
@@ -292,12 +255,10 @@ def dashboard_view(request):
             'done':         session.is_completed,
         })
 
-    # Focus hours: only count completed sessions for 'used'
     used_hours = round(
         sum(s.scheduled_hours for s in today_sessions if s.is_completed), 1
     )
 
-    # Stress history for this week
     stress_history = {}
     day_labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
@@ -310,7 +271,6 @@ def dashboard_view(request):
         cls_pct = min(round((total_cls / max_cls) * 100), 100) if max_cls > 0 else 0
         stress_history[day_labels[i]] = cls_pct
 
-    # Current cognitive load level
     if today.weekday() < 5:
         today_cls = stress_history.get(day_labels[today.weekday()], 0)
     else:
@@ -322,8 +282,7 @@ def dashboard_view(request):
         cog_level = 'moderate'
     else:
         cog_level = 'low'
-        
-    # Schedule for dashboard timetable
+
     sessions_this_week = StudySession.objects.filter(
         user=user,
         scheduled_date__range=[week_dates[0], week_dates[4]]
@@ -336,7 +295,6 @@ def dashboard_view(request):
             continue
         day_sessions = sessions_this_week.filter(scheduled_date=day_date)
 
-        # FIX: same stable sort as schedule_view so the mini timetable order matches
         sorted_day = sorted(day_sessions, key=lambda s: (s.task.deadline, s.task.task_id))
         timed_day = chain_session_times(sorted_day, study_start)
 
@@ -348,15 +306,11 @@ def dashboard_view(request):
                 'title':      session.task.title,
                 'color':      task_colors.get(session.task.task_id, 'blue'),
                 'difficulty': DIFF_DISPLAY.get(session.task.difficulty, 'easy'),
-                # FIX: include session_id in schedule slots so the dashboard mini
-                # timetable blocks can link to the correct session on schedule.html
-                # add duration
-                'duration' : session.scheduled_hours,
+                'duration':   session.scheduled_hours,
                 'session_id': session.session_id,
                 'task_id':    session.task.task_id,
             })
 
-    # Recommendation
     overloaded = {k: v for k, v in stress_history.items() if v >= 80}
     recommendation = None
     if overloaded:
@@ -407,9 +361,6 @@ def complete_session(request, session_id):
     session.is_completed = completed
     session.save()
 
-    # Sync task completion state with its sessions:
-    # Mark task complete only when ALL sessions are done.
-    # Re-open the task immediately if ANY session is un-marked.
     task = session.task
     all_sessions = StudySession.objects.filter(task=task)
     all_done = all_sessions.filter(is_completed=False).count() == 0
@@ -433,7 +384,6 @@ def regenerate_schedule(request):
     user = request.user
     today = timezone.localdate()
 
-    # Delete all incomplete sessions
     StudySession.objects.filter(user=user, is_completed=False).delete()
 
     try:
@@ -444,7 +394,6 @@ def regenerate_schedule(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Regenerate — most urgent and heaviest tasks first
     tasks = Task.objects.filter(
         user=user,
         is_completed=False
@@ -461,7 +410,6 @@ def regenerate_schedule(request):
                 cls_contribution=session['cls_contribution'],
             )
 
-    # Auto apply redistribution up to 5 times
     attempts = 0
     max_attempts = 5
     recommendation = check_and_redistribute(user, preference)
@@ -474,7 +422,6 @@ def regenerate_schedule(request):
         attempts += 1
         recommendation = check_and_redistribute(user, preference)
 
-    # Check if still overloaded after redistribution
     still_overloaded = False
     days_to_check = [
         today + timedelta(days=i)
@@ -487,7 +434,6 @@ def regenerate_schedule(request):
             still_overloaded = True
             break
 
-    # Calculate total hours vs capacity for warning message
     all_tasks = Task.objects.filter(user=user, is_completed=False)
     total_task_hours = round(sum(float(t.hours) for t in all_tasks), 1)
     nearest_task = all_tasks.order_by('deadline').first()
@@ -500,7 +446,6 @@ def regenerate_schedule(request):
 
     hours_over = round(total_task_hours - max_possible_hours, 1)
 
-    # Build warning message
     if still_overloaded:
         if hours_over > 0:
             warning_msg = (
@@ -516,7 +461,6 @@ def regenerate_schedule(request):
     else:
         warning_msg = None
 
-    # Final recommendation check
     final_recommendation = check_and_redistribute(user, preference)
 
     response_data = {
@@ -566,10 +510,8 @@ def accept_recommendation(request, session_id):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Apply the recommendation
     apply_recommendation(session, new_date)
 
-    # Check if still overloaded after applying
     pref_data = get_user_preference(user)
     new_recommendation = None
     if pref_data['preference']:
@@ -609,22 +551,24 @@ def check_missed(request):
 
     preference = pref_data['preference']
 
-    # NEW: get full result instead of just count
     missed_result = handle_missed_sessions(user, preference)
 
     recommendation = check_and_redistribute(user, preference)
 
+    # BUG FIX: response_data dict had a broken string literal key:
+    #   'missed_count": missed_result.get(...)   ← mixed quote types = SyntaxError
+    # This caused Django to fail to even load the view module, making every
+    # request to this endpoint return a 500 (which Railway's proxy surfaced as
+    # a timeout / no-response to the frontend).
     response_data = {
         'message': f"{missed_result['count']} missed session(s) rescheduled.",
-        'rescheduled_count': missed_result['missed_count'],
-        'missed_count": missed_result.get('missed_count', missed_result['count']),
+        'rescheduled_count': missed_result['count'],
+        'missed_count': missed_result.get('missed_count', missed_result['count']),
     }
 
-    # 👉 IMPORTANT: pass detail to frontend (for popup)
     if missed_result['items']:
         response_data.update(missed_result['items'][0])
 
-    # optional (for future multi-popup)
     response_data['missed_items'] = missed_result['items']
 
     if recommendation:
