@@ -1097,7 +1097,7 @@ function renderTodo(tasks, upcoming) {
       `;
     }).join('');
   } else {
-    hdr.textContent = 'Upcoming Assignments Deadlines';
+    hdr.textContent = "Deadlines";
 
     let up = (upcoming && upcoming.length > 0)
       ? upcoming
@@ -1108,7 +1108,7 @@ function renderTodo(tasks, upcoming) {
       return;
     }
 
-    el.innerHTML = `<div class="todo-upcoming-sublbl">Coming up</div>` +
+    el.innerHTML = `<div class="todo-upcoming-sublbl">Up Next</div>` +
       up.slice(0, 4).map(t => {
         const cls = _diffClass(t);
         const icon = DIFF_ICONS[cls] || DIFF_ICONS.upcoming;
