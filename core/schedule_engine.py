@@ -373,26 +373,8 @@ def apply_recommendation(session, new_date):
 
 def handle_missed_sessions(user, preference):
     """
-    Situation 3 — Procrastination Detection.
-    Checks yesterday's incomplete sessions.
-    Marks them missed and reschedules to next available day.
-
-    Returns:
-        {
-            'count': int,
-            'items': [
-                {
-                    'task_title': str,
-                    'task_day': str,
-                    'task_start': str,
-                    'task_end': str,
-                    'reschedule_day': str,
-                    'reschedule_start': str,
-                    'reschedule_end': str,
-                },
-                ...
-            ]
-        }
+    Detect missed sessions (yesterday) and reschedule them.
+    Returns detailed info for popup.
     """
     from schedule.models import StudySession
 
@@ -401,57 +383,46 @@ def handle_missed_sessions(user, preference):
     study_start = preference.active_study_start
     max_focus = preference.max_focus_hours
 
-    missed_qs = StudySession.objects.filter(
+    missed_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=yesterday,
         is_completed=False,
         is_missed=False
     ).select_related('task').order_by('task__deadline', 'task__task_id')
 
-    if not missed_qs.exists():
+    if not missed_sessions.exists():
         return {
             'count': 0,
             'items': []
         }
 
-    missed_sessions = list(missed_qs)
-    missed_timed = []
-    cur_mins_yesterday = study_start.hour * 60 + study_start.minute
-
-    # Build original yesterday times before moving anything
-    for session in missed_sessions:
-        dur_mins = round(float(session.scheduled_hours) * 60)
-        end_mins = cur_mins_yesterday + dur_mins
-
-        start_h, start_m = divmod(cur_mins_yesterday, 60)
-        end_h, end_m = divmod(end_mins, 60)
-
-        missed_timed.append({
-            'session': session,
-            'task_title': session.task.title,
-            'task_day': yesterday.strftime('%A'),
-            'task_start': f'{str(start_h).zfill(2)}:{str(start_m).zfill(2)}',
-            'task_end': f'{str(end_h).zfill(2)}:{str(end_m).zfill(2)}',
-        })
-
-        cur_mins_yesterday = end_mins
-
     rescheduled_items = []
 
-    for item in missed_timed:
-        session = item['session']
+    # 👉 Build original times (yesterday)
+    cur_mins = study_start.hour * 60 + study_start.minute
 
-        # Mark as missed first
+    for session in missed_sessions:
+        dur = int(session.scheduled_hours * 60)
+        end_mins = cur_mins + dur
+
+        start_h, start_m = divmod(cur_mins, 60)
+        end_h, end_m = divmod(end_mins, 60)
+
+        original_start = f"{str(start_h).zfill(2)}:{str(start_m).zfill(2)}"
+        original_end = f"{str(end_h).zfill(2)}:{str(end_m).zfill(2)}"
+
+        # mark missed
         session.is_missed = True
         session.save()
 
-        deadline = session.task.deadline
+        # 👉 find new day
         next_day = today
+        deadline = session.task.deadline
+
         moved = False
 
         while next_day < deadline:
-            # Skip weekends
-            if next_day.weekday() >= 5:
+            if next_day.weekday() >= 5:  # skip weekend
                 next_day += timedelta(days=1)
                 continue
 
@@ -463,35 +434,35 @@ def handle_missed_sessions(user, preference):
                 session.is_missed = False
                 session.save()
 
-                # Rebuild times for the rescheduled day after move
+                # 👉 rebuild new time
                 day_sessions = StudySession.objects.filter(
                     user=user,
                     scheduled_date=next_day
                 ).select_related('task').order_by('task__deadline', 'task__task_id')
 
-                cur_mins_day = study_start.hour * 60 + study_start.minute
-                new_start = ''
-                new_end = ''
+                cur2 = study_start.hour * 60 + study_start.minute
+                new_start = ""
+                new_end = ""
 
                 for s in day_sessions:
-                    dur_mins = round(float(s.scheduled_hours) * 60)
-                    end_mins = cur_mins_day + dur_mins
+                    dur2 = int(s.scheduled_hours * 60)
+                    end2 = cur2 + dur2
 
-                    start_h, start_m = divmod(cur_mins_day, 60)
-                    end_h, end_m = divmod(end_mins, 60)
+                    sh, sm = divmod(cur2, 60)
+                    eh, em = divmod(end2, 60)
 
                     if s.session_id == session.session_id:
-                        new_start = f'{str(start_h).zfill(2)}:{str(start_m).zfill(2)}'
-                        new_end = f'{str(end_h).zfill(2)}:{str(end_m).zfill(2)}'
+                        new_start = f"{str(sh).zfill(2)}:{str(sm).zfill(2)}"
+                        new_end = f"{str(eh).zfill(2)}:{str(em).zfill(2)}"
                         break
 
-                    cur_mins_day = end_mins
+                    cur2 = end2
 
                 rescheduled_items.append({
-                    'task_title': item['task_title'],
-                    'task_day': item['task_day'],
-                    'task_start': item['task_start'],
-                    'task_end': item['task_end'],
+                    'task_title': session.task.title,
+                    'task_day': yesterday.strftime('%A'),
+                    'task_start': original_start,
+                    'task_end': original_end,
                     'reschedule_day': next_day.strftime('%A'),
                     'reschedule_start': new_start,
                     'reschedule_end': new_end,
@@ -502,7 +473,6 @@ def handle_missed_sessions(user, preference):
 
             next_day += timedelta(days=1)
 
-        # If not moved, keep is_missed=True so it is still flagged in the system
         if not moved:
             session.save()
 
