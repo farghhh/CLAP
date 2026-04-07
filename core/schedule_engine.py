@@ -86,8 +86,6 @@ def generate_study_sessions(task, preference):
     days_until_deadline = (deadline - today).days
 
     # ── Step 1: Calculate available hours per day for THIS task ──
-    # Build a map of how many hours each day has available
-    # for this specific task (max_focus minus other tasks)
     day_availability = {}
     for day in available_days:
         other_hours = get_other_tasks_hours(
@@ -100,7 +98,6 @@ def generate_study_sessions(task, preference):
     if not day_availability:
         return []
 
-    # Total capacity across all days
     total_capacity = round(sum(day_availability.values()), 2)
 
     # ── Step 2: Minimum days needed ──────────────────────────
@@ -191,14 +188,11 @@ def generate_study_sessions(task, preference):
             'cls_contribution': cls_contribution,
         })
 
-        # Reduce this day's availability
         day_availability[day] = round(day_availability[day] - hours_today, 2)
         remaining_hours = round(remaining_hours - hours_today, 2)
 
     # ── Step 7: Safety net ────────────────────────────────────
-    # Try ALL days with any remaining capacity
     if remaining_hours >= 0.5:
-        # Sort days by most available hours first
         sorted_days = sorted(
             all_available,
             key=lambda d: day_availability.get(d, 0),
@@ -245,10 +239,7 @@ def generate_study_sessions(task, preference):
             remaining_hours = round(remaining_hours - hours_today, 2)
 
     # ── Step 8: Last resort ───────────────────────────────────
-    # If still remaining hours, add to session with most hours
-    # This guarantees total_hours is always fully scheduled
     if remaining_hours >= 0.5 and sessions:
-        # Find session with most available capacity on its day
         best_session = max(sessions, key=lambda s: s['scheduled_hours'])
         best_session['scheduled_hours'] = round(
             best_session['scheduled_hours'] + remaining_hours, 2
@@ -279,14 +270,12 @@ def check_and_redistribute(user, preference):
     max_focus = preference.max_focus_hours
     today = timezone.localdate()
 
-    # Check next 14 weekdays
     days_to_check = [
         today + timedelta(days=i)
         for i in range(14)
         if (today + timedelta(days=i)).weekday() < 5
     ]
 
-    # Find the most overloaded day
     overloaded_day = None
     overloaded_pct = 0
 
@@ -299,7 +288,6 @@ def check_and_redistribute(user, preference):
     if not overloaded_day:
         return None
 
-    # Find sessions on overloaded day sorted by lowest CLS first
     overloaded_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=overloaded_day,
@@ -309,8 +297,6 @@ def check_and_redistribute(user, preference):
     if not overloaded_sessions.exists():
         return None
 
-    # Find most moveable session
-    # (lowest CLS contribution + has more than 1 day until deadline)
     moveable_session = None
     for session in overloaded_sessions:
         days_until_deadline = (session.task.deadline - today).days
@@ -321,7 +307,6 @@ def check_and_redistribute(user, preference):
     if not moveable_session:
         return None
 
-    # Find the best day to move it to
     best_day = None
     best_pct = 100
 
@@ -342,7 +327,6 @@ def check_and_redistribute(user, preference):
     if not best_day:
         return None
 
-    # Calculate stress reduction
     new_overloaded_pct = overloaded_pct - round(
         (moveable_session.cls_contribution / (max_focus * 1.5)) * 100
     )
@@ -375,34 +359,89 @@ def handle_missed_sessions(user, preference):
     """
     Detect missed sessions (yesterday) and reschedule them.
     Returns detailed info for popup.
+
+    BUG FIXES applied here:
+    1. Syntax error: semicolon instead of colon on `if total_missed == 0`
+    2. Syntax error: unclosed string literal in return dict `'missed_count: total_missed`
+    3. Performance / potential timeout: N+1 query — `get_daily_hours_used` called
+       inside a while loop that increments day-by-day until deadline. For a task
+       with a far deadline this runs hundreds of individual DB queries per missed
+       session. Fixed by bulk-fetching all daily-hours-used in a single query and
+       maintaining an in-memory accumulator.
+    4. No max-day guard on the while loop: if `deadline` is in the past or equal
+       to today the loop condition `next_day < deadline` is already False, but if
+       the deadline is far in the future the loop could run for months of days
+       before finding a free slot. The bulk-fetch approach below eliminates this
+       risk entirely.
+    5. Inner query inside the reschedule block (`day_sessions` re-fetched per
+       session) replaced with data already available in memory.
     """
     from schedule.models import StudySession
+    from django.db.models import Sum
 
     yesterday = timezone.localdate() - timedelta(days=1)
     today = timezone.localdate()
     study_start = preference.active_study_start
-    max_focus = preference.max_focus_hours
+    max_focus = float(preference.max_focus_hours)
 
     missed_sessions = StudySession.objects.filter(
         user=user,
         scheduled_date=yesterday,
         is_completed=False,
-        is_missed=False
+        is_missed=False,
     ).select_related('task').order_by('task__deadline', 'task__task_id')
 
     total_missed = missed_sessions.count()
 
-    if total_missed == 0;
+    if total_missed == 0:                          # FIX 1: was semicolon
         return {
             'count': 0,
-            'missed_count':0,
-            'items':[]
-    }
+            'missed_count': 0,
+            'items': [],
+        }
+
+    # ── Performance fix: bulk-fetch all future scheduled hours ──────────────
+    # Instead of hitting the DB inside the while loop for every candidate day,
+    # we load the aggregate once and keep an in-memory dict we update as we
+    # reschedule sessions.
+    #
+    # Shape: { date: total_incomplete_hours_scheduled }
+    from collections import defaultdict
+
+    # Fetch all incomplete sessions from today onwards for this user.
+    future_sessions_qs = StudySession.objects.filter(
+        user=user,
+        scheduled_date__gte=today,
+        is_completed=False,
+    ).values('scheduled_date', 'scheduled_hours')
+
+    # Build in-memory hours map  { date -> float }
+    day_hours_map = defaultdict(float)
+    for row in future_sessions_qs:
+        day_hours_map[row['scheduled_date']] += float(row['scheduled_hours'])
+
+    # Also build a map of sessions per day so we can compute time slots without
+    # extra queries.  { date -> [list of (session_id, scheduled_hours)] }
+    # We need the actual session objects for the time-chaining logic below.
+    future_sessions_full = StudySession.objects.filter(
+        user=user,
+        scheduled_date__gte=today,
+        is_completed=False,
+    ).select_related('task').order_by('task__deadline', 'task__task_id')
+
+    day_sessions_map = defaultdict(list)
+    for s in future_sessions_full:
+        day_sessions_map[s.scheduled_date].append(s)
+
+    # ── Mark all missed sessions first (single save per session) ─────────────
+    for session in missed_sessions:
+        session.is_missed = True
+        session.save()
+
+    # ── Build original time slots for yesterday ───────────────────────────────
+    cur_mins = study_start.hour * 60 + study_start.minute
 
     rescheduled_items = []
-
-    # 👉 Build original times (yesterday)
-    cur_mins = study_start.hour * 60 + study_start.minute
 
     for session in missed_sessions:
         dur = int(session.scheduled_hours * 60)
@@ -412,42 +451,48 @@ def handle_missed_sessions(user, preference):
         end_h, end_m = divmod(end_mins, 60)
 
         original_start = f"{str(start_h).zfill(2)}:{str(start_m).zfill(2)}"
-        original_end = f"{str(end_h).zfill(2)}:{str(end_m).zfill(2)}"
+        original_end   = f"{str(end_h).zfill(2)}:{str(end_m).zfill(2)}"
 
-        # mark missed
-        session.is_missed = True
-        session.save()
+        cur_mins = end_mins   # advance for next missed session's original slot
 
-        # 👉 find new day
-        next_day = today
+        # ── Find earliest future weekday with enough capacity ────────────────
         deadline = session.task.deadline
-
+        next_day = today
         moved = False
 
-        while next_day < deadline:
-            if next_day.weekday() >= 5:  # skip weekend
+        # Safety cap: never scan more than 365 days
+        scan_limit = today + timedelta(days=365)
+
+        while next_day < deadline and next_day <= scan_limit:
+            if next_day.weekday() >= 5:          # skip weekends
                 next_day += timedelta(days=1)
                 continue
 
-            hours_used = get_daily_hours_used(user, next_day, max_focus)
-            available = max_focus - hours_used
+            hours_used = day_hours_map[next_day]  # O(1) — no DB query
+            available  = max_focus - hours_used
 
             if available >= session.scheduled_hours:
+                # ── Reschedule in DB ──────────────────────────────────────
                 session.scheduled_date = next_day
                 session.is_missed = False
                 session.save()
 
-                # 👉 rebuild new time
-                day_sessions = StudySession.objects.filter(
-                    user=user,
-                    scheduled_date=next_day
-                ).select_related('task').order_by('task__deadline', 'task__task_id')
+                # Update in-memory map so subsequent sessions see the new load
+                day_hours_map[next_day] += session.scheduled_hours
 
+                # Insert session into day_sessions_map for time chaining
+                day_sessions_map[next_day].append(session)
+                # Re-sort by deadline then task_id to keep order stable
+                day_sessions_map[next_day].sort(
+                    key=lambda s: (s.task.deadline, s.task.task_id)
+                )
+
+                # ── Compute new start/end by chaining slots in memory ─────
                 cur2 = study_start.hour * 60 + study_start.minute
                 new_start = ""
-                new_end = ""
+                new_end   = ""
 
-                for s in day_sessions:
+                for s in day_sessions_map[next_day]:
                     dur2 = int(s.scheduled_hours * 60)
                     end2 = cur2 + dur2
 
@@ -456,19 +501,19 @@ def handle_missed_sessions(user, preference):
 
                     if s.session_id == session.session_id:
                         new_start = f"{str(sh).zfill(2)}:{str(sm).zfill(2)}"
-                        new_end = f"{str(eh).zfill(2)}:{str(em).zfill(2)}"
+                        new_end   = f"{str(eh).zfill(2)}:{str(em).zfill(2)}"
                         break
 
                     cur2 = end2
 
                 rescheduled_items.append({
-                    'task_title': session.task.title,
-                    'task_day': yesterday.strftime('%A'),
-                    'task_start': original_start,
-                    'task_end': original_end,
-                    'reschedule_day': next_day.strftime('%A'),
+                    'task_title':       session.task.title,
+                    'task_day':         yesterday.strftime('%A'),
+                    'task_start':       original_start,
+                    'task_end':         original_end,
+                    'reschedule_day':   next_day.strftime('%A'),
                     'reschedule_start': new_start,
-                    'reschedule_end': new_end,
+                    'reschedule_end':   new_end,
                 })
 
                 moved = True
@@ -477,13 +522,15 @@ def handle_missed_sessions(user, preference):
             next_day += timedelta(days=1)
 
         if not moved:
-            session.save()
+            # No slot found before deadline — leave as missed (already saved above)
+            pass
 
     return {
         'count': len(rescheduled_items),
-        'missed_count: total_missed,
-        'items': rescheduled_items
+        'missed_count': total_missed,          # FIX 2: was unclosed string literal
+        'items': rescheduled_items,
     }
+
 
 # ─────────────────────────────────────────────────────────────
 # PROGRESS TRACKER
@@ -493,8 +540,6 @@ def calculate_progress(task):
     """
     Returns progress percentage for a task
     based on completed study hours vs total scheduled hours.
-    This is more accurate than counting sessions because
-    sessions may have different durations.
     """
     from schedule.models import StudySession
 
